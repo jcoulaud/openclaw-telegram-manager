@@ -1,3 +1,10 @@
+# 1.0.0 (2026-02-11)
+
+
+### Bug Fixes
+
+* use audit-ci with allowlist for upstream tar vulnerabilities ([d8cc664](https://github.com/jcoulaud/openclaw-telegram-manager/commit/d8cc664ca1e22701836d778d2bcc10a71589e478))
+
 # Changelog
 
 Format follows [Keep a Changelog](https://keepachangelog.com/). Versioning follows [Semantic Versioning](https://semver.org/).

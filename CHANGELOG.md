@@ -1,3 +1,11 @@
+## [1.1.1](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.1.0...v1.1.1) (2026-02-11)
+
+
+### Bug Fixes
+
+* install npm dependencies after copying plugin files ([8cf1a82](https://github.com/jcoulaud/openclaw-telegram-manager/commit/8cf1a823df97e765210529d4691f91841e738658))
+* read plugin version from package.json instead of hardcoded value ([80fa8f8](https://github.com/jcoulaud/openclaw-telegram-manager/commit/80fa8f88c000030bd2b3ad0a5f7c3046793cd31d))
+
 # [1.1.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.0.1...v1.1.0) (2026-02-11)
 
 

@@ -1,3 +1,10 @@
+## [1.3.4](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.3...v1.3.4) (2026-02-11)
+
+
+### Bug Fixes
+
+* restore inline groups in config on uninstall instead of deleting ([d73e406](https://github.com/jcoulaud/openclaw-telegram-manager/commit/d73e4068f103c673b752678469cbb0d3f90232fc))
+
 ## [1.3.3](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.2...v1.3.3) (2026-02-11)
 
 

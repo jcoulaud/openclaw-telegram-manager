@@ -1,3 +1,10 @@
+## [1.3.3](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.2...v1.3.3) (2026-02-11)
+
+
+### Bug Fixes
+
+* suppress false 'Gateway restarted' message on restart failure ([0a02839](https://github.com/jcoulaud/openclaw-telegram-manager/commit/0a02839d90942798f5919e68572b5de9dc4f78f2))
+
 ## [1.3.2](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.1...v1.3.2) (2026-02-11)
 
 

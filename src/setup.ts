@@ -344,7 +344,7 @@ function patchConfig(configDir: string): Record<string, unknown> | null {
     const load = skills['load'] as Record<string, unknown>;
 
     const extraDirs = Array.isArray(load['extraDirs']) ? load['extraDirs'] as string[] : [];
-    extraDirs.push(`./${SKILLS_DIR_RELATIVE}`);
+    extraDirs.push(path.join(configDir, SKILLS_DIR_RELATIVE));
     load['extraDirs'] = extraDirs;
   }
 

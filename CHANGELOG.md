@@ -1,3 +1,12 @@
+## [1.0.1](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.0.0...v1.0.1) (2026-02-11)
+
+
+### Bug Fixes
+
+* upgrade npm in release job for trusted publishing support ([4b51dbf](https://github.com/jcoulaud/openclaw-telegram-manager/commit/4b51dbf000eaf992614b9012e757825b5258b7d0))
+* upgrade semantic-release plugins for trusted publishing ([91ce154](https://github.com/jcoulaud/openclaw-telegram-manager/commit/91ce154138c58256070a913cca5a95a8565a1395))
+* use npm install in release job for npm 11 compatibility ([dc50d12](https://github.com/jcoulaud/openclaw-telegram-manager/commit/dc50d12cb18ac5cec97fed42ab1cbaf0614ea50b))
+
 # 1.0.0 (2026-02-11)
 
 

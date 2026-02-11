@@ -8,7 +8,9 @@ import { execSync } from 'node:child_process';
 // ── Constants ──────────────────────────────────────────────────────────
 
 const PLUGIN_NAME = 'openclaw-telegram-manager';
-const PLUGIN_VERSION = '1.0.0';
+const PLUGIN_VERSION: string = JSON.parse(
+  fs.readFileSync(new URL('../package.json', import.meta.url), 'utf-8'),
+).version;
 const MIN_OPENCLAW_VERSION = '2026.1.0';
 const INCLUDE_FILENAME = 'telegram-manager.generated.groups.json5';
 const REGISTRY_FILENAME = 'topics.json';
@@ -219,6 +221,7 @@ function installPlugin(configDir: string): void {
       if (!fs.existsSync(src)) continue;
       copyRecursive(src, path.join(extDir, entry));
     }
+    installDeps(extDir);
     ok('Plugin installed');
     return;
   }

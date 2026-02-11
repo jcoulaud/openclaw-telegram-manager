@@ -1,3 +1,11 @@
+## [1.3.2](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.1...v1.3.2) (2026-02-11)
+
+
+### Bug Fixes
+
+* always refresh plugin files on setup for upgrades ([c544110](https://github.com/jcoulaud/openclaw-telegram-manager/commit/c544110f1f836c781945a2bbf5ff26cc0d58c05a))
+* reorder uninstall to avoid gateway hot-reload race ([2b94167](https://github.com/jcoulaud/openclaw-telegram-manager/commit/2b941678c94fec484b33f938698289a742243ec9))
+
 ## [1.3.1](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.0...v1.3.1) (2026-02-11)
 
 

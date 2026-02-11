@@ -1,3 +1,10 @@
+## [1.3.6](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.5...v1.3.6) (2026-02-11)
+
+
+### Bug Fixes
+
+* use absolute path for skills.load.extraDirs in config ([4430db2](https://github.com/jcoulaud/openclaw-telegram-manager/commit/4430db2c1be2feab5224d5be152fea3290ec3040))
+
 ## [1.3.5](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.4...v1.3.5) (2026-02-11)
 
 

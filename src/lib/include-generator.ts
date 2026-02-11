@@ -56,9 +56,27 @@ export function computeRegistryHash(topics: Registry['topics']): string {
 export function buildIncludeObject(
   registry: Registry,
   workspaceDir: string,
+  existingInclude?: Record<string, unknown> | null,
 ): Record<string, unknown> {
   const absoluteWorkspacePath = path.resolve(workspaceDir);
-  const groups: Record<string, { topics: Record<string, unknown> }> = {};
+  const groups: Record<string, Record<string, unknown>> = {};
+
+  // Preserve group-level settings (e.g. requireMention) from existing include
+  if (existingInclude) {
+    for (const [groupId, groupVal] of Object.entries(existingInclude)) {
+      if (groupVal && typeof groupVal === 'object') {
+        const preserved: Record<string, unknown> = {};
+        for (const [key, val] of Object.entries(groupVal as Record<string, unknown>)) {
+          if (key !== 'topics') {
+            preserved[key] = val;
+          }
+        }
+        if (Object.keys(preserved).length > 0) {
+          groups[groupId] = { ...preserved, topics: {} };
+        }
+      }
+    }
+  }
 
   for (const entry of Object.values(registry.topics)) {
     const { groupId, threadId, slug, type, status } = entry;
@@ -66,12 +84,15 @@ export function buildIncludeObject(
     if (!groups[groupId]) {
       groups[groupId] = { topics: {} };
     }
+    if (!groups[groupId].topics) {
+      groups[groupId].topics = {};
+    }
 
     const isEnabled = status !== 'archived';
     const skills = getSkillsForType(type);
     const systemPrompt = getSystemPromptTemplate(slug, absoluteWorkspacePath);
 
-    groups[groupId].topics[threadId] = {
+    (groups[groupId].topics as Record<string, unknown>)[threadId] = {
       enabled: isEnabled,
       skills,
       systemPrompt,
@@ -114,7 +135,19 @@ export function generateInclude(
   registry: Registry,
   configDir: string,
 ): void {
-  const includeObj = buildIncludeObject(registry, workspaceDir);
+  // Read existing include file to preserve group-level settings
+  let existingInclude: Record<string, unknown> | null = null;
+  const existingPath = path.join(configDir, INCLUDE_FILENAME);
+  if (fs.existsSync(existingPath)) {
+    try {
+      const raw = fs.readFileSync(existingPath, 'utf-8');
+      existingInclude = JSON5.parse(raw) as Record<string, unknown>;
+    } catch {
+      // If we can't parse it, proceed without existing data
+    }
+  }
+
+  const includeObj = buildIncludeObject(registry, workspaceDir, existingInclude);
   const hash = computeRegistryHash(registry.topics);
 
   // Serialize via JSON5.stringify

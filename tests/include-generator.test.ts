@@ -248,6 +248,124 @@ describe('include-generator', () => {
       expect(topics.topics['3']?.skills).toEqual(['marketing-agent']);
     });
 
+    it('should preserve group-level settings from existingInclude', () => {
+      const registry = createEmptyRegistry('secret');
+      const entry: TopicEntry = {
+        groupId: '-100',
+        threadId: '123',
+        slug: 'test-topic',
+        type: 'coding',
+        status: 'active',
+        capsuleVersion: 1,
+        lastMessageAt: null,
+        lastDoctorReportAt: null,
+        lastDoctorRunAt: null,
+        snoozeUntil: null,
+        ignoreChecks: [],
+        consecutiveSilentDoctors: 0,
+        lastPostError: null,
+        extras: {},
+      };
+      registry.topics['-100:123'] = entry;
+
+      const existingInclude = {
+        '-100': {
+          requireMention: false,
+          topics: {
+            '999': { enabled: true, skills: ['old-skill'], systemPrompt: 'old' },
+          },
+        },
+      };
+
+      const obj = buildIncludeObject(registry, workspaceDir, existingInclude);
+
+      const group = obj['-100'] as Record<string, unknown>;
+      // requireMention should be preserved
+      expect(group.requireMention).toBe(false);
+      // topics should come from the registry, not old include
+      const topics = group.topics as Record<string, unknown>;
+      expect(topics['123']).toBeDefined();
+      // stale topic 999 should not be carried over
+      expect(topics['999']).toBeUndefined();
+    });
+
+    it('should not carry over stale topics from existingInclude', () => {
+      const registry = createEmptyRegistry('secret');
+      // No topics in registry for group -200
+
+      const existingInclude = {
+        '-200': {
+          requireMention: true,
+          topics: {
+            '42': { enabled: true, skills: [], systemPrompt: 'stale' },
+          },
+        },
+      };
+
+      const obj = buildIncludeObject(registry, workspaceDir, existingInclude);
+
+      // Group -200 should exist with preserved settings but empty topics
+      const group = obj['-200'] as Record<string, unknown>;
+      expect(group.requireMention).toBe(true);
+      const topics = group.topics as Record<string, unknown>;
+      expect(topics['42']).toBeUndefined();
+      expect(Object.keys(topics)).toHaveLength(0);
+    });
+
+    it('should work with empty existingInclude', () => {
+      const registry = createEmptyRegistry('secret');
+      const entry: TopicEntry = {
+        groupId: '-100',
+        threadId: '1',
+        slug: 'test',
+        type: 'coding',
+        status: 'active',
+        capsuleVersion: 1,
+        lastMessageAt: null,
+        lastDoctorReportAt: null,
+        lastDoctorRunAt: null,
+        snoozeUntil: null,
+        ignoreChecks: [],
+        consecutiveSilentDoctors: 0,
+        lastPostError: null,
+        extras: {},
+      };
+      registry.topics['-100:1'] = entry;
+
+      const obj = buildIncludeObject(registry, workspaceDir, {});
+
+      const group = obj['-100'] as Record<string, unknown>;
+      expect(group.topics).toBeDefined();
+      const topics = group.topics as Record<string, unknown>;
+      expect(topics['1']).toBeDefined();
+    });
+
+    it('should work with null existingInclude', () => {
+      const registry = createEmptyRegistry('secret');
+      const entry: TopicEntry = {
+        groupId: '-100',
+        threadId: '1',
+        slug: 'test',
+        type: 'coding',
+        status: 'active',
+        capsuleVersion: 1,
+        lastMessageAt: null,
+        lastDoctorReportAt: null,
+        lastDoctorRunAt: null,
+        snoozeUntil: null,
+        ignoreChecks: [],
+        consecutiveSilentDoctors: 0,
+        lastPostError: null,
+        extras: {},
+      };
+      registry.topics['-100:1'] = entry;
+
+      const obj = buildIncludeObject(registry, workspaceDir, null);
+
+      const group = obj['-100'] as Record<string, unknown>;
+      expect(group.topics).toBeDefined();
+    });
+
     it('should group topics by groupId', () => {
       const registry = createEmptyRegistry('secret');
 

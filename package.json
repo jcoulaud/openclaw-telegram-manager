@@ -13,7 +13,6 @@
     "openclaw-telegram-manager": "./dist/setup.js"
   },
   "files": [
-    "src/",
     "dist/",
     "skills/",
     "openclaw.plugin.json"
@@ -44,7 +43,7 @@
     "vitest": "^4.0.18"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.build.json && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/plugin.js",
+    "build": "tsc --project tsconfig.build.json && esbuild src/index.ts --bundle --platform=node --target=node18 --format=esm --outfile=dist/plugin.js",
     "prepublishOnly": "npm run build",
     "test": "vitest run",
     "lint": "tsc --noEmit",

@@ -15,6 +15,7 @@ const MIN_OPENCLAW_VERSION = '2026.1.0';
 const INCLUDE_FILENAME = 'telegram-manager.generated.groups.json5';
 const REGISTRY_FILENAME = 'topics.json';
 const PLUGIN_FILES = ['openclaw.plugin.json', 'dist/plugin.js', 'skills', 'package.json'];
+const REQUIRED_PLUGIN_FILES = ['openclaw.plugin.json', 'dist/plugin.js'];
 
 // ── Colors (zero dependencies, respects NO_COLOR / non-TTY) ──────────
 
@@ -254,6 +255,12 @@ function installPlugin(configDir: string): void {
 
   const pkgRoot = findPackageRoot();
   if (pkgRoot) {
+    for (const req of REQUIRED_PLUGIN_FILES) {
+      if (!fs.existsSync(path.join(pkgRoot, req))) {
+        fail(`Required file missing: ${req}. Was \`npm run build\` run before publishing?`);
+        process.exit(1);
+      }
+    }
     fs.mkdirSync(extDir, { recursive: true });
     for (const entry of PLUGIN_FILES) {
       const src = path.join(pkgRoot, entry);
@@ -449,7 +456,6 @@ function compareVersions(a: string, b: string): number {
   }
   return 0;
 }
-
 
 function findPackageRoot(): string | null {
   let dir = path.dirname(new URL(import.meta.url).pathname);

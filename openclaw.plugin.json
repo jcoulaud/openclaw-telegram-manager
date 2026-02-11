@@ -1,0 +1,9 @@
+{
+  "id": "openclaw-telegram-manager",
+  "name": "Telegram Topic Manager",
+  "version": "1.0.0",
+  "description": "Deterministic Telegram forum topic management for OpenClaw",
+  "license": "MIT",
+  "slotType": "tool",
+  "entry": "./src/index.ts"
+}

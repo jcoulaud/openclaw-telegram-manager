@@ -1,3 +1,15 @@
+# [1.2.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.1.1...v1.2.0) (2026-02-11)
+
+
+### Bug Fixes
+
+* copy dependencies from npx context during setup ([5d354e7](https://github.com/jcoulaud/openclaw-telegram-manager/commit/5d354e7f500873539e25d2e4d69a290317485625))
+
+
+### Features
+
+* add animated spinner to CLI setup and uninstall steps ([542efa9](https://github.com/jcoulaud/openclaw-telegram-manager/commit/542efa9059b787024012a6a609d181e28bd978ba))
+
 ## [1.1.1](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.1.0...v1.1.1) (2026-02-11)
 
 

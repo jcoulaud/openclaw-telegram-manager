@@ -1,0 +1,206 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { BASE_FILES, OVERLAY_FILES, CAPSULE_VERSION } from './types.js';
+import type { TopicType } from './types.js';
+import { jailCheck, rejectSymlink } from './security.js';
+
+// ── Template content (embedded string constants) ───────────────────────
+// These are the source-of-truth defaults, matching src/templates/.
+
+const BASE_TEMPLATES: Record<string, (slug: string) => string> = {
+  'README.md': (slug) =>
+    `# ${slug}\n\n_Describe what this topic is about._\n`,
+
+  'STATUS.md': (slug) =>
+    `# Status: ${slug}\n\n## Last done (UTC)\n\n${new Date().toISOString()}\n\n_No work recorded yet._\n\n## Next 3 actions\n\n1. [T-1] _Define first task in TODO.md_\n2. [T-2] _Define second task in TODO.md_\n3. [T-3] _Define third task in TODO.md_\n`,
+
+  'TODO.md': (slug) =>
+    `# TODO: ${slug}\n\n## Backlog\n\n- [T-1] _First task placeholder — replace with actual task_\n- [T-2] _Second task placeholder — replace with actual task_\n- [T-3] _Third task placeholder — replace with actual task_\n\n## Completed\n\n_None yet._\n`,
+
+  'COMMANDS.md': (slug) =>
+    `# Commands: ${slug}\n\n_Durable command reference for this topic. Add build, deploy, test, and other commands here so they survive resets and compaction._\n`,
+
+  'LINKS.md': (slug) =>
+    `# Links: ${slug}\n\n_URLs, paths, and service endpoints for this topic. Add entries here so they survive resets and compaction._\n`,
+
+  'CRON.md': (slug) =>
+    `# Cron: ${slug}\n\n_Cron job IDs and schedules associated with this topic. Record job IDs here so they can be verified by doctor checks._\n`,
+
+  'NOTES.md': (slug) =>
+    `# Notes: ${slug}\n\n_Freeform persistent notes for this topic. Anything worth remembering across resets and compaction._\n`,
+};
+
+const OVERLAY_TEMPLATES: Record<string, (slug: string) => string> = {
+  'ARCHITECTURE.md': (slug) =>
+    `# Architecture: ${slug}\n\n_High-level architecture overview for this coding topic. Document components, data flow, dependencies, and design decisions._\n`,
+
+  'DEPLOY.md': (slug) =>
+    `# Deployment: ${slug}\n\n_Deployment guide for this coding topic. Document environments, deployment steps, rollback procedures, and infrastructure details._\n`,
+
+  'SOURCES.md': (slug) =>
+    `# Sources: ${slug}\n\n_Research sources for this topic. Document papers, articles, datasets, APIs, and other reference material._\n`,
+
+  'FINDINGS.md': (slug) =>
+    `# Findings: ${slug}\n\n_Research findings for this topic. Document conclusions, insights, data summaries, and recommendations._\n`,
+
+  'CAMPAIGNS.md': (slug) =>
+    `# Campaigns: ${slug}\n\n_Campaign tracking for this marketing topic. Document active campaigns, target audiences, channels, timelines, and budgets._\n`,
+
+  'METRICS.md': (slug) =>
+    `# Metrics: ${slug}\n\n_Metrics tracking for this marketing topic. Document KPIs, conversion rates, engagement stats, and performance data._\n`,
+};
+
+// ── File permissions ───────────────────────────────────────────────────
+
+const CAPSULE_FILE_MODE = 0o640;
+
+// ── Scaffold ───────────────────────────────────────────────────────────
+
+/**
+ * Scaffold a new capsule directory with base kit + type overlays.
+ * Uses fs.mkdirSync with exclusive flag as the atomic reservation mechanism.
+ * Throws if the directory already exists (collision).
+ */
+export function scaffoldCapsule(
+  projectsBase: string,
+  slug: string,
+  type: TopicType,
+): void {
+  const capsuleDir = path.join(projectsBase, slug);
+
+  // Path jail check
+  if (!jailCheck(projectsBase, slug)) {
+    throw new Error(`Path escapes projects directory: ${slug}`);
+  }
+
+  // Symlink check on parent
+  if (rejectSymlink(projectsBase)) {
+    throw new Error(`Projects base is a symlink: ${projectsBase}`);
+  }
+
+  // Atomic directory creation (exclusive)
+  fs.mkdirSync(capsuleDir, { recursive: false });
+
+  // Write base files
+  for (const file of BASE_FILES) {
+    const templateFn = BASE_TEMPLATES[file];
+    if (templateFn) {
+      const filePath = path.join(capsuleDir, file);
+      fs.writeFileSync(filePath, templateFn(slug), { mode: CAPSULE_FILE_MODE });
+    }
+  }
+
+  // Write overlay files for the type
+  const overlays = OVERLAY_FILES[type];
+  for (const file of overlays) {
+    const templateFn = OVERLAY_TEMPLATES[file];
+    if (templateFn) {
+      const filePath = path.join(capsuleDir, file);
+      fs.writeFileSync(filePath, templateFn(slug), { mode: CAPSULE_FILE_MODE });
+    }
+  }
+}
+
+// ── Upgrade ────────────────────────────────────────────────────────────
+
+export interface UpgradeResult {
+  upgraded: boolean;
+  newVersion: number;
+  addedFiles: string[];
+}
+
+/**
+ * Upgrade an existing capsule to the latest template version.
+ * Adds missing files without overwriting existing ones.
+ */
+export function upgradeCapsule(
+  projectsBase: string,
+  slug: string,
+  type: TopicType,
+  currentVersion: number,
+): UpgradeResult {
+  if (currentVersion >= CAPSULE_VERSION) {
+    return { upgraded: false, newVersion: currentVersion, addedFiles: [] };
+  }
+
+  const capsuleDir = path.join(projectsBase, slug);
+
+  if (!jailCheck(projectsBase, slug)) {
+    throw new Error(`Path escapes projects directory: ${slug}`);
+  }
+
+  if (rejectSymlink(capsuleDir)) {
+    throw new Error(`Capsule directory is a symlink: ${capsuleDir}`);
+  }
+
+  const addedFiles: string[] = [];
+
+  // Add missing base files
+  for (const file of BASE_FILES) {
+    const filePath = path.join(capsuleDir, file);
+    if (!fs.existsSync(filePath)) {
+      const templateFn = BASE_TEMPLATES[file];
+      if (templateFn) {
+        fs.writeFileSync(filePath, templateFn(slug), { mode: CAPSULE_FILE_MODE });
+        addedFiles.push(file);
+      }
+    }
+  }
+
+  // Add missing overlay files
+  const overlays = OVERLAY_FILES[type];
+  for (const file of overlays) {
+    const filePath = path.join(capsuleDir, file);
+    if (!fs.existsSync(filePath)) {
+      const templateFn = OVERLAY_TEMPLATES[file];
+      if (templateFn) {
+        fs.writeFileSync(filePath, templateFn(slug), { mode: CAPSULE_FILE_MODE });
+        addedFiles.push(file);
+      }
+    }
+  }
+
+  return {
+    upgraded: true,
+    newVersion: CAPSULE_VERSION,
+    addedFiles,
+  };
+}
+
+// ── Validate ───────────────────────────────────────────────────────────
+
+export interface CapsuleValidation {
+  missing: string[];
+  present: string[];
+}
+
+/**
+ * Validate that a capsule has all expected files.
+ * Returns lists of present and missing files.
+ */
+export function validateCapsule(
+  projectsBase: string,
+  slug: string,
+  type: TopicType,
+): CapsuleValidation {
+  const capsuleDir = path.join(projectsBase, slug);
+
+  if (!jailCheck(projectsBase, slug)) {
+    throw new Error(`Path escapes projects directory: ${slug}`);
+  }
+
+  const expectedFiles = [...BASE_FILES, ...OVERLAY_FILES[type]];
+  const missing: string[] = [];
+  const present: string[] = [];
+
+  for (const file of expectedFiles) {
+    const filePath = path.join(capsuleDir, file);
+    if (fs.existsSync(filePath)) {
+      present.push(file);
+    } else {
+      missing.push(file);
+    }
+  }
+
+  return { missing, present };
+}

@@ -1,0 +1,229 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { readRegistry, withRegistry } from '../lib/registry.js';
+import { checkAuthorization } from '../lib/auth.js';
+import {
+  topicKey,
+  CAPSULE_VERSION,
+} from '../lib/types.js';
+import type { TopicType, TopicEntry } from '../lib/types.js';
+import {
+  validateSlug,
+  sanitizeSlug,
+  jailCheck,
+  rejectSymlink,
+  htmlEscape,
+  validateGroupId,
+  validateThreadId,
+} from '../lib/security.js';
+import { scaffoldCapsule } from '../lib/capsule.js';
+import { buildTopicCard } from '../lib/telegram.js';
+import { generateInclude } from '../lib/include-generator.js';
+import { triggerRestart, getConfigWrites } from '../lib/config-restart.js';
+import { appendAudit, buildAuditEntry } from '../lib/audit.js';
+import type { CommandContext, CommandResult } from './help.js';
+
+const VALID_TYPES: ReadonlySet<string> = new Set<TopicType>(['coding', 'research', 'marketing', 'custom']);
+
+export async function handleInit(ctx: CommandContext, args: string): Promise<CommandResult> {
+  const { workspaceDir, configDir, userId, groupId, threadId, rpc, logger, messageContext } = ctx;
+
+  if (!userId || !groupId || !threadId) {
+    return { text: 'Missing context: groupId, threadId, or userId not available. Run this command inside a Telegram forum topic.' };
+  }
+
+  // Validate IDs
+  if (!validateGroupId(groupId)) {
+    return { text: 'Invalid groupId format.' };
+  }
+
+  if (!validateThreadId(threadId)) {
+    return { text: 'Invalid threadId format.' };
+  }
+
+  const registry = readRegistry(workspaceDir);
+
+  // Auth check (user tier, with first-user bootstrap)
+  const auth = checkAuthorization(userId, 'init', registry);
+  if (!auth.authorized) {
+    return { text: auth.message ?? 'Not authorized.' };
+  }
+
+  // Max topics check
+  const topicCount = Object.keys(registry.topics).length;
+  if (topicCount >= registry.maxTopics) {
+    return {
+      text: `Maximum number of topics (${registry.maxTopics}) reached. Archive or remove existing topics first.`,
+    };
+  }
+
+  // Check if topic already registered
+  const key = topicKey(groupId, threadId);
+  if (registry.topics[key]) {
+    return {
+      text: `This topic is already registered as <code>${htmlEscape(registry.topics[key]!.slug)}</code>.`,
+      parseMode: 'HTML',
+    };
+  }
+
+  // Parse args: [slug] [type]
+  const parts = args.trim().split(/\s+/);
+  let slugArg = parts[0] ?? '';
+  let typeArg = parts[1] ?? '';
+
+  // Derive slug from topic title or args
+  const topicTitle = (messageContext?.['topicTitle'] as string) ?? '';
+  let slug: string;
+
+  if (slugArg) {
+    slug = slugArg;
+  } else if (topicTitle) {
+    slug = sanitizeSlug(topicTitle);
+  } else {
+    slug = `topic-${threadId}`;
+  }
+
+  // Ensure slug starts with a letter (sanitizeSlug may produce something starting with a digit)
+  if (slug && !/^[a-z]/.test(slug)) {
+    slug = 't-' + slug;
+  }
+
+  // Validate slug
+  if (!validateSlug(slug)) {
+    return {
+      text: `Invalid slug "${htmlEscape(slug)}". Must start with a letter, lowercase alphanumeric + hyphens, max 50 chars.`,
+    };
+  }
+
+  // Determine type
+  let topicType: TopicType = 'coding';
+  if (typeArg && VALID_TYPES.has(typeArg.toLowerCase())) {
+    topicType = typeArg.toLowerCase() as TopicType;
+  }
+
+  const projectsBase = path.join(workspaceDir, 'projects');
+
+  // Path jail check
+  if (!jailCheck(projectsBase, slug)) {
+    return { text: 'Path safety check failed. Slug may escape the projects directory.' };
+  }
+
+  // Symlink check on projects base
+  if (rejectSymlink(projectsBase)) {
+    return { text: 'Projects base is a symlink. Aborting for security.' };
+  }
+
+  // Collision detection (registry)
+  const slugInUse = Object.values(registry.topics).some((t) => t.slug === slug);
+  const diskExists = fs.existsSync(path.join(projectsBase, slug));
+
+  let finalSlug = slug;
+  if (slugInUse || diskExists) {
+    // Append last 4 chars of groupId for uniqueness
+    const suffix = groupId.replace(/^-/, '').slice(-4);
+    finalSlug = `${slug}-${suffix}`.slice(0, 50);
+
+    if (!validateSlug(finalSlug)) {
+      return { text: `Could not generate a unique slug. Please provide one: /topic init &lt;slug&gt; [type]` };
+    }
+
+    // Check the fallback slug too
+    const fallbackInUse = Object.values(registry.topics).some((t) => t.slug === finalSlug);
+    if (fallbackInUse) {
+      return {
+        text: `Both <code>${htmlEscape(slug)}</code> and <code>${htmlEscape(finalSlug)}</code> are taken. Please provide a unique slug: /topic init &lt;slug&gt; [type]`,
+        parseMode: 'HTML',
+      };
+    }
+
+    // Re-check jail for fallback slug
+    if (!jailCheck(projectsBase, finalSlug)) {
+      return { text: 'Path safety check failed for fallback slug.' };
+    }
+  }
+
+  // Symlink check on target path
+  const targetPath = path.join(projectsBase, finalSlug);
+  if (rejectSymlink(targetPath)) {
+    return { text: 'Target path is a symlink. Aborting for security.' };
+  }
+
+  // Scaffold capsule and write registry entry atomically under lock
+  const isFirstUser = registry.topicManagerAdmins.length === 0;
+
+  try {
+    await withRegistry(workspaceDir, (data) => {
+      scaffoldCapsule(projectsBase, finalSlug, topicType);
+
+      const newEntry: TopicEntry = {
+        groupId,
+        threadId,
+        slug: finalSlug,
+        type: topicType,
+        status: 'active',
+        capsuleVersion: CAPSULE_VERSION,
+        lastMessageAt: new Date().toISOString(),
+        lastDoctorReportAt: null,
+        lastDoctorRunAt: null,
+        snoozeUntil: null,
+        ignoreChecks: [],
+        consecutiveSilentDoctors: 0,
+        lastPostError: null,
+        extras: {},
+      };
+
+      data.topics[key] = newEntry;
+
+      // First-user bootstrap: add as admin
+      if (isFirstUser) {
+        data.topicManagerAdmins.push(userId);
+      }
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { text: `Failed to initialize topic: ${htmlEscape(msg)}` };
+  }
+
+  // If configWrites enabled: regenerate include + trigger restart
+  let restartMsg = '';
+  const configWritesEnabled = await getConfigWrites(ctx.rpc);
+  if (configWritesEnabled) {
+    try {
+      const updatedRegistry = readRegistry(workspaceDir);
+      generateInclude(workspaceDir, updatedRegistry, configDir);
+      const result = await triggerRestart(rpc, logger);
+      if (!result.success && result.fallbackMessage) {
+        restartMsg = '\n' + result.fallbackMessage;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      restartMsg = `\nWarning: include generation failed: ${htmlEscape(msg)}`;
+    }
+  }
+
+  // Audit log
+  appendAudit(
+    workspaceDir,
+    buildAuditEntry(userId, 'init', finalSlug, `Initialized topic type=${topicType} group=${groupId} thread=${threadId}`),
+  );
+
+  // Build topic card
+  const topicCard = buildTopicCard(finalSlug, topicType, CAPSULE_VERSION);
+
+  let adminNote = '';
+  if (isFirstUser) {
+    adminNote = '\n\nYou are the first user and have been added as a telegram-manager admin.';
+  }
+
+  let slugNote = '';
+  if (finalSlug !== slug) {
+    slugNote = `\n\nNote: slug <code>${htmlEscape(slug)}</code> was taken, using <code>${htmlEscape(finalSlug)}</code> instead.`;
+  }
+
+  return {
+    text: `${topicCard}${slugNote}${adminNote}${restartMsg}`,
+    parseMode: 'HTML',
+    pin: true,
+  };
+}
+

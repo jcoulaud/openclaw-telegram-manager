@@ -1,0 +1,69 @@
+import { withRegistry } from '../lib/registry.js';
+import { readRegistry } from '../lib/registry.js';
+import { checkAuthorization } from '../lib/auth.js';
+import { topicKey } from '../lib/types.js';
+import { htmlEscape } from '../lib/security.js';
+import { appendAudit, buildAuditEntry } from '../lib/audit.js';
+import type { CommandContext, CommandResult } from './help.js';
+
+const DURATION_RE = /^(\d+)d$/;
+
+export async function handleSnooze(ctx: CommandContext, args: string): Promise<CommandResult> {
+  const { workspaceDir, userId, groupId, threadId } = ctx;
+
+  if (!userId || !groupId || !threadId) {
+    return { text: 'Missing context: userId, groupId, or threadId not available.' };
+  }
+
+  // Parse duration
+  const trimmed = args.trim();
+  if (!trimmed) {
+    return { text: 'Usage: /topic snooze &lt;Nd&gt; (e.g., 7d, 30d)' };
+  }
+
+  const match = DURATION_RE.exec(trimmed);
+  if (!match) {
+    return { text: `Invalid duration "${htmlEscape(trimmed)}". Use format: 7d, 30d, etc.` };
+  }
+
+  const days = parseInt(match[1]!, 10);
+  if (days <= 0 || days > 365) {
+    return { text: 'Duration must be between 1 and 365 days.' };
+  }
+
+  const registry = readRegistry(workspaceDir);
+
+  // Auth check (user tier)
+  const auth = checkAuthorization(userId, 'snooze', registry);
+  if (!auth.authorized) {
+    return { text: auth.message ?? 'Not authorized.' };
+  }
+
+  const key = topicKey(groupId, threadId);
+  const entry = registry.topics[key];
+
+  if (!entry) {
+    return { text: 'This topic is not registered. Run /topic init first.' };
+  }
+
+  const snoozeUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+
+  await withRegistry(workspaceDir, (data) => {
+    const topic = data.topics[key];
+    if (topic) {
+      topic.snoozeUntil = snoozeUntil;
+      topic.consecutiveSilentDoctors = 0;
+      topic.status = 'snoozed';
+    }
+  });
+
+  appendAudit(
+    workspaceDir,
+    buildAuditEntry(userId, 'snooze', entry.slug, `Snoozed for ${days} days until ${snoozeUntil}`),
+  );
+
+  return {
+    text: `Topic <code>${htmlEscape(entry.slug)}</code> snoozed for ${days} days (until ${htmlEscape(snoozeUntil)}).`,
+    parseMode: 'HTML',
+  };
+}

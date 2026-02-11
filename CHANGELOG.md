@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.0.1...v1.1.0) (2026-02-11)
+
+
+### Features
+
+* add uninstall command, fix plugin manifest, improve setup UX ([59134dd](https://github.com/jcoulaud/openclaw-telegram-manager/commit/59134dda11a9bfbf129ea1b9de155e5d27eec7ac))
+
 ## [1.0.1](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.0.0...v1.0.1) (2026-02-11)
 
 

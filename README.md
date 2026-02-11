@@ -110,15 +110,19 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ```
 src/
-  index.ts          — plugin entry point
+  index.ts          — plugin entry point (source)
   tool.ts           — routes /topic subcommands
   setup.ts          — the setup CLI
   commands/         — one file per command
   lib/              — core logic (registry, capsules, security, auth, etc.)
   templates/        — markdown templates for new capsules
+dist/
+  plugin.js         — bundled plugin (built by esbuild, all deps included)
 skills/
   topic/SKILL.md    — skill definition with rehydration behavior
 ```
+
+`npm run build` compiles TypeScript then bundles `src/index.ts` into `dist/plugin.js` with all dependencies. The setup script copies only the bundle — no `node_modules` needed at runtime.
 
 ## License
 

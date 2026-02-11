@@ -14,7 +14,7 @@ const PLUGIN_VERSION: string = JSON.parse(
 const MIN_OPENCLAW_VERSION = '2026.1.0';
 const INCLUDE_FILENAME = 'telegram-manager.generated.groups.json5';
 const REGISTRY_FILENAME = 'topics.json';
-const PLUGIN_FILES = ['openclaw.plugin.json', 'src', 'skills', 'package.json'];
+const PLUGIN_FILES = ['openclaw.plugin.json', 'dist/plugin.js', 'skills', 'package.json'];
 
 // ── Colors (zero dependencies, respects NO_COLOR / non-TTY) ──────────
 
@@ -258,10 +258,9 @@ function installPlugin(configDir: string): void {
     for (const entry of PLUGIN_FILES) {
       const src = path.join(pkgRoot, entry);
       if (!fs.existsSync(src)) continue;
-      copyRecursive(src, path.join(extDir, entry));
-    }
-    if (!copyDepsFromSource(extDir, pkgRoot)) {
-      installDeps(extDir);
+      const dest = path.join(extDir, entry);
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      copyRecursive(src, dest);
     }
     ok('Plugin installed');
     return;
@@ -451,88 +450,6 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-/**
- * Copy production dependencies from the source execution context (e.g. npx
- * temp directory) so we don't rely on `npm install` in the target directory.
- * Handles both nested and hoisted node_modules layouts.
- */
-function copyDepsFromSource(extDir: string, pkgRoot: string): boolean {
-  const targetNM = path.join(extDir, 'node_modules');
-
-  // Case 1: nested node_modules inside the source package
-  const nestedNM = path.join(pkgRoot, 'node_modules');
-  if (fs.existsSync(nestedNM)) {
-    try {
-      copyRecursive(nestedNM, targetNM);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  // Case 2: hoisted deps (typical npx layout)
-  // pkgRoot = …/node_modules/openclaw-telegram-manager/
-  const parentDir = path.dirname(pkgRoot);
-  if (path.basename(parentDir) !== 'node_modules') return false;
-
-  const pkgJsonPath = path.join(extDir, 'package.json');
-  if (!fs.existsSync(pkgJsonPath)) return false;
-
-  let deps: string[];
-  try {
-    const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
-    deps = Object.keys(pkg.dependencies ?? {});
-  } catch {
-    return false;
-  }
-  if (deps.length === 0) return true;
-
-  // BFS to collect direct deps + transitive runtime deps
-  const toCopy = new Set<string>();
-  const queue = [...deps];
-  while (queue.length > 0) {
-    const dep = queue.shift()!;
-    if (toCopy.has(dep)) continue;
-    const depPath = path.join(parentDir, dep);
-    if (!fs.existsSync(depPath)) return false; // missing → fall back to npm
-    toCopy.add(dep);
-    try {
-      const depPkg = JSON.parse(
-        fs.readFileSync(path.join(depPath, 'package.json'), 'utf-8'),
-      );
-      for (const tdep of Object.keys(depPkg.dependencies ?? {})) {
-        if (!toCopy.has(tdep)) queue.push(tdep);
-      }
-    } catch {
-      // continue — transitive dep metadata unreadable
-    }
-  }
-
-  try {
-    for (const dep of Array.from(toCopy)) {
-      const src = path.join(parentDir, dep);
-      const dest = path.join(targetNM, dep);
-      fs.mkdirSync(path.dirname(dest), { recursive: true });
-      copyRecursive(src, dest);
-    }
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function installDeps(dir: string): void {
-  try {
-    execSync('npm install --production --ignore-scripts', {
-      cwd: dir,
-      encoding: 'utf-8',
-      stdio: 'pipe',
-      timeout: 60_000,
-    });
-  } catch {
-    warn('Could not install dependencies. Run `npm install --production` in ' + dir);
-  }
-}
 
 function findPackageRoot(): string | null {
   let dir = path.dirname(new URL(import.meta.url).pathname);

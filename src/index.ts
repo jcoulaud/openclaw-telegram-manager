@@ -5,17 +5,22 @@ import { createTopicManagerTool } from './tool.js';
 
 /**
  * Resolve configDir from the plugin's own file path or well-known locations.
- * Plugin is installed at {configDir}/extensions/openclaw-telegram-manager/src/index.ts
+ * Plugin is installed at {configDir}/extensions/openclaw-telegram-manager/dist/plugin.js
+ * (or .../src/index.ts during development).
  */
 function resolveConfigDir(): string | undefined {
-  // Try deriving from this file's location
-  const thisDir = path.dirname(new URL(import.meta.url).pathname);
-  const candidate = path.resolve(thisDir, '..', '..', '..');
-  if (
-    fs.existsSync(path.join(candidate, 'openclaw.json')) ||
-    fs.existsSync(path.join(candidate, 'extensions'))
-  ) {
-    return candidate;
+  // Try deriving from this file's location by finding the "extensions" segment
+  const thisFile = new URL(import.meta.url).pathname;
+  const parts = thisFile.split(path.sep);
+  const extIndex = parts.lastIndexOf('extensions');
+  if (extIndex > 0) {
+    const candidate = parts.slice(0, extIndex).join(path.sep);
+    if (
+      fs.existsSync(path.join(candidate, 'openclaw.json')) ||
+      fs.existsSync(path.join(candidate, 'extensions'))
+    ) {
+      return candidate;
+    }
   }
 
   // Fall back to env / home directory

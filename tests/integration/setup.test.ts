@@ -248,12 +248,12 @@ describe('setup integration', () => {
       // Simulate copying plugin files
       fs.writeFileSync(path.join(extDir, 'openclaw.plugin.json'), '{}');
       fs.writeFileSync(path.join(extDir, 'package.json'), '{}');
-      fs.mkdirSync(path.join(extDir, 'src'), { recursive: true });
-      fs.writeFileSync(path.join(extDir, 'src', 'index.ts'), '');
+      fs.mkdirSync(path.join(extDir, 'dist'), { recursive: true });
+      fs.writeFileSync(path.join(extDir, 'dist', 'plugin.js'), '');
 
       expect(fs.existsSync(path.join(extDir, 'openclaw.plugin.json'))).toBe(true);
       expect(fs.existsSync(path.join(extDir, 'package.json'))).toBe(true);
-      expect(fs.existsSync(path.join(extDir, 'src', 'index.ts'))).toBe(true);
+      expect(fs.existsSync(path.join(extDir, 'dist', 'plugin.js'))).toBe(true);
     });
 
     it('should skip if plugin already installed', () => {

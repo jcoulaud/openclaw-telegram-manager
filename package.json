@@ -20,7 +20,7 @@
   ],
   "openclaw": {
     "extensions": [
-      "./src/index.ts"
+      "./dist/plugin.js"
     ]
   },
   "peerDependencies": {
@@ -40,10 +40,11 @@
     "@types/proper-lockfile": "^4.1.4",
     "semantic-release": "^25.0.3",
     "typescript": "^5.9.3",
+    "esbuild": "^0.25.0",
     "vitest": "^4.0.18"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.build.json",
+    "build": "tsc --project tsconfig.build.json && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/plugin.js",
     "prepublishOnly": "npm run build",
     "test": "vitest run",
     "lint": "tsc --noEmit",

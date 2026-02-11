@@ -46,6 +46,25 @@ export default function register(api: {
     parameters: unknown;
     execute(id: string, params: { command: string }, context?: Record<string, unknown>): Promise<unknown>;
   }): void;
+  registerCommand?(def: {
+    name: string;
+    description: string;
+    acceptsArgs?: boolean;
+    requireAuth?: boolean;
+    handler(ctx: {
+      args: string;
+      commandBody: string;
+      senderId?: string;
+      channel?: string;
+      isAuthorizedSender?: boolean;
+      config?: Record<string, unknown>;
+      // Telegram-specific (undocumented but present at runtime per gateway source)
+      messageThreadId?: string | number;
+    }): Promise<{
+      text?: string;
+      channelData?: { telegram?: { buttons?: unknown } };
+    }>;
+  }): void;
 }): void {
   const resolvedConfigDir = resolveConfigDir();
   const configDir = api.configDir ?? api.pluginConfig?.configDir ?? resolvedConfigDir;
@@ -91,6 +110,46 @@ export default function register(api: {
       };
     },
   });
+
+  // Register a plugin command so the gateway passes full message context
+  // (senderId, channel, messageThreadId). Skill command dispatch doesn't
+  // forward this context, which causes "Missing context" errors for /topic init.
+  if (api.registerCommand) {
+    api.registerCommand({
+      name: 'topic',
+      description:
+        'Manage Telegram forum topics as deterministic workcells. Sub-commands: init, doctor, list, status, sync, rename, upgrade, snooze, archive, unarchive, help.',
+      acceptsArgs: true,
+      requireAuth: false,
+      async handler(ctx) {
+        const userId = ctx.senderId;
+        // ctx.channel is documented (e.g. "telegram:-100123").
+        // Strip common prefixes to extract the numeric chat ID.
+        const groupId = ctx.channel
+          ?.replace(/^telegram:(?:group:)?/, '')
+          || undefined;
+        // messageThreadId is present at runtime for Telegram forum topics
+        // (confirmed in gateway source) but not yet in the public docs.
+        const threadId =
+          ctx.messageThreadId != null ? String(ctx.messageThreadId) : undefined;
+
+        const execContext: Record<string, unknown> = {};
+        if (userId) execContext.userId = userId;
+        if (groupId) execContext.groupId = groupId;
+        if (threadId) execContext.threadId = threadId;
+
+        const result = await tool.execute('cmd', { command: ctx.args }, execContext);
+
+        const reply: { text?: string; channelData?: { telegram?: { buttons?: unknown } } } = {
+          text: result.text,
+        };
+        if (result.inlineKeyboard) {
+          reply.channelData = { telegram: { buttons: result.inlineKeyboard } };
+        }
+        return reply;
+      },
+    });
+  }
 
   api.logger.info('telegram-manager plugin loaded');
 }

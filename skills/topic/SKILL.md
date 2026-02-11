@@ -2,9 +2,6 @@
 name: topic
 description: Manage Telegram topics as deterministic workcells with durable capsule state
 user-invocable: true
-command-dispatch: tool
-command-tool: topic_manager
-command-arg-mode: raw
 ---
 
 # Topic Manager

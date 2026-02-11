@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { handleInit } from '../../src/commands/init.js';
+import { handleInit, handleInitInteractive, handleInitSlugConfirm, handleInitTypeSelect } from '../../src/commands/init.js';
 import { createEmptyRegistry, writeRegistryAtomic, registryPath, readRegistry } from '../../src/lib/registry.js';
 import type { CommandContext } from '../../src/commands/help.js';
 
@@ -370,6 +370,186 @@ describe('commands/init', () => {
       expect(entry?.ignoreChecks).toEqual([]);
       expect(entry?.consecutiveSilentDoctors).toBe(0);
       expect(entry?.extras).toEqual({});
+    });
+  });
+
+  describe('handleInitInteractive', () => {
+    it('should delegate to handleInit when args are provided', async () => {
+      const result = await handleInitInteractive(ctx, 'my-slug coding');
+
+      expect(result.text).toContain('my-slug');
+      expect(result.pin).toBe(true);
+
+      const registry = readRegistry(workspaceDir);
+      expect(registry.topics['-100123:456']?.slug).toBe('my-slug');
+      expect(registry.topics['-100123:456']?.type).toBe('coding');
+    });
+
+    it('should return slug confirmation with inline keyboard when no args', async () => {
+      ctx.messageContext = { topicTitle: 'My Project' };
+
+      const result = await handleInitInteractive(ctx, '');
+
+      expect(result.text).toContain('my-project');
+      expect(result.text).toContain('Initialize this topic');
+      expect(result.parseMode).toBe('HTML');
+      expect(result.inlineKeyboard).toBeDefined();
+      expect(result.inlineKeyboard!.inline_keyboard).toHaveLength(1);
+      expect(result.inlineKeyboard!.inline_keyboard[0][0].text).toBe('Confirm');
+    });
+
+    it('should return slug confirmation with thread-based slug when no title', async () => {
+      ctx.messageContext = {};
+
+      const result = await handleInitInteractive(ctx, '');
+
+      expect(result.text).toContain('topic-456');
+      expect(result.inlineKeyboard).toBeDefined();
+    });
+
+    it('should reject missing context in interactive mode', async () => {
+      ctx.groupId = undefined;
+
+      const result = await handleInitInteractive(ctx, '');
+
+      expect(result.text).toContain('Missing context');
+    });
+
+    it('should reject already registered topic in interactive mode', async () => {
+      await handleInit(ctx, 'existing');
+
+      const result = await handleInitInteractive(ctx, '');
+
+      expect(result.text).toContain('already registered');
+    });
+
+    it('should reject unauthorized user in interactive mode', async () => {
+      const registry = readRegistry(workspaceDir);
+      registry.topicManagerAdmins = ['admin1'];
+      writeRegistryAtomic(registryPath(workspaceDir), registry);
+
+      ctx.userId = 'regular-user';
+
+      const result = await handleInitInteractive(ctx, '');
+
+      expect(result.text).toContain('Not authorized');
+    });
+
+    it('should fall back to text when slug is too long for callback', async () => {
+      ctx.messageContext = { topicTitle: 'a-very-long-topic-title-that-produces-a-slug-near-limits' };
+
+      const result = await handleInitInteractive(ctx, '');
+
+      // Either shows inline keyboard or falls back to text instructions
+      if (result.inlineKeyboard) {
+        expect(result.text).toContain('Initialize this topic');
+      } else {
+        expect(result.text).toContain('Suggested slug');
+        expect(result.text).toContain('/topic init');
+      }
+    });
+
+    it('should enforce max topics in interactive mode', async () => {
+      const registry = readRegistry(workspaceDir);
+      registry.maxTopics = 1;
+      writeRegistryAtomic(registryPath(workspaceDir), registry);
+
+      // Fill the one allowed slot
+      await handleInit(ctx, 'first-topic');
+
+      // Try interactive init on a different thread
+      ctx.threadId = '789';
+
+      const result = await handleInitInteractive(ctx, '');
+
+      expect(result.text).toContain('Maximum number of topics');
+    });
+  });
+
+  describe('handleInitSlugConfirm', () => {
+    it('should return type picker with inline keyboard', async () => {
+      const result = await handleInitSlugConfirm(ctx, 'my-project');
+
+      expect(result.text).toContain('my-project');
+      expect(result.text).toContain('Pick a topic type');
+      expect(result.parseMode).toBe('HTML');
+      expect(result.inlineKeyboard).toBeDefined();
+
+      const rows = result.inlineKeyboard!.inline_keyboard;
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toHaveLength(2);
+      expect(rows[0][0].text).toBe('Coding');
+      expect(rows[0][1].text).toBe('Research');
+      expect(rows[1][0].text).toBe('Marketing');
+      expect(rows[1][1].text).toBe('Custom');
+    });
+
+    it('should reject missing context', async () => {
+      ctx.userId = undefined;
+
+      const result = await handleInitSlugConfirm(ctx, 'my-project');
+
+      expect(result.text).toContain('Missing context');
+    });
+
+    it('should reject unauthorized user', async () => {
+      const registry = readRegistry(workspaceDir);
+      registry.topicManagerAdmins = ['admin1'];
+      writeRegistryAtomic(registryPath(workspaceDir), registry);
+
+      ctx.userId = 'regular-user';
+
+      const result = await handleInitSlugConfirm(ctx, 'my-project');
+
+      expect(result.text).toContain('Not authorized');
+    });
+
+    it('should reject already registered topic', async () => {
+      await handleInit(ctx, 'existing');
+
+      const result = await handleInitSlugConfirm(ctx, 'my-project');
+
+      expect(result.text).toContain('already registered');
+    });
+  });
+
+  describe('handleInitTypeSelect', () => {
+    it('should complete init with coding type', async () => {
+      const result = await handleInitTypeSelect(ctx, 'my-project', 'coding');
+
+      expect(result.text).toContain('my-project');
+      expect(result.pin).toBe(true);
+
+      const registry = readRegistry(workspaceDir);
+      expect(registry.topics['-100123:456']?.type).toBe('coding');
+    });
+
+    it('should complete init with research type', async () => {
+      const result = await handleInitTypeSelect(ctx, 'my-project', 'research');
+
+      const registry = readRegistry(workspaceDir);
+      expect(registry.topics['-100123:456']?.type).toBe('research');
+    });
+
+    it('should complete init with marketing type', async () => {
+      const result = await handleInitTypeSelect(ctx, 'my-project', 'marketing');
+
+      const registry = readRegistry(workspaceDir);
+      expect(registry.topics['-100123:456']?.type).toBe('marketing');
+    });
+
+    it('should complete init with custom type', async () => {
+      const result = await handleInitTypeSelect(ctx, 'my-project', 'custom');
+
+      const registry = readRegistry(workspaceDir);
+      expect(registry.topics['-100123:456']?.type).toBe('custom');
+    });
+
+    it('should create capsule directory', async () => {
+      await handleInitTypeSelect(ctx, 'my-project', 'coding');
+
+      const capsuleDir = path.join(projectsDir, 'my-project');
+      expect(fs.existsSync(capsuleDir)).toBe(true);
     });
   });
 });

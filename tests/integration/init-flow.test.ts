@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { handleInit } from '../../src/commands/init.js';
+import { handleInit, handleInitInteractive, handleInitSlugConfirm, handleInitTypeSelect } from '../../src/commands/init.js';
 import { createEmptyRegistry, writeRegistryAtomic, registryPath, readRegistry } from '../../src/lib/registry.js';
 import { validateCapsule } from '../../src/lib/capsule.js';
 import { generateInclude, includePath, extractRegistryHash, computeRegistryHash } from '../../src/lib/include-generator.js';
@@ -421,6 +421,114 @@ describe('init flow integration', () => {
         const errors = checks.filter(c => c.severity === Severity.ERROR);
         expect(errors.length).toBe(0);
       }
+    });
+  });
+
+  describe('interactive init flow', () => {
+    it('should complete full interactive init: slug confirm → type pick → registered', async () => {
+      const ctx: CommandContext = {
+        workspaceDir,
+        configDir,
+        userId: 'user123',
+        groupId: '-100123',
+        threadId: '456',
+        rpc: null,
+        logger: console,
+        messageContext: { topicTitle: 'Interactive Project' },
+      };
+
+      // Step 1: call handleInitInteractive with no args → slug confirmation
+      const step1 = await handleInitInteractive(ctx, '');
+      expect(step1.text).toContain('interactive-project');
+      expect(step1.text).toContain('Initialize this topic');
+      expect(step1.inlineKeyboard).toBeDefined();
+      expect(step1.inlineKeyboard!.inline_keyboard[0][0].text).toBe('Confirm');
+
+      // Step 2: call handleInitSlugConfirm → type picker
+      const step2 = await handleInitSlugConfirm(ctx, 'interactive-project');
+      expect(step2.text).toContain('interactive-project');
+      expect(step2.text).toContain('Pick a topic type');
+      expect(step2.inlineKeyboard).toBeDefined();
+
+      const rows = step2.inlineKeyboard!.inline_keyboard;
+      expect(rows[0][0].text).toBe('Coding');
+      expect(rows[0][1].text).toBe('Research');
+      expect(rows[1][0].text).toBe('Marketing');
+      expect(rows[1][1].text).toBe('Custom');
+
+      // Step 3: call handleInitTypeSelect → topic registered
+      const step3 = await handleInitTypeSelect(ctx, 'interactive-project', 'research');
+      expect(step3.text).toContain('interactive-project');
+      expect(step3.text).toContain('research');
+      expect(step3.pin).toBe(true);
+
+      // Verify registry
+      const registry = readRegistry(workspaceDir);
+      const entry = registry.topics['-100123:456'];
+      expect(entry).toBeDefined();
+      expect(entry?.slug).toBe('interactive-project');
+      expect(entry?.type).toBe('research');
+      expect(entry?.status).toBe('active');
+
+      // Verify capsule created
+      const capsuleDir = path.join(projectsDir, 'interactive-project');
+      expect(fs.existsSync(capsuleDir)).toBe(true);
+
+      const validation = validateCapsule(projectsDir, 'interactive-project', 'research');
+      expect(validation.missing).toEqual([]);
+    });
+
+    it('should handle auth failure between interactive steps', async () => {
+      const ctx: CommandContext = {
+        workspaceDir,
+        configDir,
+        userId: 'user123',
+        groupId: '-100123',
+        threadId: '456',
+        rpc: null,
+        logger: console,
+        messageContext: { topicTitle: 'Auth Test' },
+      };
+
+      // Step 1 succeeds (first user, auto-admin bootstrap not yet applied)
+      const step1 = await handleInitInteractive(ctx, '');
+      expect(step1.inlineKeyboard).toBeDefined();
+
+      // Meanwhile someone else becomes first user
+      const otherCtx: CommandContext = {
+        ...ctx,
+        userId: 'other-user',
+        threadId: '999',
+      };
+      await handleInit(otherCtx, 'other-topic');
+
+      // Now user123 is no longer authorized (not admin, not first user)
+      const step2 = await handleInitSlugConfirm(ctx, 'auth-test');
+      expect(step2.text).toContain('Not authorized');
+    });
+
+    it('should handle already-registered between interactive steps', async () => {
+      const ctx: CommandContext = {
+        workspaceDir,
+        configDir,
+        userId: 'user123',
+        groupId: '-100123',
+        threadId: '456',
+        rpc: null,
+        logger: console,
+        messageContext: { topicTitle: 'Race Test' },
+      };
+
+      // Step 1 succeeds
+      const step1 = await handleInitInteractive(ctx, '');
+      expect(step1.inlineKeyboard).toBeDefined();
+
+      // Meanwhile topic gets registered via direct init
+      await handleInit(ctx, 'race-test');
+
+      // Step 2 detects already registered
+      const step2 = await handleInitSlugConfirm(ctx, 'race-test');
+      expect(step2.text).toContain('already registered');
     });
   });
 });

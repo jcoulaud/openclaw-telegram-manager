@@ -2,7 +2,7 @@ import { readRegistry, withRegistry } from './lib/registry.js';
 import { parseAndVerifyCallback, htmlEscape } from './lib/security.js';
 import { topicKey } from './lib/types.js';
 import { appendAudit, buildAuditEntry } from './lib/audit.js';
-import { handleInit } from './commands/init.js';
+import { handleInitInteractive, handleInitSlugConfirm, handleInitTypeSelect } from './commands/init.js';
 import { handleDoctor } from './commands/doctor.js';
 import { handleDoctorAll } from './commands/doctor-all.js';
 import { handleList } from './commands/list.js';
@@ -66,7 +66,7 @@ export function createTopicManagerTool(deps: ToolDeps): TopicManagerTool {
       try {
         switch (subCommand) {
           case 'init':
-            return await handleInit(ctx, args);
+            return await handleInitInteractive(ctx, args);
 
           case 'doctor':
             if (flags.has('--all') || flags.has('all')) {
@@ -216,6 +216,21 @@ async function handleCallback(data: string, ctx: CommandContext): Promise<Comman
   }
 
   const { action, slug } = parsed;
+
+  // Init callbacks: topic doesn't exist in registry yet
+  const initTypeMap: Record<string, 'coding' | 'research' | 'marketing' | 'custom'> = {
+    ic: 'coding',
+    ir: 'research',
+    im: 'marketing',
+    ix: 'custom',
+  };
+
+  if (action === 'is') {
+    return handleInitSlugConfirm(ctx, slug);
+  }
+  if (action in initTypeMap) {
+    return handleInitTypeSelect(ctx, slug, initTypeMap[action]!);
+  }
 
   // Find the topic entry by slug
   const key = topicKey(groupId, threadId);

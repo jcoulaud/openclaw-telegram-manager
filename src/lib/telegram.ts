@@ -55,6 +55,43 @@ export function buildDoctorButtons(
 }
 
 /**
+ * Build inline keyboard with a [Confirm] button for slug confirmation (init step 1).
+ */
+export function buildInitSlugButtons(
+  slug: string,
+  groupId: string,
+  threadId: string,
+  secret: string,
+): InlineKeyboardMarkup {
+  const cb = (action: string) => buildCallbackData(action, slug, groupId, threadId, secret);
+  return buildInlineKeyboard([
+    [{ text: 'Confirm', callback_data: cb('is') }],
+  ]);
+}
+
+/**
+ * Build inline keyboard with type picker buttons for init step 2.
+ */
+export function buildInitTypeButtons(
+  slug: string,
+  groupId: string,
+  threadId: string,
+  secret: string,
+): InlineKeyboardMarkup {
+  const cb = (action: string) => buildCallbackData(action, slug, groupId, threadId, secret);
+  return buildInlineKeyboard([
+    [
+      { text: 'Coding', callback_data: cb('ic') },
+      { text: 'Research', callback_data: cb('ir') },
+    ],
+    [
+      { text: 'Marketing', callback_data: cb('im') },
+      { text: 'Custom', callback_data: cb('ix') },
+    ],
+  ]);
+}
+
+/**
  * Build HTML Topic Card displayed after init.
  */
 export function buildTopicCard(slug: string, type: TopicType, capsuleVersion: number): string {

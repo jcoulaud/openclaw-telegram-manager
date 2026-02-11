@@ -15,9 +15,10 @@ import {
   htmlEscape,
   validateGroupId,
   validateThreadId,
+  buildCallbackData,
 } from '../lib/security.js';
 import { scaffoldCapsule } from '../lib/capsule.js';
-import { buildTopicCard } from '../lib/telegram.js';
+import { buildTopicCard, buildInitSlugButtons, buildInitTypeButtons } from '../lib/telegram.js';
 import { generateInclude } from '../lib/include-generator.js';
 import { triggerRestart, getConfigWrites } from '../lib/config-restart.js';
 import { appendAudit, buildAuditEntry } from '../lib/audit.js';
@@ -225,5 +226,151 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
     parseMode: 'HTML',
     pin: true,
   };
+}
+
+// ── Callback data byte limit ──────────────────────────────────────────
+
+const CALLBACK_BYTE_LIMIT = 64;
+
+/**
+ * Check whether a callback payload for the given slug fits within
+ * Telegram's 64-byte callback_data limit.
+ */
+function fitsCallbackLimit(action: string, slug: string, groupId: string, threadId: string, secret: string): boolean {
+  const data = buildCallbackData(action, slug, groupId, threadId, secret);
+  return Buffer.byteLength(data, 'utf-8') <= CALLBACK_BYTE_LIMIT;
+}
+
+// ── Interactive init flow ─────────────────────────────────────────────
+
+const INIT_TYPE_MAP: Record<string, TopicType> = {
+  ic: 'coding',
+  ir: 'research',
+  im: 'marketing',
+  ix: 'custom',
+};
+
+/**
+ * Entry point for `/topic init`. If args are provided, delegates straight
+ * to `handleInit`. Otherwise starts the interactive two-step flow.
+ */
+export async function handleInitInteractive(ctx: CommandContext, args: string): Promise<CommandResult> {
+  if (args.trim()) {
+    return handleInit(ctx, args);
+  }
+  return buildSlugConfirmation(ctx);
+}
+
+/**
+ * Step 1: derive slug and present a [Confirm] inline button.
+ * Falls back to text instructions if the callback data would exceed 64 bytes.
+ */
+async function buildSlugConfirmation(ctx: CommandContext): Promise<CommandResult> {
+  const { workspaceDir, userId, groupId, threadId, messageContext } = ctx;
+
+  if (!userId || !groupId || !threadId) {
+    return { text: 'Missing context: groupId, threadId, or userId not available. Run this command inside a Telegram forum topic.' };
+  }
+
+  if (!validateGroupId(groupId)) {
+    return { text: 'Invalid groupId format.' };
+  }
+  if (!validateThreadId(threadId)) {
+    return { text: 'Invalid threadId format.' };
+  }
+
+  const registry = readRegistry(workspaceDir);
+
+  const auth = checkAuthorization(userId, 'init', registry);
+  if (!auth.authorized) {
+    return { text: auth.message ?? 'Not authorized.' };
+  }
+
+  const topicCount = Object.keys(registry.topics).length;
+  if (topicCount >= registry.maxTopics) {
+    return { text: `Maximum number of topics (${registry.maxTopics}) reached. Archive or remove existing topics first.` };
+  }
+
+  const key = topicKey(groupId, threadId);
+  if (registry.topics[key]) {
+    return {
+      text: `This topic is already registered as <code>${htmlEscape(registry.topics[key]!.slug)}</code>.`,
+      parseMode: 'HTML',
+    };
+  }
+
+  // Derive slug (same logic as handleInit lines 74–96)
+  const topicTitle = (messageContext?.['topicTitle'] as string) ?? '';
+  let slug: string;
+  if (topicTitle) {
+    slug = sanitizeSlug(topicTitle);
+  } else {
+    slug = `topic-${threadId}`;
+  }
+  if (slug && !/^[a-z]/.test(slug)) {
+    slug = 't-' + slug;
+  }
+  if (!validateSlug(slug)) {
+    return {
+      text: `Invalid derived slug "${htmlEscape(slug)}". Please provide one: /topic init &lt;slug&gt; [type]`,
+    };
+  }
+
+  // Check callback byte limit — if slug is too long, fall back to text
+  if (!fitsCallbackLimit('is', slug, groupId, threadId, registry.callbackSecret)) {
+    return {
+      text: `Suggested slug: <code>${htmlEscape(slug)}</code>\n\nSlug is too long for inline buttons. Please run:\n<code>/topic init ${htmlEscape(slug)} [type]</code>`,
+      parseMode: 'HTML',
+    };
+  }
+
+  const keyboard = buildInitSlugButtons(slug, groupId, threadId, registry.callbackSecret);
+
+  return {
+    text: `Initialize this topic as <code>${htmlEscape(slug)}</code>?`,
+    parseMode: 'HTML',
+    inlineKeyboard: keyboard,
+  };
+}
+
+/**
+ * Step 2 (callback `is`): re-validate, then show the type picker.
+ */
+export async function handleInitSlugConfirm(ctx: CommandContext, slug: string): Promise<CommandResult> {
+  const { workspaceDir, userId, groupId, threadId } = ctx;
+
+  if (!userId || !groupId || !threadId) {
+    return { text: 'Missing context.' };
+  }
+
+  const registry = readRegistry(workspaceDir);
+
+  const auth = checkAuthorization(userId, 'init', registry);
+  if (!auth.authorized) {
+    return { text: auth.message ?? 'Not authorized.' };
+  }
+
+  const key = topicKey(groupId, threadId);
+  if (registry.topics[key]) {
+    return {
+      text: `This topic is already registered as <code>${htmlEscape(registry.topics[key]!.slug)}</code>.`,
+      parseMode: 'HTML',
+    };
+  }
+
+  const keyboard = buildInitTypeButtons(slug, groupId, threadId, registry.callbackSecret);
+
+  return {
+    text: `Slug: <code>${htmlEscape(slug)}</code>\n\nPick a topic type:`,
+    parseMode: 'HTML',
+    inlineKeyboard: keyboard,
+  };
+}
+
+/**
+ * Step 3 (callbacks `ic`/`ir`/`im`/`ix`): complete init with chosen type.
+ */
+export async function handleInitTypeSelect(ctx: CommandContext, slug: string, type: TopicType): Promise<CommandResult> {
+  return handleInit(ctx, `${slug} ${type}`);
 }
 

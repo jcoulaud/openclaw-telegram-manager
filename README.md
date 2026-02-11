@@ -25,15 +25,19 @@ That's it. The setup script installs the plugin, patches your config, creates th
 Once that's done:
 
 1. Open any topic in your OpenClaw-managed Telegram group
-2. Type `/topic init my-project coding`
-3. The plugin creates a capsule folder for that topic and confirms in chat
-4. From now on, the agent reads the capsule on every session start — no context lost
+2. Type `/topic init`
+3. Confirm the suggested slug, then pick a topic type
+4. The plugin creates a capsule folder and confirms in chat
+5. From now on, the agent reads the capsule on every session start — no context lost
+
+You can also skip the interactive flow: `/topic init my-project coding`
 
 ## Usage
 
 | Command | What it does |
 |---------|-------------|
-| `/topic init <slug> [type]` | Register a topic and create its capsule. Types: `coding`, `research`, `marketing`, `custom` |
+| `/topic init` | Interactive setup — confirm slug, pick type |
+| `/topic init <slug> [type]` | One-step setup. Types: `coding`, `research`, `marketing`, `custom` |
 | `/topic status` | Show the current STATUS.md |
 | `/topic list` | List all topics, grouped by status |
 | `/topic doctor` | Run health checks on the current topic |

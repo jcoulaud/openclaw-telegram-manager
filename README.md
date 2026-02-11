@@ -4,35 +4,40 @@
 [![npm version](https://img.shields.io/npm/v/openclaw-telegram-manager)](https://www.npmjs.com/package/openclaw-telegram-manager)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An [OpenClaw](https://openclaw.ai) plugin that gives each Telegram forum topic its own persistent workspace — status, todos, commands, links, notes — so nothing gets lost when the agent resets or context gets compacted.
+An [OpenClaw](https://openclaw.ai) plugin that gives each Telegram topic its own persistent workspace — status, todos, commands, links, notes — so nothing gets lost when the agent resets or context gets compacted.
 
 ## The problem
 
-When OpenClaw manages a Telegram group with forum topics, each topic is basically a separate project. But after a reset or context compaction, the agent forgets everything: what it was working on, what's left to do, what commands matter.
+When OpenClaw manages a Telegram group with topics, each topic is basically a separate project. But after a reset or context compaction, the agent forgets everything: what it was working on, what's left to do, what commands matter.
 
 This plugin fixes that. Each topic gets a folder of markdown files (a "capsule") that the agent reads on startup. It picks up right where it left off.
 
-## Getting started
+## Prerequisites
 
-Requires OpenClaw `>=2026.1.0`.
+- [OpenClaw](https://openclaw.ai) `>=2026.1.0` installed and running
+- A Telegram group with [topics enabled](https://telegram.org/blog/topics-in-groups-collectible-usernames#topics-in-groups) and managed by OpenClaw
+
+## Getting started
 
 ```bash
 npx openclaw-telegram-manager setup
 ```
 
-That's it. The setup script installs the plugin, patches your config, creates the workspace, and restarts the Gateway. It's idempotent — running it twice won't break anything.
+That's it. The setup script installs the plugin, patches your config, creates the workspace, and restarts the OpenClaw gateway. It's idempotent — running it twice won't break anything.
 
-Once that's done:
+Once that's done, head to your Telegram group:
 
-1. Open any topic in your OpenClaw-managed Telegram group
-2. Type `/topic init`
+1. Open any topic
+2. Type `/topic init` in the chat
 3. Confirm the suggested slug, then pick a topic type
-4. The plugin creates a capsule folder and confirms in chat
+4. The plugin creates a capsule (a folder of markdown files — see below) and confirms in chat
 5. From now on, the agent reads the capsule on every session start — no context lost
 
 You can also skip the interactive flow: `/topic init my-project coding`
 
-## Usage
+## Commands
+
+All commands are typed directly in the Telegram group chat:
 
 | Command | What it does |
 |---------|-------------|
@@ -77,20 +82,6 @@ Two roles:
 
 The first person to run `/topic init` automatically becomes admin.
 
-## Project layout
-
-```
-src/
-  index.ts          — plugin entry point
-  tool.ts           — routes /topic subcommands
-  setup.ts          — the setup CLI
-  commands/         — one file per command
-  lib/              — core logic (registry, capsules, security, auth, etc.)
-  templates/        — markdown templates for new capsules
-skills/
-  topic/SKILL.md    — skill definition with rehydration behavior
-```
-
 ## Security
 
 - Path traversal protection (jail checks + symlink rejection)
@@ -104,6 +95,20 @@ See [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+### Project layout
+
+```
+src/
+  index.ts          — plugin entry point
+  tool.ts           — routes /topic subcommands
+  setup.ts          — the setup CLI
+  commands/         — one file per command
+  lib/              — core logic (registry, capsules, security, auth, etc.)
+  templates/        — markdown templates for new capsules
+skills/
+  topic/SKILL.md    — skill definition with rehydration behavior
+```
 
 ## License
 

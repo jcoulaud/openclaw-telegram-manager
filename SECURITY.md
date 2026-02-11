@@ -8,9 +8,9 @@
 
 ## Reporting vulnerabilities
 
-Don't open a public issue. Instead:
+Don't open a public issue. Instead, use [GitHub's private vulnerability reporting](https://github.com/jcoulaud/openclaw-telegram-manager/security/advisories/new):
 
-1. Email the maintainers with a description, steps to reproduce, and potential impact.
+1. Submit a report with a description, steps to reproduce, and potential impact.
 2. You'll get an acknowledgment within 48 hours.
 3. We'll work with you on a fix and coordinate disclosure.
 

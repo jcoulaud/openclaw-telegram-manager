@@ -60,11 +60,14 @@ npm run lint
 
 ## Commit messages
 
-Keep them short and imperative:
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) for automated releases. Always prefix with a type:
 
-- `Add topic rename command`
-- `Fix registry lock timeout on slow filesystems`
-- `Update doctor checks for capsule version drift`
+- `feat: add topic rename command`
+- `fix: registry lock timeout on slow filesystems`
+- `docs: update doctor check examples`
+- `refactor: extract config writes helper`
+- `test: add snooze duration edge cases`
+- `chore: bump dependencies`
 
 ## Found a bug?
 

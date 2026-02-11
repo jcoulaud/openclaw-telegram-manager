@@ -1,6 +1,6 @@
 ---
 name: topic
-description: Manage Telegram forum topics as deterministic workcells with durable capsule state
+description: Manage Telegram topics as deterministic workcells with durable capsule state
 user-invocable: true
 command-dispatch: tool
 command-tool: topic_manager

@@ -22,4 +22,4 @@ Be kind, be respectful, assume good intent. We want everyone to feel welcome her
 
 ## Enforcement
 
-If something's wrong, contact the project maintainers. All reports will be reviewed promptly and handled fairly.
+If something's wrong, [open a private report on GitHub](https://github.com/jcoulaud/openclaw-telegram-manager/security/advisories/new) or create an issue. All reports will be reviewed promptly and handled fairly.

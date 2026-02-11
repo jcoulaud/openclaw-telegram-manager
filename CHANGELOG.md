@@ -1,3 +1,10 @@
+## [1.3.5](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.4...v1.3.5) (2026-02-11)
+
+
+### Bug Fixes
+
+* return tool result in AgentToolResult format and register skills dir ([97758c7](https://github.com/jcoulaud/openclaw-telegram-manager/commit/97758c7919ec1e1ccda97529263877a616fb495f))
+
 ## [1.3.4](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.3...v1.3.4) (2026-02-11)
 
 

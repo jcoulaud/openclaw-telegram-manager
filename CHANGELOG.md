@@ -1,3 +1,11 @@
+## [1.3.1](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.0...v1.3.1) (2026-02-11)
+
+
+### Bug Fixes
+
+* fail on missing bundle and harden build config ([6324005](https://github.com/jcoulaud/openclaw-telegram-manager/commit/6324005f36c6b8c8a33286f6c1c8bf3401f95541))
+* preserve existing inline groups config during setup ([48d12c3](https://github.com/jcoulaud/openclaw-telegram-manager/commit/48d12c39fe2925e736f8469808174d521a4246cf))
+
 # [1.3.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.2.0...v1.3.0) (2026-02-11)
 
 

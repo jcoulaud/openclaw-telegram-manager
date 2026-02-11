@@ -161,9 +161,9 @@ async function runUninstall(): Promise<void> {
   ok(`Config ${c.dim}${configDir}${c.reset}`);
 
   startSpinner('Removing plugin…');
-  unpatchConfig(configDir);
-  removeFile(path.join(configDir, INCLUDE_FILENAME));
   removePluginDir(configDir);
+  removeFile(path.join(configDir, INCLUDE_FILENAME));
+  unpatchConfig(configDir);
   ok('Plugin files removed');
 
   startSpinner('Restarting gateway…');

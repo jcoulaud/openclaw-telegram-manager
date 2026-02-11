@@ -32,8 +32,11 @@
     "proper-lockfile": "^4.1.2"
   },
   "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
     "@types/node": "^25.2.3",
     "@types/proper-lockfile": "^4.1.4",
+    "semantic-release": "^24.2.9",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   },
@@ -42,7 +45,6 @@
     "prepublishOnly": "npm run build",
     "test": "vitest run",
     "lint": "tsc --noEmit",
-    "audit:deps": "npm audit",
-    "postversion": "git push origin main --tags"
+    "audit:deps": "npm audit"
   }
 }

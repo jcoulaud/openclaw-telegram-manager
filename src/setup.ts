@@ -139,8 +139,7 @@ async function runSetup(): Promise<void> {
   ok('Workspace ready');
 
   startSpinner('Restarting gateway…');
-  triggerRestart();
-  ok('Gateway restarted');
+  if (triggerRestart()) ok('Gateway restarted');
 
   footer('Setup complete');
 
@@ -167,8 +166,7 @@ async function runUninstall(): Promise<void> {
   ok('Plugin files removed');
 
   startSpinner('Restarting gateway…');
-  triggerRestart();
-  ok('Gateway restarted');
+  if (triggerRestart()) ok('Gateway restarted');
 
   const projectsDir = path.join(configDir, 'workspace', 'projects');
   if (fs.existsSync(projectsDir)) {
@@ -443,14 +441,16 @@ function removePluginDir(configDir: string): void {
 
 // ── Shared helpers ────────────────────────────────────────────────────
 
-function triggerRestart(): void {
+function triggerRestart(): boolean {
   try {
     execSync('openclaw gateway restart', {
       encoding: 'utf-8',
       timeout: 10_000,
     });
+    return true;
   } catch {
     warn('Could not restart gateway. Run `openclaw gateway restart` manually.');
+    return false;
   }
 }
 

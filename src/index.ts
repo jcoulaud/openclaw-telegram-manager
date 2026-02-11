@@ -1,5 +1,33 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { Type } from '@sinclair/typebox';
 import { createTopicManagerTool } from './tool.js';
+
+/**
+ * Resolve configDir from the plugin's own file path or well-known locations.
+ * Plugin is installed at {configDir}/extensions/openclaw-telegram-manager/src/index.ts
+ */
+function resolveConfigDir(): string | undefined {
+  // Try deriving from this file's location
+  const thisDir = path.dirname(new URL(import.meta.url).pathname);
+  const candidate = path.resolve(thisDir, '..', '..', '..');
+  if (
+    fs.existsSync(path.join(candidate, 'openclaw.json')) ||
+    fs.existsSync(path.join(candidate, 'extensions'))
+  ) {
+    return candidate;
+  }
+
+  // Fall back to env / home directory
+  const envDir = process.env['OPENCLAW_CONFIG_DIR'];
+  if (envDir && fs.existsSync(envDir)) return path.resolve(envDir);
+
+  const homeDir = process.env['HOME'] ?? process.env['USERPROFILE'] ?? '';
+  const defaultDir = path.join(homeDir, '.openclaw');
+  if (fs.existsSync(defaultDir)) return defaultDir;
+
+  return undefined;
+}
 
 export default function register(api: {
   logger: { info(msg: string): void; warn(msg: string): void; error(msg: string): void };
@@ -14,8 +42,12 @@ export default function register(api: {
     execute(id: string, params: { command: string }, context?: Record<string, unknown>): Promise<unknown>;
   }): void;
 }): void {
-  const configDir = api.configDir ?? api.pluginConfig?.configDir;
-  const workspaceDir = api.workspaceDir ?? api.pluginConfig?.workspaceDir;
+  const resolvedConfigDir = resolveConfigDir();
+  const configDir = api.configDir ?? api.pluginConfig?.configDir ?? resolvedConfigDir;
+  const workspaceDir =
+    api.workspaceDir ??
+    api.pluginConfig?.workspaceDir ??
+    (resolvedConfigDir ? path.join(resolvedConfigDir, 'workspace') : undefined);
 
   if (!configDir || !workspaceDir) {
     api.logger.error(

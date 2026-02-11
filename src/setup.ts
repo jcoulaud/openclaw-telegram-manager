@@ -410,6 +410,19 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
+function installDeps(dir: string): void {
+  try {
+    execSync('npm install --production --ignore-scripts', {
+      cwd: dir,
+      encoding: 'utf-8',
+      stdio: 'pipe',
+      timeout: 60_000,
+    });
+  } catch {
+    warn('Could not install dependencies. Run `npm install --production` in ' + dir);
+  }
+}
+
 function findPackageRoot(): string | null {
   let dir = path.dirname(new URL(import.meta.url).pathname);
   for (let i = 0; i < 5; i++) {

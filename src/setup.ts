@@ -161,8 +161,8 @@ async function runUninstall(): Promise<void> {
 
   startSpinner('Removing plugin…');
   removePluginDir(configDir);
-  removeFile(path.join(configDir, INCLUDE_FILENAME));
   unpatchConfig(configDir);
+  removeFile(path.join(configDir, INCLUDE_FILENAME));
   ok('Plugin files removed');
 
   startSpinner('Restarting gateway…');
@@ -413,7 +413,25 @@ function unpatchConfig(configDir: string): void {
   const channels = config['channels'] as Record<string, unknown> | undefined;
   const telegram = channels?.['telegram'] as Record<string, unknown> | undefined;
   if (telegram) {
-    delete telegram['groups'];
+    // Restore inline groups from the include file before removing the $include ref
+    const includePath = path.join(configDir, INCLUDE_FILENAME);
+    let restoredGroups: Record<string, unknown> | null = null;
+    if (fs.existsSync(includePath)) {
+      try {
+        const raw = fs.readFileSync(includePath, 'utf-8');
+        const jsonBody = raw.replace(/^\s*\/\/.*$/gm, '').trim();
+        const parsed = JSON.parse(jsonBody) as Record<string, unknown>;
+        if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+          restoredGroups = parsed;
+        }
+      } catch { /* fall through – delete key if we can't parse */ }
+    }
+
+    if (restoredGroups) {
+      telegram['groups'] = restoredGroups;
+    } else {
+      delete telegram['groups'];
+    }
     if (Object.keys(telegram).length === 0) delete channels!['telegram'];
     if (Object.keys(channels!).length === 0) delete config['channels'];
   }

@@ -1,3 +1,15 @@
+# [1.3.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.2.0...v1.3.0) (2026-02-11)
+
+
+### Bug Fixes
+
+* resolve configDir from plugin path when host does not provide it ([6348666](https://github.com/jcoulaud/openclaw-telegram-manager/commit/63486667f2329bb75a017cf2f24ab429064d1c46))
+
+
+### Features
+
+* bundle plugin with esbuild, remove runtime npm install ([e309f8c](https://github.com/jcoulaud/openclaw-telegram-manager/commit/e309f8c7171be0c891baef44126e1b910559a5e1))
+
 # [1.2.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.1.1...v1.2.0) (2026-02-11)
 
 

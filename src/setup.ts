@@ -16,6 +16,7 @@ const INCLUDE_FILENAME = 'telegram-manager.generated.groups.json5';
 const REGISTRY_FILENAME = 'topics.json';
 const PLUGIN_FILES = ['openclaw.plugin.json', 'dist/plugin.js', 'skills', 'package.json'];
 const REQUIRED_PLUGIN_FILES = ['openclaw.plugin.json', 'dist/plugin.js'];
+const SKILLS_DIR_RELATIVE = `extensions/${PLUGIN_NAME}/skills`;
 
 // ── Colors (zero dependencies, respects NO_COLOR / non-TTY) ──────────
 
@@ -299,11 +300,6 @@ function patchConfig(configDir: string): Record<string, unknown> | null {
     return null;
   }
 
-  if (content.includes(INCLUDE_FILENAME)) {
-    ok('Config already patched');
-    return null;
-  }
-
   let config: Record<string, unknown>;
   try {
     config = JSON.parse(content) as Record<string, unknown>;
@@ -313,20 +309,44 @@ function patchConfig(configDir: string): Record<string, unknown> | null {
     return null;
   }
 
-  if (!config['channels']) config['channels'] = {};
-  const channels = config['channels'] as Record<string, unknown>;
+  const hasInclude = content.includes(INCLUDE_FILENAME);
+  const hasSkillsDir = content.includes(SKILLS_DIR_RELATIVE);
 
-  if (!channels['telegram']) channels['telegram'] = {};
-  const telegram = channels['telegram'] as Record<string, unknown>;
+  if (hasInclude && hasSkillsDir) {
+    ok('Config already patched');
+    return null;
+  }
 
   // Extract existing inline groups before overwriting
   let existingGroups: Record<string, unknown> | null = null;
-  const groups = telegram['groups'];
-  if (groups && typeof groups === 'object' && !('$include' in (groups as Record<string, unknown>))) {
-    existingGroups = groups as Record<string, unknown>;
+
+  if (!hasInclude) {
+    if (!config['channels']) config['channels'] = {};
+    const channels = config['channels'] as Record<string, unknown>;
+
+    if (!channels['telegram']) channels['telegram'] = {};
+    const telegram = channels['telegram'] as Record<string, unknown>;
+
+    const groups = telegram['groups'];
+    if (groups && typeof groups === 'object' && !('$include' in (groups as Record<string, unknown>))) {
+      existingGroups = groups as Record<string, unknown>;
+    }
+
+    telegram['groups'] = { $include: `./${INCLUDE_FILENAME}` };
   }
 
-  telegram['groups'] = { $include: `./${INCLUDE_FILENAME}` };
+  // Register skills directory so the gateway discovers our /topic skill
+  if (!hasSkillsDir) {
+    if (!config['skills']) config['skills'] = {};
+    const skills = config['skills'] as Record<string, unknown>;
+
+    if (!skills['load']) skills['load'] = {};
+    const load = skills['load'] as Record<string, unknown>;
+
+    const extraDirs = Array.isArray(load['extraDirs']) ? load['extraDirs'] as string[] : [];
+    extraDirs.push(`./${SKILLS_DIR_RELATIVE}`);
+    load['extraDirs'] = extraDirs;
+  }
 
   const bakPath = configPath + '.bak';
   fs.copyFileSync(configPath, bakPath);
@@ -398,7 +418,10 @@ function unpatchConfig(configDir: string): void {
     return;
   }
 
-  if (!content.includes(INCLUDE_FILENAME)) {
+  const hasInclude = content.includes(INCLUDE_FILENAME);
+  const hasSkillsDir = content.includes(SKILLS_DIR_RELATIVE);
+
+  if (!hasInclude && !hasSkillsDir) {
     return;
   }
 
@@ -410,30 +433,46 @@ function unpatchConfig(configDir: string): void {
     return;
   }
 
-  const channels = config['channels'] as Record<string, unknown> | undefined;
-  const telegram = channels?.['telegram'] as Record<string, unknown> | undefined;
-  if (telegram) {
-    // Restore inline groups from the include file before removing the $include ref
-    const includePath = path.join(configDir, INCLUDE_FILENAME);
-    let restoredGroups: Record<string, unknown> | null = null;
-    if (fs.existsSync(includePath)) {
-      try {
-        const raw = fs.readFileSync(includePath, 'utf-8');
-        const jsonBody = raw.replace(/^\s*\/\/.*$/gm, '').trim();
-        const parsed = JSON.parse(jsonBody) as Record<string, unknown>;
-        if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
-          restoredGroups = parsed;
-        }
-      } catch { /* fall through – delete key if we can't parse */ }
-    }
+  // Remove the $include reference and restore inline groups
+  if (hasInclude) {
+    const channels = config['channels'] as Record<string, unknown> | undefined;
+    const telegram = channels?.['telegram'] as Record<string, unknown> | undefined;
+    if (telegram) {
+      const includePath = path.join(configDir, INCLUDE_FILENAME);
+      let restoredGroups: Record<string, unknown> | null = null;
+      if (fs.existsSync(includePath)) {
+        try {
+          const raw = fs.readFileSync(includePath, 'utf-8');
+          const jsonBody = raw.replace(/^\s*\/\/.*$/gm, '').trim();
+          const parsed = JSON.parse(jsonBody) as Record<string, unknown>;
+          if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+            restoredGroups = parsed;
+          }
+        } catch { /* fall through – delete key if we can't parse */ }
+      }
 
-    if (restoredGroups) {
-      telegram['groups'] = restoredGroups;
-    } else {
-      delete telegram['groups'];
+      if (restoredGroups) {
+        telegram['groups'] = restoredGroups;
+      } else {
+        delete telegram['groups'];
+      }
+      if (Object.keys(telegram).length === 0) delete channels!['telegram'];
+      if (Object.keys(channels!).length === 0) delete config['channels'];
     }
-    if (Object.keys(telegram).length === 0) delete channels!['telegram'];
-    if (Object.keys(channels!).length === 0) delete config['channels'];
+  }
+
+  // Remove skills.load.extraDirs entry for our plugin
+  if (hasSkillsDir) {
+    const skills = config['skills'] as Record<string, unknown> | undefined;
+    const load = skills?.['load'] as Record<string, unknown> | undefined;
+    if (load && Array.isArray(load['extraDirs'])) {
+      load['extraDirs'] = (load['extraDirs'] as string[]).filter(
+        (d) => !d.includes(PLUGIN_NAME),
+      );
+      if ((load['extraDirs'] as string[]).length === 0) delete load['extraDirs'];
+      if (Object.keys(load).length === 0) delete skills!['load'];
+      if (Object.keys(skills!).length === 0) delete config['skills'];
+    }
   }
 
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });

@@ -83,7 +83,12 @@ export default function register(api: {
       params: { command: string },
       context?: Record<string, unknown>,
     ) {
-      return tool.execute(id, params, context);
+      const result = await tool.execute(id, params, context);
+      // Wrap in AgentToolResult format so the gateway's extractTextFromToolResult
+      // can find the text (it looks for .content, not .text).
+      return {
+        content: [{ type: 'text' as const, text: result.text }],
+      };
     },
   });
 

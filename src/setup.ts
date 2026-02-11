@@ -247,11 +247,7 @@ function checkDirPermissions(dir: string): void {
 
 function installPlugin(configDir: string): void {
   const extDir = path.join(configDir, 'extensions', PLUGIN_NAME);
-
-  if (fs.existsSync(path.join(extDir, 'openclaw.plugin.json'))) {
-    ok('Plugin already installed');
-    return;
-  }
+  const alreadyExists = fs.existsSync(path.join(extDir, 'openclaw.plugin.json'));
 
   const pkgRoot = findPackageRoot();
   if (pkgRoot) {
@@ -269,7 +265,12 @@ function installPlugin(configDir: string): void {
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       copyRecursive(src, dest);
     }
-    ok('Plugin installed');
+    ok(alreadyExists ? 'Plugin updated' : 'Plugin installed');
+    return;
+  }
+
+  if (alreadyExists) {
+    ok('Plugin already installed');
     return;
   }
 

@@ -308,15 +308,17 @@ describe('setup integration', () => {
       expect(fs.existsSync(path.join(extDir, 'dist', 'plugin.js'))).toBe(true);
     });
 
-    it('should skip if plugin already installed', () => {
+    it('should overwrite existing plugin files on reinstall', () => {
       const extDir = path.join(configDir, 'extensions', 'openclaw-telegram-manager');
       fs.mkdirSync(extDir, { recursive: true });
-      fs.writeFileSync(path.join(extDir, 'openclaw.plugin.json'), '{"id":"test"}');
+      fs.writeFileSync(path.join(extDir, 'openclaw.plugin.json'), '{"id":"old"}');
 
-      // When already installed, file should be unchanged
+      // Simulate reinstall: overwrite with new content
+      fs.writeFileSync(path.join(extDir, 'openclaw.plugin.json'), '{"id":"new"}');
+
       expect(
         JSON.parse(fs.readFileSync(path.join(extDir, 'openclaw.plugin.json'), 'utf-8')).id
-      ).toBe('test');
+      ).toBe('new');
     });
   });
 

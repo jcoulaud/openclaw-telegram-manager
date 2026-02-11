@@ -25,6 +25,8 @@ npx openclaw-telegram-manager setup
 
 That's it. The setup script installs the plugin, patches your config, creates the workspace, and restarts the OpenClaw gateway. It's idempotent — running it twice won't break anything.
 
+**Security warnings during install:** OpenClaw's automatic scanner may flag `child_process` and `process.env` usage. These are expected — the setup script calls `openclaw --version`, `openclaw plugins install`, and `openclaw gateway restart`, and reads `process.env` for config directory detection. No data is sent externally.
+
 Once that's done, head to your Telegram group:
 
 1. Open any topic
@@ -91,6 +93,14 @@ The first person to run `/topic init` automatically becomes admin.
 - File locking to prevent concurrent write corruption
 
 See [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
+
+## Uninstalling
+
+```bash
+npx openclaw-telegram-manager uninstall
+```
+
+This removes the plugin extension files, the `$include` reference from `openclaw.json`, and the generated include file, then restarts the gateway. Workspace data (your topic capsules) is kept — the command prints the path if you want to remove it manually.
 
 ## Contributing
 

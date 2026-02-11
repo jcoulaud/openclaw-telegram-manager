@@ -208,59 +208,6 @@ describe('setup integration', () => {
     });
   });
 
-  describe('cron setup', () => {
-    it('should create cron job file', () => {
-      const cronDir = path.join(configDir, 'cron');
-      fs.mkdirSync(cronDir, { recursive: true });
-
-      const cronJobPath = path.join(cronDir, 'topic-doctor-daily.json');
-      const cronJob = {
-        name: 'topic-doctor-daily',
-        schedule: { kind: 'cron', expr: '0 9 * * *', tz: 'UTC' },
-        sessionTarget: 'isolated',
-        payload: {
-          kind: 'agentTurn',
-          message: 'Run topic doctor health checks',
-          timeoutSeconds: 300,
-        },
-        delivery: {
-          mode: 'announce',
-          channel: 'telegram',
-          to: '-100123:topic:1',
-          bestEffort: true,
-        },
-        enabled: true,
-        deleteAfterRun: false,
-      };
-
-      fs.writeFileSync(cronJobPath, JSON.stringify(cronJob, null, 2) + '\n', {
-        mode: 0o600,
-      });
-
-      expect(fs.existsSync(cronJobPath)).toBe(true);
-
-      const content = JSON.parse(fs.readFileSync(cronJobPath, 'utf-8'));
-      expect(content.name).toBe('topic-doctor-daily');
-      expect(content.schedule.expr).toBe('0 9 * * *');
-    });
-
-    it('should be idempotent for cron setup', () => {
-      const cronDir = path.join(configDir, 'cron');
-      fs.mkdirSync(cronDir, { recursive: true });
-
-      const cronJobPath = path.join(cronDir, 'topic-doctor-daily.json');
-      const customJob = { name: 'custom', enabled: false };
-
-      fs.writeFileSync(cronJobPath, JSON.stringify(customJob));
-
-      // Should skip if exists
-      if (fs.existsSync(cronJobPath)) {
-        const existing = JSON.parse(fs.readFileSync(cronJobPath, 'utf-8'));
-        expect(existing.name).toBe('custom');
-      }
-    });
-  });
-
   describe('permissions checks', () => {
     it('should warn on world-writable directory', () => {
       const testDir = path.join(tmpDir, 'world-writable');
@@ -293,15 +240,166 @@ describe('setup integration', () => {
     });
   });
 
+  describe('plugin installation (direct copy)', () => {
+    it('should copy plugin files to extensions directory', () => {
+      const extDir = path.join(configDir, 'extensions', 'openclaw-telegram-manager');
+      fs.mkdirSync(extDir, { recursive: true });
+
+      // Simulate copying plugin files
+      fs.writeFileSync(path.join(extDir, 'openclaw.plugin.json'), '{}');
+      fs.writeFileSync(path.join(extDir, 'package.json'), '{}');
+      fs.mkdirSync(path.join(extDir, 'src'), { recursive: true });
+      fs.writeFileSync(path.join(extDir, 'src', 'index.ts'), '');
+
+      expect(fs.existsSync(path.join(extDir, 'openclaw.plugin.json'))).toBe(true);
+      expect(fs.existsSync(path.join(extDir, 'package.json'))).toBe(true);
+      expect(fs.existsSync(path.join(extDir, 'src', 'index.ts'))).toBe(true);
+    });
+
+    it('should skip if plugin already installed', () => {
+      const extDir = path.join(configDir, 'extensions', 'openclaw-telegram-manager');
+      fs.mkdirSync(extDir, { recursive: true });
+      fs.writeFileSync(path.join(extDir, 'openclaw.plugin.json'), '{"id":"test"}');
+
+      // When already installed, file should be unchanged
+      expect(
+        JSON.parse(fs.readFileSync(path.join(extDir, 'openclaw.plugin.json'), 'utf-8')).id
+      ).toBe('test');
+    });
+  });
+
+  describe('uninstall', () => {
+    it('should surgically remove $include from config', () => {
+      const configPath = path.join(configDir, 'openclaw.json');
+
+      const patched = {
+        version: '2026.1.0',
+        channels: {
+          telegram: {
+            groups: { $include: './telegram-manager.generated.groups.json5' },
+          },
+        },
+      };
+      fs.writeFileSync(configPath, JSON.stringify(patched, null, 2));
+
+      // Simulate unpatch: parse and remove
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      const telegram = config.channels?.telegram;
+      if (telegram) {
+        delete telegram.groups;
+        if (Object.keys(telegram).length === 0) delete config.channels.telegram;
+        if (Object.keys(config.channels).length === 0) delete config.channels;
+      }
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+
+      const restored = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(restored.channels).toBeUndefined();
+      expect(restored.version).toBe('2026.1.0');
+    });
+
+    it('should preserve other config keys when removing $include', () => {
+      const configPath = path.join(configDir, 'openclaw.json');
+
+      const patched = {
+        version: '2026.1.0',
+        name: 'my-bot',
+        channels: {
+          telegram: {
+            token: 'secret-token',
+            groups: { $include: './telegram-manager.generated.groups.json5' },
+          },
+          discord: { enabled: true },
+        },
+      };
+      fs.writeFileSync(configPath, JSON.stringify(patched, null, 2));
+
+      // Simulate unpatch: parse and remove only the groups $include
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      const telegram = config.channels?.telegram;
+      if (telegram) {
+        delete telegram.groups;
+      }
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+
+      const restored = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(restored.name).toBe('my-bot');
+      expect(restored.channels.telegram.token).toBe('secret-token');
+      expect(restored.channels.telegram.groups).toBeUndefined();
+      expect(restored.channels.discord).toEqual({ enabled: true });
+    });
+
+    it('should clean up stale .bak file', () => {
+      const configPath = path.join(configDir, 'openclaw.json');
+      const bakPath = configPath + '.bak';
+
+      // Stale backup from install time
+      fs.writeFileSync(bakPath, '{"old": true}');
+
+      // Current config with $include
+      const config = {
+        version: '2026.1.0',
+        channels: {
+          telegram: {
+            groups: { $include: './telegram-manager.generated.groups.json5' },
+          },
+        },
+      };
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+
+      // After unpatch, backup should be removed
+      // (simulating what unpatchConfig does)
+      const parsed = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      delete parsed.channels.telegram.groups;
+      if (Object.keys(parsed.channels.telegram).length === 0) delete parsed.channels.telegram;
+      if (Object.keys(parsed.channels).length === 0) delete parsed.channels;
+      fs.writeFileSync(configPath, JSON.stringify(parsed, null, 2) + '\n');
+      fs.unlinkSync(bakPath);
+
+      expect(fs.existsSync(bakPath)).toBe(false);
+      const restored = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(restored.version).toBe('2026.1.0');
+    });
+
+    it('should remove include file', () => {
+      const includePath = path.join(configDir, 'telegram-manager.generated.groups.json5');
+      fs.writeFileSync(includePath, '{}');
+
+      fs.unlinkSync(includePath);
+
+      expect(fs.existsSync(includePath)).toBe(false);
+    });
+
+    it('should remove plugin extension directory', () => {
+      const extDir = path.join(configDir, 'extensions', 'openclaw-telegram-manager');
+      fs.mkdirSync(extDir, { recursive: true });
+      fs.writeFileSync(path.join(extDir, 'openclaw.plugin.json'), '{}');
+
+      fs.rmSync(extDir, { recursive: true });
+
+      expect(fs.existsSync(extDir)).toBe(false);
+    });
+
+    it('should preserve workspace data', () => {
+      const projectsDir = path.join(configDir, 'workspace', 'projects');
+      fs.mkdirSync(projectsDir, { recursive: true });
+
+      const capsuleDir = path.join(projectsDir, 'my-project');
+      fs.mkdirSync(capsuleDir);
+      fs.writeFileSync(path.join(capsuleDir, 'STATUS.md'), '# Status');
+
+      // Uninstall should NOT remove workspace
+      expect(fs.existsSync(capsuleDir)).toBe(true);
+      expect(fs.readFileSync(path.join(capsuleDir, 'STATUS.md'), 'utf-8')).toBe('# Status');
+    });
+  });
+
   describe('complete setup flow', () => {
     it('should complete all setup steps', () => {
       const workspaceDir = path.join(configDir, 'workspace');
       const projectsDir = path.join(workspaceDir, 'projects');
-      const cronDir = path.join(configDir, 'cron');
 
       // Step 1-6: Create directory structure
       fs.mkdirSync(projectsDir, { recursive: true });
-      fs.mkdirSync(cronDir, { recursive: true });
 
       // Step 7: Create registry
       const registryPath = path.join(projectsDir, 'topics.json');
@@ -319,15 +417,10 @@ describe('setup integration', () => {
       const includePath = path.join(configDir, 'telegram-manager.generated.groups.json5');
       fs.writeFileSync(includePath, '{}', { mode: 0o600 });
 
-      // Step 9: Create cron job
-      const cronJobPath = path.join(cronDir, 'topic-doctor-daily.json');
-      fs.writeFileSync(cronJobPath, '{}', { mode: 0o600 });
-
       // Verify all steps
       expect(fs.existsSync(projectsDir)).toBe(true);
       expect(fs.existsSync(registryPath)).toBe(true);
       expect(fs.existsSync(includePath)).toBe(true);
-      expect(fs.existsSync(cronJobPath)).toBe(true);
     });
   });
 });

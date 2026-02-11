@@ -4,101 +4,159 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as crypto from 'node:crypto';
 import { execSync } from 'node:child_process';
-import * as readline from 'node:readline';
 
 // ── Constants ──────────────────────────────────────────────────────────
 
+const PLUGIN_NAME = 'openclaw-telegram-manager';
+const PLUGIN_VERSION = '1.0.0';
 const MIN_OPENCLAW_VERSION = '2026.1.0';
 const INCLUDE_FILENAME = 'telegram-manager.generated.groups.json5';
 const REGISTRY_FILENAME = 'topics.json';
+const PLUGIN_FILES = ['openclaw.plugin.json', 'src', 'skills', 'package.json'];
 
-// ── Main ──────────────────────────────────────────────────────────────
+// ── Colors (zero dependencies, respects NO_COLOR / non-TTY) ──────────
 
-async function main(): Promise<void> {
-  console.log('openclaw-telegram-manager setup');
-  console.log('================================\n');
+const useColor =
+  process.stdout.isTTY === true &&
+  !process.env['NO_COLOR'] &&
+  process.env['TERM'] !== 'dumb';
 
-  // Step 1: Check OpenClaw version
-  const version = checkOpenClawVersion();
-  console.log(`[1/11] OpenClaw version: ${version}`);
+const c = {
+  reset:   useColor ? '\x1b[0m'  : '',
+  bold:    useColor ? '\x1b[1m'  : '',
+  dim:     useColor ? '\x1b[2m'  : '',
+  green:   useColor ? '\x1b[32m' : '',
+  yellow:  useColor ? '\x1b[33m' : '',
+  red:     useColor ? '\x1b[31m' : '',
+  cyan:    useColor ? '\x1b[36m' : '',
+  magenta: useColor ? '\x1b[35m' : '',
+};
 
-  // Step 2: Locate config directory
-  const configDir = locateConfigDir();
-  console.log(`[2/11] Config directory: ${configDir}`);
+// ── Logging helpers ───────────────────────────────────────────────────
 
-  // Step 3: Check directory permissions
-  checkDirPermissions(configDir);
-  console.log('[3/11] Directory permissions checked');
-
-  // Step 4: Install plugin
-  installPlugin();
-  console.log('[4/11] Plugin installation checked');
-
-  // Step 5: Patch openclaw.json with $include reference
-  patchConfig(configDir);
-  console.log('[5/11] Config patched with $include reference');
-
-  // Step 6: Create workspace directory structure
-  const workspaceDir = path.join(configDir, 'workspace');
-  const projectsDir = path.join(workspaceDir, 'projects');
-  ensureDir(projectsDir);
-  console.log(`[6/11] Workspace directory: ${projectsDir}`);
-
-  // Step 7: Initialize empty registry
-  initRegistry(projectsDir);
-  console.log('[7/11] Registry initialized');
-
-  // Step 8: Create empty generated include
-  createEmptyInclude(configDir);
-  console.log('[8/11] Empty include file created');
-
-  // Step 9: Optional cron setup
-  const isInteractive = process.stdin.isTTY === true;
-  const setupCron = isInteractive ? await promptYesNo('Set up daily doctor cron job? [Y/n] ') : true;
-  if (setupCron) {
-    const groupId = isInteractive
-      ? await promptInput('Enter your Telegram group ID (e.g., -1003731538650): ')
-      : '';
-    setupDoctorCron(configDir, groupId);
-    console.log('[9/11] Doctor cron job configured');
-  } else {
-    console.log('[9/11] Skipped cron setup');
-  }
-
-  // Step 10: Trigger gateway restart
-  triggerRestart(configDir);
-  console.log('[10/11] Gateway restart triggered');
-
-  // Step 11: Print summary
-  printSummary(configDir, projectsDir);
-  console.log('[11/11] Setup complete!\n');
+function ok(msg: string): void {
+  console.log(`  ${c.green}✓${c.reset}  ${msg}`);
+}
+function warn(msg: string): void {
+  console.warn(`  ${c.yellow}⚠${c.reset}  ${c.yellow}${msg}${c.reset}`);
+}
+function fail(msg: string): void {
+  console.error(`  ${c.red}✗${c.reset}  ${c.red}${msg}${c.reset}`);
+}
+function info(msg: string): void {
+  console.log(`     ${c.dim}${msg}${c.reset}`);
 }
 
-// ── Step implementations ──────────────────────────────────────────────
+function banner(title: string, subtitle?: string): void {
+  console.log('');
+  console.log(`  ${c.cyan}◆${c.reset}  ${c.bold}${title}${c.reset}${subtitle ? `  ${c.dim}${subtitle}${c.reset}` : ''}`);
+  console.log(`  ${c.dim}│${c.reset}`);
+}
+
+function footer(msg: string): void {
+  console.log(`  ${c.dim}│${c.reset}`);
+  console.log(`  ${c.green}◆${c.reset}  ${c.bold}${msg}${c.reset}`);
+  console.log('');
+}
+
+// ── Entry point ───────────────────────────────────────────────────────
+
+const command = process.argv[2] ?? 'setup';
+
+if (command === 'setup') {
+  runSetup().catch((err) => {
+    console.error('Setup failed:', err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  });
+} else if (command === 'uninstall') {
+  runUninstall().catch((err) => {
+    console.error('Uninstall failed:', err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  });
+} else {
+  console.error(`Unknown command: ${command}`);
+  console.error(`Usage: ${PLUGIN_NAME} [setup|uninstall]`);
+  process.exit(1);
+}
+
+// ── Setup ─────────────────────────────────────────────────────────────
+
+async function runSetup(): Promise<void> {
+  banner(PLUGIN_NAME, `v${PLUGIN_VERSION}`);
+
+  const version = checkOpenClawVersion();
+  ok(`OpenClaw ${c.dim}${version}${c.reset}`);
+
+  const configDir = locateConfigDir();
+  checkDirPermissions(configDir);
+  ok(`Config ${c.dim}${configDir}${c.reset}`);
+
+  installPlugin(configDir);
+  patchConfig(configDir);
+
+  const projectsDir = path.join(configDir, 'workspace', 'projects');
+  ensureDir(projectsDir);
+  initRegistry(projectsDir);
+  createEmptyInclude(configDir);
+  ok('Workspace ready');
+
+  triggerRestart();
+  ok('Gateway restarted');
+
+  footer('Setup complete');
+
+  console.log(`  ${c.dim}Next steps:${c.reset}`);
+  console.log(`  ${c.dim}1.${c.reset} Open any Telegram forum topic`);
+  console.log(`  ${c.dim}2.${c.reset} Type ${c.cyan}/topic init${c.reset}`);
+  console.log(`  ${c.dim}3.${c.reset} The topic will be registered and a capsule created`);
+  console.log('');
+}
+
+// ── Uninstall ─────────────────────────────────────────────────────────
+
+async function runUninstall(): Promise<void> {
+  banner(PLUGIN_NAME, 'uninstall');
+
+  const configDir = locateConfigDir();
+  ok(`Config ${c.dim}${configDir}${c.reset}`);
+
+  unpatchConfig(configDir);
+  removeFile(path.join(configDir, INCLUDE_FILENAME));
+  removePluginDir(configDir);
+  ok('Plugin files removed');
+
+  triggerRestart();
+  ok('Gateway restarted');
+
+  const projectsDir = path.join(configDir, 'workspace', 'projects');
+  if (fs.existsSync(projectsDir)) {
+    info('Workspace data kept: ' + projectsDir);
+    info('To remove: rm -rf ' + projectsDir);
+  }
+
+  footer('Uninstall complete');
+}
+
+// ── Setup step implementations ────────────────────────────────────────
 
 function checkOpenClawVersion(): string {
   let version: string;
   try {
     version = execSync('openclaw --version', { encoding: 'utf-8' }).trim();
   } catch {
-    console.error(
-      'Error: OpenClaw not found. Please install OpenClaw (>=2026.1.0) first.',
-    );
+    fail('OpenClaw not found. Install OpenClaw (>=2026.1.0) first.');
     process.exit(1);
   }
 
-  // Extract version number (e.g., "openclaw 2026.2.0" -> "2026.2.0")
   const match = version.match(/(\d+\.\d+\.\d+)/);
   if (!match) {
-    console.warn(`Warning: Could not parse OpenClaw version from "${version}". Proceeding anyway.`);
+    warn(`Could not parse version from "${version}". Proceeding anyway.`);
     return version;
   }
 
   const versionStr = match[1]!;
   if (compareVersions(versionStr, MIN_OPENCLAW_VERSION) < 0) {
-    console.error(
-      `Error: OpenClaw ${versionStr} found, but openclaw-telegram-manager requires >=${MIN_OPENCLAW_VERSION}. Please upgrade.`,
-    );
+    fail(`OpenClaw ${versionStr} found, requires >=${MIN_OPENCLAW_VERSION}. Please upgrade.`);
     process.exit(1);
   }
 
@@ -106,20 +164,17 @@ function checkOpenClawVersion(): string {
 }
 
 function locateConfigDir(): string {
-  // Check environment variable
   const envDir = process.env['OPENCLAW_CONFIG_DIR'];
   if (envDir && fs.existsSync(envDir)) {
     return path.resolve(envDir);
   }
 
-  // Check default location
   const homeDir = process.env['HOME'] ?? process.env['USERPROFILE'] ?? '';
   const defaultDir = path.join(homeDir, '.openclaw');
   if (fs.existsSync(defaultDir)) {
     return defaultDir;
   }
 
-  // Walk up from cwd looking for openclaw.json
   let dir = process.cwd();
   while (dir !== path.dirname(dir)) {
     if (fs.existsSync(path.join(dir, 'openclaw.json'))) {
@@ -128,9 +183,7 @@ function locateConfigDir(): string {
     dir = path.dirname(dir);
   }
 
-  console.error(
-    'Error: Could not find OpenClaw config directory. Set $OPENCLAW_CONFIG_DIR or ensure ~/.openclaw/ exists.',
-  );
+  fail('Could not find OpenClaw config directory. Set $OPENCLAW_CONFIG_DIR or ensure ~/.openclaw/ exists.');
   process.exit(1);
 }
 
@@ -140,42 +193,44 @@ function checkDirPermissions(dir: string): void {
     const mode = stat.mode;
     const permissions = (mode & 0o777).toString(8);
 
-    // Check for world-writable or group-writable
     if (mode & 0o002) {
-      console.warn(
-        `Warning: ${dir} is world-writable (${permissions}). Consider restricting to owner-only (chmod 700).`,
-      );
+      warn(`${dir} is world-writable (${permissions}). Consider chmod 700.`);
     } else if (mode & 0o020) {
-      console.warn(
-        `Warning: ${dir} is group-writable (${permissions}). Consider restricting to owner-only (chmod 700).`,
-      );
+      warn(`${dir} is group-writable (${permissions}). Consider chmod 700.`);
     }
   } catch {
-    console.warn(`Warning: Could not check permissions for ${dir}.`);
+    warn(`Could not check permissions for ${dir}.`);
   }
 }
 
-function installPlugin(): void {
-  try {
-    // Check if already installed
-    const result = execSync('openclaw plugins list', { encoding: 'utf-8' });
-    if (result.includes('openclaw-telegram-manager')) {
-      console.log('  Plugin already installed, skipping.');
-      return;
+function installPlugin(configDir: string): void {
+  const extDir = path.join(configDir, 'extensions', PLUGIN_NAME);
+
+  if (fs.existsSync(path.join(extDir, 'openclaw.plugin.json'))) {
+    ok('Plugin already installed');
+    return;
+  }
+
+  const pkgRoot = findPackageRoot();
+  if (pkgRoot) {
+    fs.mkdirSync(extDir, { recursive: true });
+    for (const entry of PLUGIN_FILES) {
+      const src = path.join(pkgRoot, entry);
+      if (!fs.existsSync(src)) continue;
+      copyRecursive(src, path.join(extDir, entry));
     }
-  } catch {
-    // plugins list might not be available, try installing anyway
+    ok('Plugin installed');
+    return;
   }
 
   try {
-    execSync('openclaw plugins install openclaw-telegram-manager', {
+    execSync(`openclaw plugins install ${PLUGIN_NAME}`, {
       encoding: 'utf-8',
       stdio: 'inherit',
     });
+    ok('Plugin installed');
   } catch {
-    console.warn(
-      '  Warning: Could not install plugin via `openclaw plugins install`. You may need to install manually.',
-    );
+    warn('Could not install plugin. You may need to install manually.');
   }
 }
 
@@ -183,66 +238,52 @@ function patchConfig(configDir: string): void {
   const configPath = path.join(configDir, 'openclaw.json');
 
   if (!fs.existsSync(configPath)) {
-    console.warn(`  Warning: ${configPath} not found. Skipping config patch.`);
+    warn(`${configPath} not found. Skipping config patch.`);
     return;
   }
 
   let content: string;
   try {
     content = fs.readFileSync(configPath, 'utf-8');
-  } catch (err) {
-    console.warn(`  Warning: Could not read ${configPath}. Skipping config patch.`);
+  } catch {
+    warn(`Could not read ${configPath}. Skipping config patch.`);
     return;
   }
 
-  // Check if $include reference already exists
   if (content.includes(INCLUDE_FILENAME)) {
-    console.log('  $include reference already present, skipping.');
+    ok('Config already patched');
     return;
   }
 
-  // Parse as JSON (OpenClaw config may be JSON or JSON5)
   let config: Record<string, unknown>;
   try {
     config = JSON.parse(content) as Record<string, unknown>;
   } catch {
-    // Try a more lenient approach: just check for the string and warn
-    console.warn(
-      '  Warning: Could not parse openclaw.json as JSON. Please manually add the $include reference.',
-    );
-    console.warn(`  Add to channels.telegram.groups: { "$include": "./${INCLUDE_FILENAME}" }`);
+    warn('Could not parse openclaw.json. Please manually add the $include reference.');
+    info(`Add to channels.telegram.groups: { "$include": "./${INCLUDE_FILENAME}" }`);
     return;
   }
 
-  // Ensure path exists: channels.telegram.groups
   if (!config['channels']) config['channels'] = {};
   const channels = config['channels'] as Record<string, unknown>;
 
   if (!channels['telegram']) channels['telegram'] = {};
   const telegram = channels['telegram'] as Record<string, unknown>;
 
-  // Set groups to $include
   telegram['groups'] = { $include: `./${INCLUDE_FILENAME}` };
 
-  // Backup and write
   const bakPath = configPath + '.bak';
   fs.copyFileSync(configPath, bakPath);
 
   const newContent = JSON.stringify(config, null, 2) + '\n';
   fs.writeFileSync(configPath, newContent, { mode: 0o600 });
-}
-
-function ensureDir(dir: string): void {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
+  ok('Config patched');
 }
 
 function initRegistry(projectsDir: string): void {
   const registryPath = path.join(projectsDir, REGISTRY_FILENAME);
 
   if (fs.existsSync(registryPath)) {
-    console.log('  Registry already exists, skipping initialization.');
     return;
   }
 
@@ -265,7 +306,6 @@ function createEmptyInclude(configDir: string): void {
   const includePath = path.join(configDir, INCLUDE_FILENAME);
 
   if (fs.existsSync(includePath)) {
-    console.log('  Include file already exists, skipping.');
     return;
   }
 
@@ -278,83 +318,83 @@ function createEmptyInclude(configDir: string): void {
   fs.writeFileSync(includePath, content, { mode: 0o600 });
 }
 
-function setupDoctorCron(configDir: string, groupId: string): void {
-  const cronDir = path.join(configDir, 'cron');
-  ensureDir(cronDir);
+// ── Uninstall step implementations ────────────────────────────────────
 
-  const cronJobPath = path.join(cronDir, 'topic-doctor-daily.json');
+function unpatchConfig(configDir: string): void {
+  const configPath = path.join(configDir, 'openclaw.json');
+  const bakPath = configPath + '.bak';
 
-  if (fs.existsSync(cronJobPath)) {
-    console.log('  Cron job already exists, skipping.');
+  if (!fs.existsSync(configPath)) {
     return;
   }
 
-  const target = groupId
-    ? `${groupId}:topic:1`
-    : '-100XXXXXXXXXX:topic:1';
+  let content: string;
+  try {
+    content = fs.readFileSync(configPath, 'utf-8');
+  } catch {
+    warn(`Could not read ${configPath}.`);
+    return;
+  }
 
-  const cronJob = {
-    name: 'topic-doctor-daily',
-    schedule: { kind: 'cron', expr: '0 9 * * *', tz: 'UTC' },
-    sessionTarget: 'isolated',
-    payload: {
-      kind: 'agentTurn',
-      message:
-        'Run topic doctor health checks on all registered topics. Check the registry at projects/topics.json and evaluate each eligible topic. Post per-topic reports with inline keyboards. If any topic\'s thread returns an API error (deleted/migrated), log it and continue to the next topic.',
-      timeoutSeconds: 300,
-    },
-    delivery: {
-      mode: 'announce',
-      channel: 'telegram',
-      to: target,
-      bestEffort: true,
-    },
-    enabled: true,
-    deleteAfterRun: false,
-  };
+  if (!content.includes(INCLUDE_FILENAME)) {
+    return;
+  }
 
-  fs.writeFileSync(cronJobPath, JSON.stringify(cronJob, null, 2) + '\n', {
-    mode: 0o600,
-  });
+  let config: Record<string, unknown>;
+  try {
+    config = JSON.parse(content) as Record<string, unknown>;
+  } catch {
+    warn('Could not parse openclaw.json. Please manually remove the $include reference.');
+    return;
+  }
 
-  if (!groupId) {
-    console.warn(
-      '  Warning: No group ID provided. Edit the cron job at:',
-    );
-    console.warn(`  ${cronJobPath}`);
-    console.warn('  Replace -100XXXXXXXXXX with your actual group ID.');
+  const channels = config['channels'] as Record<string, unknown> | undefined;
+  const telegram = channels?.['telegram'] as Record<string, unknown> | undefined;
+  if (telegram) {
+    delete telegram['groups'];
+    if (Object.keys(telegram).length === 0) delete channels!['telegram'];
+    if (Object.keys(channels!).length === 0) delete config['channels'];
+  }
+
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
+
+  // Clean up stale backup from install time
+  if (fs.existsSync(bakPath)) {
+    fs.unlinkSync(bakPath);
   }
 }
 
-function triggerRestart(configDir: string): void {
+function removeFile(filePath: string): void {
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+}
+
+function removePluginDir(configDir: string): void {
+  const extDir = path.join(configDir, 'extensions', PLUGIN_NAME);
+  if (fs.existsSync(extDir)) {
+    fs.rmSync(extDir, { recursive: true });
+  }
+}
+
+// ── Shared helpers ────────────────────────────────────────────────────
+
+function triggerRestart(): void {
   try {
     execSync('openclaw gateway restart', {
       encoding: 'utf-8',
       timeout: 10_000,
     });
   } catch {
-    console.warn(
-      '  Warning: Could not restart gateway. Run `openclaw gateway restart` manually.',
-    );
+    warn('Could not restart gateway. Run `openclaw gateway restart` manually.');
   }
 }
 
-function printSummary(configDir: string, projectsDir: string): void {
-  console.log('\n================================');
-  console.log('Setup complete!\n');
-  console.log('What was done:');
-  console.log(`  - Config directory: ${configDir}`);
-  console.log(`  - Projects directory: ${projectsDir}`);
-  console.log(`  - Registry: ${path.join(projectsDir, REGISTRY_FILENAME)}`);
-  console.log(`  - Include: ${path.join(configDir, INCLUDE_FILENAME)}`);
-  console.log('\nNext steps:');
-  console.log('  1. Go to any Telegram forum topic');
-  console.log('  2. Type /topic init');
-  console.log('  3. The topic will be registered and a capsule created');
-  console.log('\nFor help: /topic help');
+function ensureDir(dir: string): void {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────
 
 function compareVersions(a: string, b: string): number {
   const aParts = a.split('.').map(Number);
@@ -367,36 +407,25 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-function promptYesNo(question: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-    rl.question(question, (answer) => {
-      rl.close();
-      const normalized = answer.trim().toLowerCase();
-      resolve(normalized === '' || normalized === 'y' || normalized === 'yes');
-    });
-  });
+function findPackageRoot(): string | null {
+  let dir = path.dirname(new URL(import.meta.url).pathname);
+  for (let i = 0; i < 5; i++) {
+    if (fs.existsSync(path.join(dir, 'openclaw.plugin.json'))) {
+      return dir;
+    }
+    dir = path.dirname(dir);
+  }
+  return null;
 }
 
-function promptInput(question: string): Promise<string> {
-  return new Promise((resolve) => {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
+function copyRecursive(src: string, dest: string): void {
+  const stat = fs.statSync(src);
+  if (stat.isDirectory()) {
+    fs.mkdirSync(dest, { recursive: true });
+    for (const entry of fs.readdirSync(src)) {
+      copyRecursive(path.join(src, entry), path.join(dest, entry));
+    }
+  } else {
+    fs.copyFileSync(src, dest);
+  }
 }
-
-// ── Entry point ───────────────────────────────────────────────────────
-
-main().catch((err) => {
-  console.error('Setup failed:', err instanceof Error ? err.message : String(err));
-  process.exit(1);
-});

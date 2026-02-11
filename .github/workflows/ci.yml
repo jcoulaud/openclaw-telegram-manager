@@ -45,7 +45,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm audit --omit=dev --audit-level=moderate
+      - run: npx audit-ci
 
   release:
     name: Release

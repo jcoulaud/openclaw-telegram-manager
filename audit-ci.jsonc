@@ -1,0 +1,11 @@
+{
+  "$schema": "https://github.com/IBM/audit-ci/raw/main/docs/schema.json",
+  "moderate": true,
+  "allowlist": [
+    // tar <=7.5.6 via openclaw -> node-llama-cpp -> cmake-js -> tar
+    // Upstream transitive dependency — no fix available yet
+    "GHSA-8qq5-rm4j-mr97",
+    "GHSA-r6q2-hw4h-h46w",
+    "GHSA-34x7-hfp2-rc4v"
+  ]
+}

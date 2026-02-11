@@ -34,15 +34,42 @@ const c = {
   magenta: useColor ? '\x1b[35m' : '',
 };
 
+// ── Spinner (zero dependencies, TTY-only) ────────────────────────────
+
+let spinnerTimer: ReturnType<typeof setInterval> | null = null;
+
+function startSpinner(msg: string): void {
+  stopSpinner();
+  if (!process.stdout.isTTY) return;
+  const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  let i = 0;
+  const render = () => {
+    process.stdout.write(`\r  ${c.cyan}${frames[i++ % frames.length]}${c.reset}  ${msg}`);
+  };
+  render();
+  spinnerTimer = setInterval(render, 80);
+}
+
+function stopSpinner(): void {
+  if (spinnerTimer) {
+    clearInterval(spinnerTimer);
+    spinnerTimer = null;
+    process.stdout.write('\r\x1b[2K');
+  }
+}
+
 // ── Logging helpers ───────────────────────────────────────────────────
 
 function ok(msg: string): void {
+  stopSpinner();
   console.log(`  ${c.green}✓${c.reset}  ${msg}`);
 }
 function warn(msg: string): void {
+  stopSpinner();
   console.warn(`  ${c.yellow}⚠${c.reset}  ${c.yellow}${msg}${c.reset}`);
 }
 function fail(msg: string): void {
+  stopSpinner();
   console.error(`  ${c.red}✗${c.reset}  ${c.red}${msg}${c.reset}`);
 }
 function info(msg: string): void {
@@ -67,11 +94,13 @@ const command = process.argv[2] ?? 'setup';
 
 if (command === 'setup') {
   runSetup().catch((err) => {
+    stopSpinner();
     console.error('Setup failed:', err instanceof Error ? err.message : String(err));
     process.exit(1);
   });
 } else if (command === 'uninstall') {
   runUninstall().catch((err) => {
+    stopSpinner();
     console.error('Uninstall failed:', err instanceof Error ? err.message : String(err));
     process.exit(1);
   });
@@ -86,22 +115,29 @@ if (command === 'setup') {
 async function runSetup(): Promise<void> {
   banner(PLUGIN_NAME, `v${PLUGIN_VERSION}`);
 
+  startSpinner('Checking OpenClaw version…');
   const version = checkOpenClawVersion();
   ok(`OpenClaw ${c.dim}${version}${c.reset}`);
 
+  startSpinner('Locating config…');
   const configDir = locateConfigDir();
   checkDirPermissions(configDir);
   ok(`Config ${c.dim}${configDir}${c.reset}`);
 
+  startSpinner('Installing plugin…');
   installPlugin(configDir);
+
+  startSpinner('Patching config…');
   patchConfig(configDir);
 
+  startSpinner('Preparing workspace…');
   const projectsDir = path.join(configDir, 'workspace', 'projects');
   ensureDir(projectsDir);
   initRegistry(projectsDir);
   createEmptyInclude(configDir);
   ok('Workspace ready');
 
+  startSpinner('Restarting gateway…');
   triggerRestart();
   ok('Gateway restarted');
 
@@ -119,14 +155,17 @@ async function runSetup(): Promise<void> {
 async function runUninstall(): Promise<void> {
   banner(PLUGIN_NAME, 'uninstall');
 
+  startSpinner('Locating config…');
   const configDir = locateConfigDir();
   ok(`Config ${c.dim}${configDir}${c.reset}`);
 
+  startSpinner('Removing plugin…');
   unpatchConfig(configDir);
   removeFile(path.join(configDir, INCLUDE_FILENAME));
   removePluginDir(configDir);
   ok('Plugin files removed');
 
+  startSpinner('Restarting gateway…');
   triggerRestart();
   ok('Gateway restarted');
 

@@ -18,36 +18,36 @@ const BASE_TEMPLATES: Record<string, (slug: string) => string> = {
     `# TODO: ${slug}\n\n## Backlog\n\n- [T-1] _First task placeholder — replace with actual task_\n- [T-2] _Second task placeholder — replace with actual task_\n- [T-3] _Third task placeholder — replace with actual task_\n\n## Completed\n\n_None yet._\n`,
 
   'COMMANDS.md': (slug) =>
-    `# Commands: ${slug}\n\n_Durable command reference for this topic. Add build, deploy, test, and other commands here so they survive resets and compaction._\n`,
+    `# Commands: ${slug}\n\n_Build, deploy, test, and other commands for this topic. Kept here so they're not lost on reset._\n`,
 
   'LINKS.md': (slug) =>
-    `# Links: ${slug}\n\n_URLs, paths, and service endpoints for this topic. Add entries here so they survive resets and compaction._\n`,
+    `# Links: ${slug}\n\n_URLs, paths, and service endpoints for this topic._\n`,
 
   'CRON.md': (slug) =>
-    `# Cron: ${slug}\n\n_Cron job IDs and schedules associated with this topic. Record job IDs here so they can be verified by doctor checks._\n`,
+    `# Cron: ${slug}\n\n_Cron job IDs and schedules for this topic._\n`,
 
   'NOTES.md': (slug) =>
-    `# Notes: ${slug}\n\n_Freeform persistent notes for this topic. Anything worth remembering across resets and compaction._\n`,
+    `# Notes: ${slug}\n\n_Anything worth remembering about this topic._\n`,
 };
 
 const OVERLAY_TEMPLATES: Record<string, (slug: string) => string> = {
   'ARCHITECTURE.md': (slug) =>
-    `# Architecture: ${slug}\n\n_High-level architecture overview for this coding topic. Document components, data flow, dependencies, and design decisions._\n`,
+    `# Architecture: ${slug}\n\n_Components, data flow, dependencies, and design decisions._\n`,
 
   'DEPLOY.md': (slug) =>
-    `# Deployment: ${slug}\n\n_Deployment guide for this coding topic. Document environments, deployment steps, rollback procedures, and infrastructure details._\n`,
+    `# Deployment: ${slug}\n\n_Environments, deployment steps, rollback procedures, and infra details._\n`,
 
   'SOURCES.md': (slug) =>
-    `# Sources: ${slug}\n\n_Research sources for this topic. Document papers, articles, datasets, APIs, and other reference material._\n`,
+    `# Sources: ${slug}\n\n_Papers, articles, datasets, APIs, and other reference material._\n`,
 
   'FINDINGS.md': (slug) =>
-    `# Findings: ${slug}\n\n_Research findings for this topic. Document conclusions, insights, data summaries, and recommendations._\n`,
+    `# Findings: ${slug}\n\n_Conclusions, insights, data summaries, and recommendations._\n`,
 
   'CAMPAIGNS.md': (slug) =>
-    `# Campaigns: ${slug}\n\n_Campaign tracking for this marketing topic. Document active campaigns, target audiences, channels, timelines, and budgets._\n`,
+    `# Campaigns: ${slug}\n\n_Active campaigns, target audiences, channels, timelines, and budgets._\n`,
 
   'METRICS.md': (slug) =>
-    `# Metrics: ${slug}\n\n_Metrics tracking for this marketing topic. Document KPIs, conversion rates, engagement stats, and performance data._\n`,
+    `# Metrics: ${slug}\n\n_KPIs, conversion rates, engagement stats, and performance data._\n`,
 };
 
 // ── File permissions ───────────────────────────────────────────────────

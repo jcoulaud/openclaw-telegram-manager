@@ -1,3 +1,3 @@
 # Metrics: {{slug}}
 
-_Metrics tracking for this marketing topic. Document KPIs, conversion rates, engagement stats, and performance data._
+_KPIs, conversion rates, engagement stats, and performance data._

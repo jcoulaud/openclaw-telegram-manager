@@ -1,3 +1,3 @@
 # Links: {{slug}}
 
-_URLs, paths, and service endpoints for this topic. Add entries here so they survive resets and compaction._
+_URLs, paths, and service endpoints for this topic._

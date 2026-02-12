@@ -145,9 +145,9 @@ describe('registerCommand handler', () => {
     expect(buttons[0][1].text).toBe('Research');
     expect(buttons[1][0].text).toBe('Marketing');
     expect(buttons[1][1].text).toBe('Custom');
-    // Callback format: tm:action:groupId:threadId:hmac (5 parts)
+    // Callback format: tm:action:groupId:threadId:userId:hmac (6 parts)
     const parts = buttons[0][0].callback_data.split(':');
-    expect(parts).toHaveLength(5);
+    expect(parts).toHaveLength(6);
     expect(parts[0]).toBe('tm');
   });
 

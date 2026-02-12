@@ -202,15 +202,17 @@ function extractNestedString(
 // ── Callback handling ───────────────────────────────────────────────
 
 async function handleCallback(data: string, ctx: CommandContext): Promise<CommandResult> {
-  const { workspaceDir, userId } = ctx;
+  const { workspaceDir } = ctx;
 
-  // Extract groupId and threadId from the callback data itself (format: tm:action:groupId:threadId:hmac).
-  // This avoids depending on execContext which may not carry these fields for callback queries.
+  // Extract groupId, threadId, and userId from the callback data itself
+  // (format: tm:action:groupId:threadId:userId:hmac).
+  // This avoids depending on execContext which the gateway doesn't provide
+  // for callback queries routed as plain text.
   const cbParts = data.split(':');
   const cbGroupId = cbParts[2];
   const cbThreadId = cbParts[3];
 
-  if (!cbGroupId || !cbThreadId || !userId) {
+  if (!cbGroupId || !cbThreadId) {
     return { text: 'Cannot verify callback: missing context.' };
   }
 
@@ -221,7 +223,7 @@ async function handleCallback(data: string, ctx: CommandContext): Promise<Comman
     return { text: 'Invalid or expired callback.' };
   }
 
-  const { action } = parsed;
+  const { action, userId: cbUserId } = parsed;
 
   // Init callbacks: topic doesn't exist in registry yet
   const initTypeMap: Record<string, 'coding' | 'research' | 'marketing' | 'custom'> = {
@@ -231,9 +233,9 @@ async function handleCallback(data: string, ctx: CommandContext): Promise<Comman
     ix: 'custom',
   };
 
-  // Build a context with the callback-derived groupId/threadId so downstream
-  // handlers have correct values even when execContext didn't carry them.
-  const cbCtx: CommandContext = { ...ctx, groupId: cbGroupId, threadId: cbThreadId };
+  // Build a context with callback-derived values so downstream handlers work
+  // even when execContext didn't carry them.
+  const cbCtx: CommandContext = { ...ctx, groupId: cbGroupId, threadId: cbThreadId, userId: cbUserId };
 
   if (action in initTypeMap) {
     return handleInitTypeSelect(cbCtx, initTypeMap[action]!);

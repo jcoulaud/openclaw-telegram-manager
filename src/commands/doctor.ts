@@ -72,6 +72,7 @@ export async function handleDoctor(ctx: CommandContext): Promise<CommandResult> 
     groupId,
     threadId,
     registry.callbackSecret,
+    userId,
   );
 
   // Append text command equivalents

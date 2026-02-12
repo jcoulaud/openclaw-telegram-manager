@@ -248,7 +248,7 @@ async function buildTypePicker(ctx: CommandContext): Promise<CommandResult> {
     };
   }
 
-  const keyboard = buildInitTypeButtons(groupId, threadId, registry.callbackSecret);
+  const keyboard = buildInitTypeButtons(groupId, threadId, registry.callbackSecret, userId);
 
   return {
     text: 'Pick a topic type:',

@@ -103,6 +103,7 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
         entry.groupId,
         entry.threadId,
         registry.callbackSecret,
+        userId,
       );
 
       reports.push({

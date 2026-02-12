@@ -186,21 +186,23 @@ describe('security', () => {
     const action = 'snooze';
     const groupId = '-100123';
     const threadId = '456';
+    const userId = '789012';
 
     it('should build valid callback data', () => {
-      const data = buildCallbackData(action, groupId, threadId, secret);
+      const data = buildCallbackData(action, groupId, threadId, secret, userId);
 
-      expect(data).toMatch(/^tm:snooze:-100123:456:[a-f0-9]+$/);
+      expect(data).toMatch(/^tm:snooze:-100123:456:789012:[a-f0-9]+$/);
     });
 
     it('should parse and verify valid callback data', () => {
-      const data = buildCallbackData(action, groupId, threadId, secret);
+      const data = buildCallbackData(action, groupId, threadId, secret, userId);
       const result = parseAndVerifyCallback(data, secret, groupId, threadId);
 
       expect(result).not.toBeNull();
       expect(result?.action).toBe(action);
       expect(result?.groupId).toBe(groupId);
       expect(result?.threadId).toBe(threadId);
+      expect(result?.userId).toBe(userId);
     });
 
     it('should reject callback with invalid format', () => {
@@ -209,21 +211,21 @@ describe('security', () => {
     });
 
     it('should reject callback with wrong HMAC', () => {
-      const data = 'tm:snooze:-100123:456:wronghmac12345';
+      const data = 'tm:snooze:-100123:456:789012:wronghmac1234567';
       const result = parseAndVerifyCallback(data, secret, groupId, threadId);
 
       expect(result).toBeNull();
     });
 
     it('should reject callback with wrong secret', () => {
-      const data = buildCallbackData(action, groupId, threadId, secret);
+      const data = buildCallbackData(action, groupId, threadId, secret, userId);
       const result = parseAndVerifyCallback(data, 'wrong-secret', groupId, threadId);
 
       expect(result).toBeNull();
     });
 
     it('should reject callback with mismatched context', () => {
-      const data = buildCallbackData(action, groupId, threadId, secret);
+      const data = buildCallbackData(action, groupId, threadId, secret, userId);
 
       // Wrong groupId
       expect(parseAndVerifyCallback(data, secret, '-999', threadId)).toBeNull();
@@ -233,7 +235,7 @@ describe('security', () => {
     });
 
     it('should prevent cross-topic tampering', () => {
-      const data = buildCallbackData(action, groupId, threadId, secret);
+      const data = buildCallbackData(action, groupId, threadId, secret, userId);
 
       // Try to use callback from different topic
       const result = parseAndVerifyCallback(data, secret, '-100999', '789');

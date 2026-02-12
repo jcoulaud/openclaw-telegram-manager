@@ -89,25 +89,30 @@ export function validateThreadId(id: string): boolean {
 
 // ── Callback data handling ─────────────────────────────────────────────
 
-const CALLBACK_RE = /^tm:[a-z0-9]+:-?\d+:\d+:[a-f0-9]+$/;
+const CALLBACK_RE = /^tm:[a-z0-9]+:-?\d+:\d+:\d+:[a-f0-9]+$/;
 
 export interface CallbackData {
   action: string;
   groupId: string;
   threadId: string;
+  userId: string;
 }
 
 /**
  * Build callback data string with HMAC signature.
- * Format: tm:<action>:<groupId>:<threadId>:<hmac>
+ * Format: tm:<action>:<groupId>:<threadId>:<userId>:<hmac>
+ *
+ * userId is embedded so callbacks work even when the gateway doesn't pass
+ * execution context (e.g. callback queries routed as plain text).
  */
 export function buildCallbackData(
   action: string,
   groupId: string,
   threadId: string,
   secret: string,
+  userId: string,
 ): string {
-  const payload = `tm:${action}:${groupId}:${threadId}`;
+  const payload = `tm:${action}:${groupId}:${threadId}:${userId}`;
   const sig = hmacSign(secret, payload);
   return `${payload}:${sig}`;
 }
@@ -119,7 +124,7 @@ export function buildCallbackData(
  * Checks:
  * 1. Format matches the expected regex
  * 2. HMAC is valid
- * 3. groupId and threadId match the context (prevents cross-topic tampering)
+ * 3. groupId and threadId match the expected values (prevents cross-topic tampering)
  */
 export function parseAndVerifyCallback(
   data: string,
@@ -130,19 +135,19 @@ export function parseAndVerifyCallback(
   if (!CALLBACK_RE.test(data)) return null;
 
   const parts = data.split(':');
-  // tm : action : groupId : threadId : hmac
-  if (parts.length !== 5) return null;
+  // tm : action : groupId : threadId : userId : hmac
+  if (parts.length !== 6) return null;
 
-  const [, action, groupId, threadId, signature] = parts as [
-    string, string, string, string, string,
+  const [, action, groupId, threadId, userId, signature] = parts as [
+    string, string, string, string, string, string,
   ];
 
   // Verify context match (prevent cross-topic tampering)
   if (groupId !== contextGroupId || threadId !== contextThreadId) return null;
 
   // Verify HMAC
-  const payload = `tm:${action}:${groupId}:${threadId}`;
+  const payload = `tm:${action}:${groupId}:${threadId}:${userId}`;
   if (!hmacVerify(secret, payload, signature)) return null;
 
-  return { action, groupId, threadId };
+  return { action, groupId, threadId, userId };
 }

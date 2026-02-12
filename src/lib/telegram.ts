@@ -38,8 +38,9 @@ export function buildDoctorButtons(
   groupId: string,
   threadId: string,
   secret: string,
+  userId: string,
 ): InlineKeyboardMarkup {
-  const cb = (action: string) => buildCallbackData(action, groupId, threadId, secret);
+  const cb = (action: string) => buildCallbackData(action, groupId, threadId, secret, userId);
   return buildInlineKeyboard([
     [
       { text: 'Fix', callback_data: cb('fix') },
@@ -60,8 +61,9 @@ export function buildInitTypeButtons(
   groupId: string,
   threadId: string,
   secret: string,
+  userId: string,
 ): InlineKeyboardMarkup {
-  const cb = (action: string) => buildCallbackData(action, groupId, threadId, secret);
+  const cb = (action: string) => buildCallbackData(action, groupId, threadId, secret, userId);
   return buildInlineKeyboard([
     [
       { text: 'Coding', callback_data: cb('ic') },

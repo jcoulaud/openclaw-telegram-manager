@@ -182,6 +182,7 @@ async function runUninstall(): Promise<void> {
   startSpinner('Removing plugin…');
   removePluginDir(configDir);
   unpatchConfig(configDir);
+  unpatchMemoryFlush(configDir);
   removeFile(path.join(configDir, INCLUDE_FILENAME));
   ok('Plugin files removed');
 
@@ -581,6 +582,53 @@ function patchMemoryFlush(configDir: string): void {
 
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
   ok('Memory flush prompt patched');
+}
+
+function unpatchMemoryFlush(configDir: string): void {
+  const configPath = path.join(configDir, 'openclaw.json');
+
+  if (!fs.existsSync(configPath)) return;
+
+  let content: string;
+  try {
+    content = fs.readFileSync(configPath, 'utf-8');
+  } catch {
+    return;
+  }
+
+  if (!content.includes(MEMORY_FLUSH_MARKER)) return;
+
+  let config: Record<string, unknown>;
+  try {
+    config = JSON.parse(content) as Record<string, unknown>;
+  } catch {
+    return;
+  }
+
+  const agents = config['agents'] as Record<string, unknown> | undefined;
+  const defaults = agents?.['defaults'] as Record<string, unknown> | undefined;
+  const compaction = defaults?.['compaction'] as Record<string, unknown> | undefined;
+  const memoryFlush = compaction?.['memoryFlush'] as Record<string, unknown> | undefined;
+
+  if (!memoryFlush || typeof memoryFlush['prompt'] !== 'string') return;
+
+  const prompt = memoryFlush['prompt'] as string;
+  const cleaned = prompt
+    .replace(MEMORY_FLUSH_INSTRUCTION, '')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
+
+  if (cleaned) {
+    memoryFlush['prompt'] = cleaned;
+  } else {
+    delete memoryFlush['prompt'];
+    if (Object.keys(memoryFlush).length === 0) delete compaction!['memoryFlush'];
+    if (Object.keys(compaction!).length === 0) delete defaults!['compaction'];
+    if (Object.keys(defaults!).length === 0) delete agents!['defaults'];
+    if (Object.keys(agents!).length === 0) delete config['agents'];
+  }
+
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
 }
 
 // ── Shared helpers ────────────────────────────────────────────────────

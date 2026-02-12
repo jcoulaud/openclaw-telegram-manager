@@ -604,6 +604,110 @@ describe('setup integration', () => {
     });
   });
 
+  describe('unpatchMemoryFlush', () => {
+    const MEMORY_FLUSH_MARKER = 'topic capsule';
+    const MEMORY_FLUSH_INSTRUCTION =
+      'If you are working on a Telegram topic capsule (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted.';
+
+    function unpatchMemoryFlush(cfgDir: string): void {
+      const configPath = path.join(cfgDir, 'openclaw.json');
+      if (!fs.existsSync(configPath)) return;
+
+      let content: string;
+      try { content = fs.readFileSync(configPath, 'utf-8'); } catch { return; }
+      if (!content.includes(MEMORY_FLUSH_MARKER)) return;
+
+      let config: Record<string, unknown>;
+      try { config = JSON.parse(content); } catch { return; }
+
+      const agents = config['agents'] as Record<string, unknown> | undefined;
+      const defaults = agents?.['defaults'] as Record<string, unknown> | undefined;
+      const compaction = defaults?.['compaction'] as Record<string, unknown> | undefined;
+      const memoryFlush = compaction?.['memoryFlush'] as Record<string, unknown> | undefined;
+      if (!memoryFlush || typeof memoryFlush['prompt'] !== 'string') return;
+
+      const prompt = memoryFlush['prompt'] as string;
+      const cleaned = prompt.replace(MEMORY_FLUSH_INSTRUCTION, '').replace(/\n{2,}/g, '\n').trim();
+
+      if (cleaned) {
+        memoryFlush['prompt'] = cleaned;
+      } else {
+        delete memoryFlush['prompt'];
+        if (Object.keys(memoryFlush).length === 0) delete compaction!['memoryFlush'];
+        if (Object.keys(compaction!).length === 0) delete defaults!['compaction'];
+        if (Object.keys(defaults!).length === 0) delete agents!['defaults'];
+        if (Object.keys(agents!).length === 0) delete config['agents'];
+      }
+
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
+    }
+
+    it('should remove instruction and clean up empty agents tree', () => {
+      const configPath = path.join(configDir, 'openclaw.json');
+      const config = {
+        version: '2026.1.0',
+        channels: {},
+        agents: {
+          defaults: {
+            compaction: {
+              memoryFlush: { prompt: MEMORY_FLUSH_INSTRUCTION },
+            },
+          },
+        },
+      };
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+
+      unpatchMemoryFlush(configDir);
+
+      const restored = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(restored.agents).toBeUndefined();
+      expect(restored.version).toBe('2026.1.0');
+    });
+
+    it('should preserve custom prompt when removing instruction', () => {
+      const configPath = path.join(configDir, 'openclaw.json');
+      const customPrompt = 'Save important context before compaction.';
+      const config = {
+        version: '2026.1.0',
+        channels: {},
+        agents: {
+          defaults: {
+            compaction: {
+              memoryFlush: { prompt: customPrompt + '\n' + MEMORY_FLUSH_INSTRUCTION },
+            },
+          },
+        },
+      };
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+
+      unpatchMemoryFlush(configDir);
+
+      const restored = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(restored.agents.defaults.compaction.memoryFlush.prompt).toBe(customPrompt);
+    });
+
+    it('should be a no-op when marker is not present', () => {
+      const configPath = path.join(configDir, 'openclaw.json');
+      const config = {
+        version: '2026.1.0',
+        channels: {},
+        agents: {
+          defaults: {
+            compaction: {
+              memoryFlush: { prompt: 'Some other prompt.' },
+            },
+          },
+        },
+      };
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+
+      unpatchMemoryFlush(configDir);
+
+      const restored = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(restored.agents.defaults.compaction.memoryFlush.prompt).toBe('Some other prompt.');
+    });
+  });
+
   describe('complete setup flow', () => {
     it('should complete all setup steps', () => {
       const workspaceDir = path.join(configDir, 'workspace');

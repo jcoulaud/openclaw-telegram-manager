@@ -150,9 +150,17 @@ export default function register(api: {
       const result = await tool.execute(id, params, context);
       // Wrap in AgentToolResult format so the gateway's extractTextFromToolResult
       // can find the text (it looks for .content, not .text).
-      return {
+      // Also forward inlineKeyboard via channelData so callback responses
+      // (which bypass registerCommand) can still render buttons.
+      const response: Record<string, unknown> = {
         content: [{ type: 'text' as const, text: result.text }],
       };
+      if (result.inlineKeyboard) {
+        response.channelData = {
+          telegram: { buttons: result.inlineKeyboard.inline_keyboard },
+        };
+      }
+      return response;
     },
   });
 

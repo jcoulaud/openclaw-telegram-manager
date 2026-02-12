@@ -1,3 +1,10 @@
+## [1.3.7](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.6...v1.3.7) (2026-02-12)
+
+
+### Bug Fixes
+
+* use registerCommand for /topic to receive message context ([e58c657](https://github.com/jcoulaud/openclaw-telegram-manager/commit/e58c657c426dc2c2a91f0291689fca941d443ad9))
+
 ## [1.3.6](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.5...v1.3.6) (2026-02-11)
 
 

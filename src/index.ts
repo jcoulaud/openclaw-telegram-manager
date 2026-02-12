@@ -92,7 +92,7 @@ export default function register(api: {
   let resolvedPostFn: PostFn | undefined | null; // null = tried & unavailable
 
   const lazyPostFn: PostFn = async (groupId, threadId, text, keyboard) => {
-    if (resolvedPostFn === null) return; // already checked, SDK unavailable
+    if (resolvedPostFn === null) throw new Error('openclaw SDK unavailable – cannot post');
     if (resolvedPostFn === undefined) {
       try {
         // Dynamic path prevents Vite/tsc from resolving at build time
@@ -120,7 +120,8 @@ export default function register(api: {
         resolvedPostFn = null;
       }
     }
-    if (resolvedPostFn) await resolvedPostFn(groupId, threadId, text, keyboard);
+    if (!resolvedPostFn) throw new Error('openclaw SDK unavailable – cannot post');
+    await resolvedPostFn(groupId, threadId, text, keyboard);
   };
 
   const tool = createTopicManagerTool({

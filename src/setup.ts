@@ -4,6 +4,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as crypto from 'node:crypto';
 import { execSync } from 'node:child_process';
+import * as readline from 'node:readline';
 
 // ── Constants ──────────────────────────────────────────────────────────
 
@@ -89,6 +90,17 @@ function footer(msg: string): void {
   console.log('');
 }
 
+function confirm(question: string): Promise<boolean> {
+  if (!process.stdin.isTTY) return Promise.resolve(false);
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    rl.question(`  ${c.yellow}?${c.reset}  ${question} ${c.dim}[y/N]${c.reset} `, (answer) => {
+      rl.close();
+      resolve(answer.trim().toLowerCase() === 'y');
+    });
+  });
+}
+
 // ── Entry point ───────────────────────────────────────────────────────
 
 const command = process.argv[2] ?? 'setup';
@@ -107,7 +119,7 @@ if (command === 'setup') {
   });
 } else {
   console.error(`Unknown command: ${command}`);
-  console.error(`Usage: ${PLUGIN_NAME} [setup|uninstall]`);
+  console.error(`Usage: ${PLUGIN_NAME} [setup|uninstall [--purge-data]]`);
   process.exit(1);
 }
 
@@ -168,13 +180,18 @@ async function runUninstall(): Promise<void> {
   startSpinner('Restarting gateway…');
   if (triggerRestart()) ok('Gateway restarted');
 
-  startSpinner('Removing workspace data…');
   const projectsDir = path.join(configDir, 'workspace', 'projects');
   if (fs.existsSync(projectsDir)) {
-    fs.rmSync(projectsDir, { recursive: true });
-    ok('Workspace data removed');
-  } else {
-    ok('No workspace data to remove');
+    const purge = process.argv.includes('--purge-data')
+      || await confirm('Delete workspace data (topic capsules, registry)? This cannot be undone.');
+    if (purge) {
+      startSpinner('Removing workspace data…');
+      fs.rmSync(projectsDir, { recursive: true });
+      ok('Workspace data removed');
+    } else {
+      ok(`Workspace data kept ${c.dim}${projectsDir}${c.reset}`);
+      info('Run with --purge-data to remove it later.');
+    }
   }
 
   footer('Uninstall complete');

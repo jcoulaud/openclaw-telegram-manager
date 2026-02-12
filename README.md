@@ -102,7 +102,11 @@ See [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
 npx openclaw-telegram-manager uninstall
 ```
 
-This removes the plugin extension files, the `$include` reference from `openclaw.json`, the generated include file, and all workspace data (registry, topic capsules, audit log), then restarts the gateway.
+This removes the plugin extension files, the `$include` reference from `openclaw.json`, and the generated include file, then restarts the gateway. You will be asked whether to delete workspace data (registry, topic capsules). To skip the prompt and force deletion, pass `--purge-data`:
+
+```bash
+npx openclaw-telegram-manager uninstall --purge-data
+```
 
 ## Contributing
 

@@ -146,7 +146,7 @@ async function runSetup(): Promise<void> {
 
   console.log(`  ${c.dim}Next steps:${c.reset}`);
   console.log(`  ${c.dim}1.${c.reset} Open any Telegram forum topic`);
-  console.log(`  ${c.dim}2.${c.reset} Type ${c.cyan}/topic init${c.reset}`);
+  console.log(`  ${c.dim}2.${c.reset} Type ${c.cyan}/tm init${c.reset}`);
   console.log(`  ${c.dim}3.${c.reset} The topic will be registered and a capsule created`);
   console.log('');
 }
@@ -335,7 +335,7 @@ function patchConfig(configDir: string): Record<string, unknown> | null {
     telegram['groups'] = { $include: `./${INCLUDE_FILENAME}` };
   }
 
-  // Register skills directory so the gateway discovers our /topic skill
+  // Register skills directory so the gateway discovers our /tm command skill
   if (!hasSkillsDir) {
     if (!config['skills']) config['skills'] = {};
     const skills = config['skills'] as Record<string, unknown>;

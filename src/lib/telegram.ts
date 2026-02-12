@@ -104,12 +104,12 @@ export function buildTopicCard(slug: string, type: TopicType, capsuleVersion: nu
     `Capsule: projects/${s}/`,
     '',
     '<b>Commands:</b>',
-    '/topic doctor \u2014 health checks',
-    '/topic status \u2014 quick view',
-    '/topic sync \u2014 re-apply config',
-    '/topic list \u2014 all topics',
-    '/topic archive \u2014 archive this topic',
-    '/topic help \u2014 command reference',
+    '/tm doctor \u2014 health checks',
+    '/tm status \u2014 quick view',
+    '/tm sync \u2014 re-apply config',
+    '/tm list \u2014 all topics',
+    '/tm archive \u2014 archive this topic',
+    '/tm help \u2014 command reference',
   ].join('\n');
 }
 
@@ -133,7 +133,7 @@ export function buildDoctorReport(slug: string, results: DoctorCheckResult[]): s
   }
 
   lines.push('');
-  lines.push('Reply /topic doctor to re-check, or use the buttons below.');
+  lines.push('Reply /tm doctor to re-check, or use the buttons below.');
 
   return truncateMessage(lines.join('\n'));
 }
@@ -158,18 +158,18 @@ export function buildHelpCard(): string {
   return [
     '<b>Topic Manager Commands</b>',
     '',
-    '/topic init \u2014 register this topic',
-    '/topic doctor \u2014 run health checks',
-    '/topic doctor --all \u2014 check all topics',
-    '/topic status \u2014 quick STATUS.md view',
-    '/topic list \u2014 show all topics',
-    '/topic sync \u2014 re-apply config',
-    '/topic rename &lt;slug&gt; \u2014 rename topic',
-    '/topic upgrade \u2014 update capsule template',
-    '/topic snooze &lt;Nd&gt; \u2014 snooze doctor (7d, 30d, etc.)',
-    '/topic archive \u2014 archive topic',
-    '/topic unarchive \u2014 reactivate topic',
-    '/topic help \u2014 this message',
+    '/tm init \u2014 register this topic',
+    '/tm doctor \u2014 run health checks',
+    '/tm doctor --all \u2014 check all topics',
+    '/tm status \u2014 quick STATUS.md view',
+    '/tm list \u2014 show all topics',
+    '/tm sync \u2014 re-apply config',
+    '/tm rename &lt;slug&gt; \u2014 rename topic',
+    '/tm upgrade \u2014 update capsule template',
+    '/tm snooze &lt;Nd&gt; \u2014 snooze doctor (7d, 30d, etc.)',
+    '/tm archive \u2014 archive topic',
+    '/tm unarchive \u2014 reactivate topic',
+    '/tm help \u2014 this message',
   ].join('\n');
 }
 

@@ -15,7 +15,7 @@ This plugin fixes that. Each topic gets a folder of markdown files (a "capsule")
 ## Prerequisites
 
 - [OpenClaw](https://openclaw.ai) `>=2026.1.0` installed and running
-- A Telegram group with [topics enabled](https://telegram.org/blog/topics-in-groups-collectible-usernames#topics-in-groups) and managed by OpenClaw
+- A Telegram group with [topics enabled](https://telegram.org/blog/tms-in-groups-collectible-usernames#topics-in-groups) and managed by OpenClaw
 
 ## Getting started
 
@@ -30,12 +30,12 @@ That's it. The setup script installs the plugin, patches your config, creates th
 Once that's done, head to your Telegram group:
 
 1. Open any topic
-2. Type `/topic init` in the chat
+2. Type `/tm init` in the chat
 3. Confirm the suggested slug, then pick a topic type
 4. The plugin creates a capsule (a folder of markdown files — see below) and confirms in chat
 5. From now on, the agent reads the capsule on every session start — no context lost
 
-You can also skip the interactive flow: `/topic init my-project coding`
+You can also skip the interactive flow: `/tm init my-project coding`
 
 ## Commands
 
@@ -43,19 +43,19 @@ All commands are typed directly in the Telegram group chat:
 
 | Command | What it does |
 |---------|-------------|
-| `/topic init` | Interactive setup — confirm slug, pick type |
-| `/topic init <slug> [type]` | One-step setup. Types: `coding`, `research`, `marketing`, `custom` |
-| `/topic status` | Show the current STATUS.md |
-| `/topic list` | List all topics, grouped by status |
-| `/topic doctor` | Run health checks on the current topic |
-| `/topic doctor --all` | Health check all active topics at once |
-| `/topic sync` | Regenerate the include file from the registry |
-| `/topic rename <new-slug>` | Rename a topic |
-| `/topic upgrade` | Upgrade the capsule to the latest template version |
-| `/topic snooze <duration>` | Snooze a topic (e.g. `7d`, `30d`) |
-| `/topic archive` | Archive a topic |
-| `/topic unarchive` | Bring back an archived topic |
-| `/topic help` | Show this command list in Telegram |
+| `/tm init` | Interactive setup — confirm slug, pick type |
+| `/tm init <slug> [type]` | One-step setup. Types: `coding`, `research`, `marketing`, `custom` |
+| `/tm status` | Show the current STATUS.md |
+| `/tm list` | List all topics, grouped by status |
+| `/tm doctor` | Run health checks on the current topic |
+| `/tm doctor --all` | Health check all active topics at once |
+| `/tm sync` | Regenerate the include file from the registry |
+| `/tm rename <new-slug>` | Rename a topic |
+| `/tm upgrade` | Upgrade the capsule to the latest template version |
+| `/tm snooze <duration>` | Snooze a topic (e.g. `7d`, `30d`) |
+| `/tm archive` | Archive a topic |
+| `/tm unarchive` | Bring back an archived topic |
+| `/tm help` | Show this command list in Telegram |
 
 ## What's in a capsule
 
@@ -82,7 +82,7 @@ Two roles:
 - **User** — can manage topics they have access to
 - **Admin** — can run `doctor --all` and manage anyone's topics
 
-The first person to run `/topic init` automatically becomes admin.
+The first person to run `/tm init` automatically becomes admin.
 
 ## Security
 
@@ -111,7 +111,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 ```
 src/
   index.ts          — plugin entry point (source)
-  tool.ts           — routes /topic subcommands
+  tool.ts           — routes /tm sub-commands
   setup.ts          — the setup CLI
   commands/         — one file per command
   lib/              — core logic (registry, capsules, security, auth, etc.)
@@ -119,7 +119,7 @@ src/
 dist/
   plugin.js         — bundled plugin (built by esbuild, all deps included)
 skills/
-  topic/SKILL.md    — skill definition with rehydration behavior
+  tm/SKILL.md       — skill definition with rehydration behavior
 ```
 
 `npm run build` compiles TypeScript then bundles `src/index.ts` into `dist/plugin.js` with all dependencies. The setup script copies only the bundle — no `node_modules` needed at runtime.

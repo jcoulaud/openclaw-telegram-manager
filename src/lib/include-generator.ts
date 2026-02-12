@@ -25,7 +25,7 @@ Determinism rules:
 - Before context compaction or when the conversation is long: proactively
   flush current progress to STATUS.md (update "Last done (UTC)" and
   "Next 3 actions") so compaction cannot erase critical state.
-  Use the standard file write tool directly — do not route through /topic.
+  Use the standard file write tool directly — do not route through /tm.
 - Keep STATUS.md accurate: always maintain "Last done (UTC)" and "Next 3 actions".
 - When new commands appear, add them to COMMANDS.md (don't leave them only in chat).
 - When new links/paths/services appear, add them to LINKS.md.

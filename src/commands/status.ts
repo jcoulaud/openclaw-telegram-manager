@@ -26,7 +26,7 @@ export async function handleStatus(ctx: CommandContext): Promise<CommandResult> 
   const entry = registry.topics[key];
 
   if (!entry) {
-    return { text: 'This topic is not registered. Run /topic init first.' };
+    return { text: 'This topic is not registered. Run /tm init first.' };
   }
 
   const projectsBase = path.join(workspaceDir, 'projects');
@@ -44,7 +44,7 @@ export async function handleStatus(ctx: CommandContext): Promise<CommandResult> 
   const statusPath = path.join(capsuleDir, 'STATUS.md');
 
   if (!fs.existsSync(statusPath)) {
-    return { text: 'STATUS.md not found in capsule. Run /topic doctor to diagnose.' };
+    return { text: 'STATUS.md not found in capsule. Run /tm doctor to diagnose.' };
   }
 
   try {

@@ -49,7 +49,7 @@ export function createTopicManagerTool(deps: ToolDeps): TopicManagerTool {
       const commandStr = (params.command ?? '').trim();
 
       if (!commandStr) {
-        return { text: 'No command provided. Try /topic help for available commands.' };
+        return { text: 'No command provided. Try /tm help for available commands.' };
       }
 
       // Extract context from execution params
@@ -106,7 +106,7 @@ export function createTopicManagerTool(deps: ToolDeps): TopicManagerTool {
 
           default:
             return {
-              text: `Unknown command: "${htmlEscape(subCommand)}". Try /topic help for available commands.`,
+              text: `Unknown command: "${htmlEscape(subCommand)}". Try /tm help for available commands.`,
             };
         }
       } catch (err) {
@@ -257,7 +257,7 @@ async function handleCallback(data: string, ctx: CommandContext): Promise<Comman
       // Add the most recent failing check to ignoreChecks
       // For simplicity, we acknowledge the action; the user should specify which check
       return {
-        text: `To ignore a specific check, use: /topic snooze or contact an admin. The "Ignore" action requires specifying a check ID.`,
+        text: `To ignore a specific check, use: /tm snooze or contact an admin. The "Ignore" action requires specifying a check ID.`,
       };
     }
 

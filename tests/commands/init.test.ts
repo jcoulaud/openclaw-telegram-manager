@@ -445,7 +445,7 @@ describe('commands/init', () => {
         expect(result.text).toContain('Initialize this topic');
       } else {
         expect(result.text).toContain('Suggested slug');
-        expect(result.text).toContain('/topic init');
+        expect(result.text).toContain('/tm init');
       }
     });
 

@@ -54,15 +54,15 @@ describe('registerCommand handler', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('should register a command named "topic" with acceptsArgs', () => {
-    expect(registeredCommand.name).toBe('topic');
+  it('should register a command named "tm" with acceptsArgs', () => {
+    expect(registeredCommand.name).toBe('tm');
     expect(registeredCommand.acceptsArgs).toBe(true);
   });
 
   it('should map senderId → userId, channel → groupId, messageThreadId → threadId', async () => {
     const result = await registeredCommand.handler({
       args: 'help',
-      commandBody: '/topic help',
+      commandBody: '/tm help',
       senderId: '42',
       channel: 'telegram:-100999',
       messageThreadId: 123,
@@ -76,7 +76,7 @@ describe('registerCommand handler', () => {
   it('should strip telegram: prefix from channel for groupId', async () => {
     const result = await registeredCommand.handler({
       args: 'init',
-      commandBody: '/topic init',
+      commandBody: '/tm init',
       senderId: 'user1',
       channel: 'telegram:-100123',
       messageThreadId: '456',
@@ -90,7 +90,7 @@ describe('registerCommand handler', () => {
   it('should strip telegram:group: prefix from channel for groupId', async () => {
     const result = await registeredCommand.handler({
       args: 'init',
-      commandBody: '/topic init',
+      commandBody: '/tm init',
       senderId: 'user1',
       channel: 'telegram:group:-100123',
       messageThreadId: '456',
@@ -103,7 +103,7 @@ describe('registerCommand handler', () => {
   it('should return "Missing context" when senderId/channel/threadId are absent', async () => {
     const result = await registeredCommand.handler({
       args: 'init',
-      commandBody: '/topic init',
+      commandBody: '/tm init',
     });
 
     expect(result.text).toContain('Missing context');
@@ -112,7 +112,7 @@ describe('registerCommand handler', () => {
   it('should map inlineKeyboard to channelData.telegram.buttons', async () => {
     const result = await registeredCommand.handler({
       args: 'help',
-      commandBody: '/topic help',
+      commandBody: '/tm help',
       senderId: 'user1',
       channel: 'telegram:-100123',
       messageThreadId: '456',
@@ -125,7 +125,7 @@ describe('registerCommand handler', () => {
   it('should convert numeric messageThreadId to string', async () => {
     const result = await registeredCommand.handler({
       args: 'init',
-      commandBody: '/topic init',
+      commandBody: '/tm init',
       senderId: 'user1',
       channel: 'telegram:-100123',
       messageThreadId: 789,

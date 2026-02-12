@@ -35,7 +35,7 @@ async function handleArchiveToggle(ctx: CommandContext, archive: boolean): Promi
   const entry = registry.topics[key];
 
   if (!entry) {
-    return { text: 'This topic is not registered. Run /topic init first.' };
+    return { text: 'This topic is not registered. Run /tm init first.' };
   }
 
   if (archive && entry.status === 'archived') {

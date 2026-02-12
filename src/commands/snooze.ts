@@ -18,7 +18,7 @@ export async function handleSnooze(ctx: CommandContext, args: string): Promise<C
   // Parse duration
   const trimmed = args.trim();
   if (!trimmed) {
-    return { text: 'Usage: /topic snooze &lt;Nd&gt; (e.g., 7d, 30d)' };
+    return { text: 'Usage: /tm snooze &lt;Nd&gt; (e.g., 7d, 30d)' };
   }
 
   const match = DURATION_RE.exec(trimmed);
@@ -43,7 +43,7 @@ export async function handleSnooze(ctx: CommandContext, args: string): Promise<C
   const entry = registry.topics[key];
 
   if (!entry) {
-    return { text: 'This topic is not registered. Run /topic init first.' };
+    return { text: 'This topic is not registered. Run /tm init first.' };
   }
 
   const snoozeUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();

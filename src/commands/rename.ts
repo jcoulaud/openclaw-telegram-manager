@@ -19,7 +19,7 @@ export async function handleRename(ctx: CommandContext, newSlug: string): Promis
 
   const trimmedSlug = newSlug.trim();
   if (!trimmedSlug) {
-    return { text: 'Usage: /topic rename &lt;new-slug&gt;' };
+    return { text: 'Usage: /tm rename &lt;new-slug&gt;' };
   }
 
   // Validate new slug
@@ -41,7 +41,7 @@ export async function handleRename(ctx: CommandContext, newSlug: string): Promis
   const entry = registry.topics[key];
 
   if (!entry) {
-    return { text: 'This topic is not registered. Run /topic init first.' };
+    return { text: 'This topic is not registered. Run /tm init first.' };
   }
 
   const oldSlug = entry.slug;

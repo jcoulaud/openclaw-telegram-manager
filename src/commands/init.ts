@@ -125,14 +125,14 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
     finalSlug = `${slug}-${suffix}`.slice(0, 50);
 
     if (!validateSlug(finalSlug)) {
-      return { text: `Could not generate a unique slug. Please provide one: /topic init &lt;slug&gt; [type]` };
+      return { text: `Could not generate a unique slug. Please provide one: /tm init &lt;slug&gt; [type]` };
     }
 
     // Check the fallback slug too
     const fallbackInUse = Object.values(registry.topics).some((t) => t.slug === finalSlug);
     if (fallbackInUse) {
       return {
-        text: `Both <code>${htmlEscape(slug)}</code> and <code>${htmlEscape(finalSlug)}</code> are taken. Please provide a unique slug: /topic init &lt;slug&gt; [type]`,
+        text: `Both <code>${htmlEscape(slug)}</code> and <code>${htmlEscape(finalSlug)}</code> are taken. Please provide a unique slug: /tm init &lt;slug&gt; [type]`,
         parseMode: 'HTML',
       };
     }
@@ -251,7 +251,7 @@ const INIT_TYPE_MAP: Record<string, TopicType> = {
 };
 
 /**
- * Entry point for `/topic init`. If args are provided, delegates straight
+ * Entry point for `/tm init`. If args are provided, delegates straight
  * to `handleInit`. Otherwise starts the interactive two-step flow.
  */
 export async function handleInitInteractive(ctx: CommandContext, args: string): Promise<CommandResult> {
@@ -312,14 +312,14 @@ async function buildSlugConfirmation(ctx: CommandContext): Promise<CommandResult
   }
   if (!validateSlug(slug)) {
     return {
-      text: `Invalid derived slug "${htmlEscape(slug)}". Please provide one: /topic init &lt;slug&gt; [type]`,
+      text: `Invalid derived slug "${htmlEscape(slug)}". Please provide one: /tm init &lt;slug&gt; [type]`,
     };
   }
 
   // Check callback byte limit — if slug is too long, fall back to text
   if (!fitsCallbackLimit('is', slug, groupId, threadId, registry.callbackSecret)) {
     return {
-      text: `Suggested slug: <code>${htmlEscape(slug)}</code>\n\nSlug is too long for inline buttons. Please run:\n<code>/topic init ${htmlEscape(slug)} [type]</code>`,
+      text: `Suggested slug: <code>${htmlEscape(slug)}</code>\n\nSlug is too long for inline buttons. Please run:\n<code>/tm init ${htmlEscape(slug)} [type]</code>`,
       parseMode: 'HTML',
     };
   }

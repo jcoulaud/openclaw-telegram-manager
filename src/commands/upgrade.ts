@@ -25,7 +25,7 @@ export async function handleUpgrade(ctx: CommandContext): Promise<CommandResult>
   const entry = registry.topics[key];
 
   if (!entry) {
-    return { text: 'This topic is not registered. Run /topic init first.' };
+    return { text: 'This topic is not registered. Run /tm init first.' };
   }
 
   if (entry.capsuleVersion >= CAPSULE_VERSION) {

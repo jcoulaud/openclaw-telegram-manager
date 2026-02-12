@@ -1,13 +1,13 @@
 ---
-name: topic
+name: tm
 description: Manage Telegram topics as deterministic workcells with durable capsule state
 user-invocable: true
 ---
 
 # Topic Manager
 
-When the user types `/topic <sub-command>`, this dispatches directly to the
-`topic_manager` tool. No LLM interpretation needed for command routing.
+When the user types `/tm <sub-command>`, the plugin command handler routes it
+to the `topic_manager` tool. No LLM interpretation needed for command routing.
 
 ## Proactive behavior (model-invocable)
 
@@ -17,8 +17,8 @@ If you detect any of these conditions, invoke `topic_manager` proactively:
    command "status" to re-read the capsule and rehydrate context.
 2. **Before context gets large**: proactively flush current progress to
    STATUS.md using the standard file write tool (update "Last done (UTC)"
-   and "Next 3 actions"). Do NOT route this through /topic — write directly.
-3. **When you notice a topic has no capsule**: suggest `/topic init`.
+   and "Next 3 actions"). Do NOT route this through /tm — write directly.
+3. **When you notice a topic has no capsule**: suggest `/tm init`.
 
 ## Callback routing
 

@@ -113,10 +113,10 @@ export default function register(api: {
 
   // Register a plugin command so the gateway passes full message context
   // (senderId, channel, messageThreadId). Skill command dispatch doesn't
-  // forward this context, which causes "Missing context" errors for /topic init.
+  // forward this context, which causes "Missing context" errors for /tm init.
   if (api.registerCommand) {
     api.registerCommand({
-      name: 'topic',
+      name: 'tm',
       description:
         'Manage Telegram forum topics as deterministic workcells. Sub-commands: init, doctor, list, status, sync, rename, upgrade, snooze, archive, unarchive, help.',
       acceptsArgs: true,

@@ -28,7 +28,7 @@ export async function handleDoctor(ctx: CommandContext): Promise<CommandResult> 
   const entry = registry.topics[key];
 
   if (!entry) {
-    return { text: 'This topic is not registered. Run /topic init first.' };
+    return { text: 'This topic is not registered. Run /tm init first.' };
   }
 
   const projectsBase = path.join(workspaceDir, 'projects');
@@ -79,9 +79,9 @@ export async function handleDoctor(ctx: CommandContext): Promise<CommandResult> 
   const textCommands = [
     '',
     'Or use text commands:',
-    '/topic snooze 7d',
-    '/topic snooze 30d',
-    '/topic archive',
+    '/tm snooze 7d',
+    '/tm snooze 30d',
+    '/tm archive',
   ].join('\n');
 
   // Update lastDoctorReportAt

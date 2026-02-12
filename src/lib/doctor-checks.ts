@@ -90,7 +90,7 @@ export function runOrphanCheck(
         check(
           Severity.WARN,
           'orphanFolder',
-          `Folder projects/${dirent.name}/ has no registry entry. Register with /topic init or delete.`,
+          `Folder projects/${dirent.name}/ has no registry entry. Register with /tm init or delete.`,
           false,
         ),
       );
@@ -150,7 +150,7 @@ export function runCapsuleChecks(
         check(
           Severity.INFO,
           'capsuleVersionBehind',
-          `Capsule version ${entry.capsuleVersion} is behind current ${CAPSULE_VERSION}. Run /topic upgrade.`,
+          `Capsule version ${entry.capsuleVersion} is behind current ${CAPSULE_VERSION}. Run /tm upgrade.`,
           false,
         ),
       );
@@ -497,7 +497,7 @@ export function runIncludeDriftCheck(
       check(
         Severity.WARN,
         'includeDrift',
-        'Generated include file has no registry-hash comment. Run /topic sync.',
+        'Generated include file has no registry-hash comment. Run /tm sync.',
         false,
       ),
     );
@@ -511,7 +511,7 @@ export function runIncludeDriftCheck(
       check(
         Severity.WARN,
         'includeDrift',
-        'Generated include is out of sync with registry. Run /topic sync.',
+        'Generated include is out of sync with registry. Run /tm sync.',
         false,
       ),
     );

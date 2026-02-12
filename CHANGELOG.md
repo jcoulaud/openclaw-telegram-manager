@@ -1,3 +1,10 @@
+## [1.3.10](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.9...v1.3.10) (2026-02-12)
+
+
+### Bug Fixes
+
+* strip :topic: suffix from channel when extracting groupId ([a618e0e](https://github.com/jcoulaud/openclaw-telegram-manager/commit/a618e0e7b5d4c9e9fdbe167ebb3bc6d0dffb3c6e))
+
 ## [1.3.9](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.8...v1.3.9) (2026-02-12)
 
 

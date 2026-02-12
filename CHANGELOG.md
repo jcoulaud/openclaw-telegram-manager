@@ -1,3 +1,17 @@
+# [2.0.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.11...v2.0.0) (2026-02-12)
+
+
+* feat!: separate slug (stable ID) from name (display label) ([6df07c9](https://github.com/jcoulaud/openclaw-telegram-manager/commit/6df07c90ca4d2b6ffbba482f3295fc246fe2518b))
+
+
+### BREAKING CHANGES
+
+* Registry schema bumped to v2. Existing v1 registries
+are auto-migrated (name = slug). Callback format changed from 6 parts
+to 5 (slug removed). Init flow simplified from 3 steps to 2 (no slug
+confirmation). Rename is now a metadata-only name change with no
+filesystem operations. Slugs are auto-generated as t-{threadId}.
+
 ## [1.3.11](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.10...v1.3.11) (2026-02-12)
 
 

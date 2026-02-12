@@ -16,7 +16,6 @@ const INCLUDE_FILENAME = 'telegram-manager.generated.groups.json5';
 const REGISTRY_FILENAME = 'topics.json';
 const PLUGIN_FILES = ['openclaw.plugin.json', 'dist/plugin.js', 'skills', 'package.json'];
 const REQUIRED_PLUGIN_FILES = ['openclaw.plugin.json', 'dist/plugin.js'];
-const SKILLS_DIR_RELATIVE = `extensions/${PLUGIN_NAME}/skills`;
 
 // ── Colors (zero dependencies, respects NO_COLOR / non-TTY) ──────────
 
@@ -310,10 +309,27 @@ function patchConfig(configDir: string): Record<string, unknown> | null {
   }
 
   const hasInclude = content.includes(INCLUDE_FILENAME);
-  const hasSkillsDir = content.includes(SKILLS_DIR_RELATIVE);
+  const hasStaleSkillsDir = content.includes(PLUGIN_NAME) && content.includes('extraDirs');
 
-  if (hasInclude && hasSkillsDir) {
-    ok('Config already patched');
+  // Clean up stale skills.load.extraDirs from pre-v1.4 installs
+  if (hasStaleSkillsDir) {
+    const skills = config['skills'] as Record<string, unknown> | undefined;
+    const load = skills?.['load'] as Record<string, unknown> | undefined;
+    if (load && Array.isArray(load['extraDirs'])) {
+      load['extraDirs'] = (load['extraDirs'] as string[]).filter(
+        (d) => !d.includes(PLUGIN_NAME),
+      );
+      if ((load['extraDirs'] as string[]).length === 0) delete load['extraDirs'];
+      if (Object.keys(load).length === 0) delete skills!['load'];
+      if (Object.keys(skills!).length === 0) delete config['skills'];
+    }
+
+    // Write the cleaned config even if $include is already present
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
+  }
+
+  if (hasInclude) {
+    ok(hasStaleSkillsDir ? 'Config patched (removed stale skills entry)' : 'Config already patched');
     return null;
   }
 
@@ -333,19 +349,6 @@ function patchConfig(configDir: string): Record<string, unknown> | null {
     }
 
     telegram['groups'] = { $include: `./${INCLUDE_FILENAME}` };
-  }
-
-  // Register skills directory so the gateway discovers our /tm command skill
-  if (!hasSkillsDir) {
-    if (!config['skills']) config['skills'] = {};
-    const skills = config['skills'] as Record<string, unknown>;
-
-    if (!skills['load']) skills['load'] = {};
-    const load = skills['load'] as Record<string, unknown>;
-
-    const extraDirs = Array.isArray(load['extraDirs']) ? load['extraDirs'] as string[] : [];
-    extraDirs.push(path.join(configDir, SKILLS_DIR_RELATIVE));
-    load['extraDirs'] = extraDirs;
   }
 
   const bakPath = configPath + '.bak';
@@ -419,7 +422,7 @@ function unpatchConfig(configDir: string): void {
   }
 
   const hasInclude = content.includes(INCLUDE_FILENAME);
-  const hasSkillsDir = content.includes(SKILLS_DIR_RELATIVE);
+  const hasSkillsDir = content.includes(PLUGIN_NAME) && content.includes('extraDirs');
 
   if (!hasInclude && !hasSkillsDir) {
     return;
@@ -461,7 +464,7 @@ function unpatchConfig(configDir: string): void {
     }
   }
 
-  // Remove skills.load.extraDirs entry for our plugin
+  // Remove stale skills.load.extraDirs entry from pre-v1.4 installs
   if (hasSkillsDir) {
     const skills = config['skills'] as Record<string, unknown> | undefined;
     const load = skills?.['load'] as Record<string, unknown> | undefined;

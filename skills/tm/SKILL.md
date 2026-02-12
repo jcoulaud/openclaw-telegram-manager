@@ -1,13 +1,13 @@
 ---
 name: tm
 description: Manage Telegram topics as deterministic workcells with durable capsule state
-user-invocable: true
+user-invocable: false
 ---
 
 # Topic Manager
 
-When the user types `/tm <sub-command>`, the plugin command handler routes it
-to the `topic_manager` tool. No LLM interpretation needed for command routing.
+The `/tm` command is handled by the plugin's registerCommand handler.
+This skill exists only to provide proactive model context.
 
 ## Proactive behavior (model-invocable)
 

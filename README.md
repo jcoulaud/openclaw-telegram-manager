@@ -119,7 +119,7 @@ src/
 dist/
   plugin.js         — bundled plugin (built by esbuild, all deps included)
 skills/
-  tm/SKILL.md       — skill definition with rehydration behavior
+  tm/SKILL.md       — model-only proactive behavior hints (not user-invocable)
 ```
 
 `npm run build` compiles TypeScript then bundles `src/index.ts` into `dist/plugin.js` with all dependencies. The setup script copies only the bundle — no `node_modules` needed at runtime.

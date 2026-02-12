@@ -1,3 +1,11 @@
+## [1.3.8](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.7...v1.3.8) (2026-02-12)
+
+
+### Bug Fixes
+
+* rename /topic to /tm to avoid Telegram native command conflict ([c58f824](https://github.com/jcoulaud/openclaw-telegram-manager/commit/c58f8246c73e0df46cca1fac3acd17aa9618f93d))
+* update bug report template to use /tm command ([58d5fa5](https://github.com/jcoulaud/openclaw-telegram-manager/commit/58d5fa5d3518ea85bcd7fb527d82538fba3bbec2))
+
 ## [1.3.7](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.6...v1.3.7) (2026-02-12)
 
 

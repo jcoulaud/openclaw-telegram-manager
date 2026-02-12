@@ -1,3 +1,10 @@
+## [2.2.2](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.2.1...v2.2.2) (2026-02-12)
+
+
+### Bug Fixes
+
+* move SETUP_REGISTRY_VERSION to top-level constants to avoid TDZ error ([430d6f1](https://github.com/jcoulaud/openclaw-telegram-manager/commit/430d6f15e25fdc220f6b4b571f90fec849673676))
+
 ## [2.2.1](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.2.0...v2.2.1) (2026-02-12)
 
 

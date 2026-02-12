@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.0.0...v2.0.1) (2026-02-12)
+
+
+### Bug Fixes
+
+* resolve callback missing context and bootstrap auth for user-tier commands ([c18417a](https://github.com/jcoulaud/openclaw-telegram-manager/commit/c18417aa1e6f4036e79abde1a92397339a179086))
+
 # [2.0.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.11...v2.0.0) (2026-02-12)
 
 

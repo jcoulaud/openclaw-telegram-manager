@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { handleInit, handleInitInteractive, handleInitTypeSelect } from '../../src/commands/init.js';
+import { handleInit, handleInitInteractive, handleInitTypeSelect, handleInitNameConfirm } from '../../src/commands/init.js';
 import { createEmptyRegistry, writeRegistryAtomic, registryPath, readRegistry } from '../../src/lib/registry.js';
 import type { CommandContext } from '../../src/commands/help.js';
 
@@ -393,10 +393,89 @@ describe('commands/init', () => {
   });
 
   describe('handleInitTypeSelect', () => {
-    it('should complete init with coding type', async () => {
+    it('should show confirmation message with Confirm button for coding', async () => {
       ctx.messageContext = { topicTitle: 'My Project' };
 
       const result = await handleInitTypeSelect(ctx, 'coding');
+
+      expect(result.text).toContain('My Project');
+      expect(result.text).toContain('coding');
+      expect(result.parseMode).toBe('HTML');
+      expect(result.inlineKeyboard).toBeDefined();
+      expect(result.inlineKeyboard!.inline_keyboard[0][0].text).toBe('Confirm');
+      expect(result.pin).toBeUndefined();
+
+      // Topic should NOT be in registry yet
+      const registry = readRegistry(workspaceDir);
+      expect(registry.topics['-100123:456']).toBeUndefined();
+    });
+
+    it('should show confirmation for research type', async () => {
+      const result = await handleInitTypeSelect(ctx, 'research');
+
+      expect(result.text).toContain('research');
+      expect(result.inlineKeyboard).toBeDefined();
+      expect(result.inlineKeyboard!.inline_keyboard[0][0].text).toBe('Confirm');
+
+      const registry = readRegistry(workspaceDir);
+      expect(registry.topics['-100123:456']).toBeUndefined();
+    });
+
+    it('should show confirmation for marketing type', async () => {
+      const result = await handleInitTypeSelect(ctx, 'marketing');
+
+      expect(result.text).toContain('marketing');
+      expect(result.inlineKeyboard).toBeDefined();
+
+      const registry = readRegistry(workspaceDir);
+      expect(registry.topics['-100123:456']).toBeUndefined();
+    });
+
+    it('should show confirmation for custom type', async () => {
+      const result = await handleInitTypeSelect(ctx, 'custom');
+
+      expect(result.text).toContain('custom');
+      expect(result.inlineKeyboard).toBeDefined();
+
+      const registry = readRegistry(workspaceDir);
+      expect(registry.topics['-100123:456']).toBeUndefined();
+    });
+
+    it('should not create capsule directory', async () => {
+      await handleInitTypeSelect(ctx, 'coding');
+
+      const capsuleDir = path.join(projectsDir, 't-456');
+      expect(fs.existsSync(capsuleDir)).toBe(false);
+    });
+
+    it('should show topicTitle in confirmation when available', async () => {
+      ctx.messageContext = { topicTitle: 'Named Project' };
+
+      const result = await handleInitTypeSelect(ctx, 'coding');
+
+      expect(result.text).toContain('Named Project');
+    });
+
+    it('should show default name in confirmation when no title', async () => {
+      ctx.messageContext = {};
+
+      const result = await handleInitTypeSelect(ctx, 'coding');
+
+      expect(result.text).toContain('Topic 456');
+    });
+
+    it('should include hint about /tm init <name> <type>', async () => {
+      const result = await handleInitTypeSelect(ctx, 'coding');
+
+      expect(result.text).toContain('/tm init');
+    });
+  });
+
+  describe('handleInitNameConfirm', () => {
+    it('should complete init with coding type', async () => {
+      ctx.messageContext = { topicTitle: 'My Project' };
+
+      const result = await handleInitNameConfirm(ctx, 'coding');
 
       expect(result.text).toContain('My Project');
       expect(result.pin).toBe(true);
@@ -407,7 +486,7 @@ describe('commands/init', () => {
     });
 
     it('should complete init with research type', async () => {
-      const result = await handleInitTypeSelect(ctx, 'research');
+      const result = await handleInitNameConfirm(ctx, 'research');
 
       const registry = readRegistry(workspaceDir);
       expect(registry.topics['-100123:456']?.slug).toBe('t-456');
@@ -415,7 +494,7 @@ describe('commands/init', () => {
     });
 
     it('should complete init with marketing type', async () => {
-      const result = await handleInitTypeSelect(ctx, 'marketing');
+      const result = await handleInitNameConfirm(ctx, 'marketing');
 
       const registry = readRegistry(workspaceDir);
       expect(registry.topics['-100123:456']?.slug).toBe('t-456');
@@ -423,7 +502,7 @@ describe('commands/init', () => {
     });
 
     it('should complete init with custom type', async () => {
-      const result = await handleInitTypeSelect(ctx, 'custom');
+      const result = await handleInitNameConfirm(ctx, 'custom');
 
       const registry = readRegistry(workspaceDir);
       expect(registry.topics['-100123:456']?.slug).toBe('t-456');
@@ -431,16 +510,16 @@ describe('commands/init', () => {
     });
 
     it('should create capsule directory', async () => {
-      await handleInitTypeSelect(ctx, 'coding');
+      await handleInitNameConfirm(ctx, 'coding');
 
       const capsuleDir = path.join(projectsDir, 't-456');
       expect(fs.existsSync(capsuleDir)).toBe(true);
     });
 
-    it('should use topicTitle as name when no args', async () => {
+    it('should use topicTitle as name', async () => {
       ctx.messageContext = { topicTitle: 'Named Project' };
 
-      await handleInitTypeSelect(ctx, 'coding');
+      await handleInitNameConfirm(ctx, 'coding');
 
       const registry = readRegistry(workspaceDir);
       expect(registry.topics['-100123:456']?.name).toBe('Named Project');
@@ -449,7 +528,7 @@ describe('commands/init', () => {
     it('should use default name when no title', async () => {
       ctx.messageContext = {};
 
-      await handleInitTypeSelect(ctx, 'coding');
+      await handleInitNameConfirm(ctx, 'coding');
 
       const registry = readRegistry(workspaceDir);
       expect(registry.topics['-100123:456']?.name).toBe('Topic 456');

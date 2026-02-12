@@ -135,10 +135,16 @@ export default function register(api: {
         const threadId =
           ctx.messageThreadId != null ? String(ctx.messageThreadId) : undefined;
 
+        // Best-effort topicTitle extraction from gateway context
+        const topicTitle =
+          (ctx as Record<string, unknown>)['topicTitle'] ??
+          (ctx as Record<string, unknown>)['topicName'];
+
         const execContext: Record<string, unknown> = {};
         if (userId) execContext.userId = userId;
         if (groupId) execContext.groupId = groupId;
         if (threadId) execContext.threadId = threadId;
+        if (topicTitle != null) execContext.topicTitle = String(topicTitle);
 
         const result = await tool.execute('cmd', { command: ctx.args }, execContext);
 

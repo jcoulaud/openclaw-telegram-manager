@@ -77,6 +77,27 @@ export function buildInitTypeButtons(
 }
 
 /**
+ * Build inline keyboard with a single [Confirm] button for init name confirmation.
+ * Action codes: yc=coding, yr=research, ym=marketing, yx=custom.
+ */
+export function buildInitConfirmButton(
+  groupId: string,
+  threadId: string,
+  secret: string,
+  userId: string,
+  type: TopicType,
+): InlineKeyboardMarkup {
+  const actionMap: Record<TopicType, string> = {
+    coding: 'yc',
+    research: 'yr',
+    marketing: 'ym',
+    custom: 'yx',
+  };
+  const cb = buildCallbackData(actionMap[type], groupId, threadId, secret, userId);
+  return buildInlineKeyboard([[{ text: 'Confirm', callback_data: cb }]]);
+}
+
+/**
  * Build HTML Topic Card displayed after init.
  */
 export function buildTopicCard(name: string, slug: string, type: TopicType, capsuleVersion: number): string {
@@ -89,13 +110,20 @@ export function buildTopicCard(name: string, slug: string, type: TopicType, caps
     `Type: ${t} | Version: ${v}`,
     `Capsule: projects/${s}/`,
     '',
+    '<b>How it works</b>',
+    'Just send your instructions in this topic. The agent',
+    'maintains STATUS.md and TODO.md automatically as it',
+    'works — nothing is lost on reset or context compaction.',
+    'Doctor checks run periodically and alert you if anything',
+    'needs attention.',
+    '',
     '<b>Commands:</b>',
-    '/tm doctor \u2014 health checks',
-    '/tm status \u2014 quick view',
-    '/tm sync \u2014 re-apply config',
-    '/tm list \u2014 all topics',
-    '/tm archive \u2014 archive this topic',
-    '/tm help \u2014 command reference',
+    '/tm status — quick STATUS.md view',
+    '/tm doctor — run health checks',
+    '/tm rename &lt;name&gt; — rename this topic',
+    '/tm list — all topics',
+    '/tm archive — archive this topic',
+    '/tm help — full command reference',
   ].join('\n');
 }
 
@@ -144,18 +172,18 @@ export function buildHelpCard(): string {
   return [
     '<b>Topic Manager Commands</b>',
     '',
-    '/tm init \u2014 register this topic',
-    '/tm doctor \u2014 run health checks',
-    '/tm doctor --all \u2014 check all topics',
-    '/tm status \u2014 quick STATUS.md view',
-    '/tm list \u2014 show all topics',
-    '/tm sync \u2014 re-apply config',
-    '/tm rename &lt;name&gt; \u2014 rename topic',
-    '/tm upgrade \u2014 update capsule template',
-    '/tm snooze &lt;Nd&gt; \u2014 snooze doctor (7d, 30d, etc.)',
-    '/tm archive \u2014 archive topic',
-    '/tm unarchive \u2014 reactivate topic',
-    '/tm help \u2014 this message',
+    '/tm init — register this topic',
+    '/tm status — quick STATUS.md view',
+    '/tm doctor — run health checks',
+    '/tm doctor --all — check all topics',
+    '/tm rename &lt;name&gt; — rename this topic',
+    '/tm list — all topics',
+    '/tm sync — re-apply config',
+    '/tm upgrade — update capsule template',
+    '/tm snooze &lt;Nd&gt; — snooze doctor (7d, 30d, etc.)',
+    '/tm archive — archive topic',
+    '/tm unarchive — reactivate topic',
+    '/tm help — this message',
   ].join('\n');
 }
 

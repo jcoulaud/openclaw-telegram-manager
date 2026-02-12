@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { handleInit, handleInitInteractive, handleInitTypeSelect } from '../../src/commands/init.js';
+import { handleInit, handleInitInteractive, handleInitTypeSelect, handleInitNameConfirm } from '../../src/commands/init.js';
 import { createEmptyRegistry, writeRegistryAtomic, registryPath, readRegistry } from '../../src/lib/registry.js';
 import { validateCapsule } from '../../src/lib/capsule.js';
 import { generateInclude, includePath, extractRegistryHash, computeRegistryHash } from '../../src/lib/include-generator.js';
@@ -455,7 +455,7 @@ describe('init flow integration', () => {
   });
 
   describe('interactive init flow', () => {
-    it('should complete full interactive init: type pick → registered', async () => {
+    it('should complete full interactive init: type pick → confirm → registered', async () => {
       const ctx: CommandContext = {
         workspaceDir,
         configDir,
@@ -480,13 +480,26 @@ describe('init flow integration', () => {
       expect(rows[1][0].text).toBe('Marketing');
       expect(rows[1][1].text).toBe('Custom');
 
-      // Step 2: call handleInitTypeSelect → topic registered
+      // Step 2: call handleInitTypeSelect → name confirmation
       const step2 = await handleInitTypeSelect(ctx, 'research');
       expect(step2.text).toContain('Interactive Project');
-      expect(step2.pin).toBe(true);
+      expect(step2.text).toContain('research');
+      expect(step2.parseMode).toBe('HTML');
+      expect(step2.inlineKeyboard).toBeDefined();
+      expect(step2.inlineKeyboard!.inline_keyboard[0][0].text).toBe('Confirm');
+      expect(step2.pin).toBeUndefined();
+
+      // Topic should NOT be registered yet
+      let registry = readRegistry(workspaceDir);
+      expect(registry.topics['-100123:456']).toBeUndefined();
+
+      // Step 3: call handleInitNameConfirm → topic registered
+      const step3 = await handleInitNameConfirm(ctx, 'research');
+      expect(step3.text).toContain('Interactive Project');
+      expect(step3.pin).toBe(true);
 
       // Verify registry
-      const registry = readRegistry(workspaceDir);
+      registry = readRegistry(workspaceDir);
       const entry = registry.topics['-100123:456'];
       expect(entry).toBeDefined();
       expect(entry?.slug).toBe('t-456');
@@ -502,7 +515,7 @@ describe('init flow integration', () => {
       expect(validation.missing).toEqual([]);
     });
 
-    it('should handle auth failure between interactive steps', async () => {
+    it('should handle auth failure between type select and confirm', async () => {
       const ctx: CommandContext = {
         workspaceDir,
         configDir,
@@ -518,6 +531,10 @@ describe('init flow integration', () => {
       const step1 = await handleInitInteractive(ctx, '');
       expect(step1.inlineKeyboard).toBeDefined();
 
+      // Step 2: type select still succeeds (no admin yet, first-user bootstrap)
+      const step2 = await handleInitTypeSelect(ctx, 'coding');
+      expect(step2.inlineKeyboard).toBeDefined();
+
       // Meanwhile someone else becomes first user
       const otherCtx: CommandContext = {
         ...ctx,
@@ -527,11 +544,68 @@ describe('init flow integration', () => {
       await handleInit(otherCtx, 'other-topic');
 
       // Now user123 is no longer authorized (not admin, not first user)
+      const step3 = await handleInitNameConfirm(ctx, 'coding');
+      expect(step3.text).toContain('Not authorized');
+    });
+
+    it('should handle auth failure between picker and type select', async () => {
+      const ctx: CommandContext = {
+        workspaceDir,
+        configDir,
+        userId: 'user123',
+        groupId: '-100123',
+        threadId: '456',
+        rpc: null,
+        logger: console,
+        messageContext: { topicTitle: 'Auth Test' },
+      };
+
+      // Step 1 succeeds
+      const step1 = await handleInitInteractive(ctx, '');
+      expect(step1.inlineKeyboard).toBeDefined();
+
+      // Meanwhile someone else becomes first user
+      const otherCtx: CommandContext = {
+        ...ctx,
+        userId: 'other-user',
+        threadId: '999',
+      };
+      await handleInit(otherCtx, 'other-topic');
+
+      // Step 2: type select detects auth failure
       const step2 = await handleInitTypeSelect(ctx, 'coding');
       expect(step2.text).toContain('Not authorized');
     });
 
-    it('should handle already-registered between interactive steps', async () => {
+    it('should handle already-registered between type select and confirm', async () => {
+      const ctx: CommandContext = {
+        workspaceDir,
+        configDir,
+        userId: 'user123',
+        groupId: '-100123',
+        threadId: '456',
+        rpc: null,
+        logger: console,
+        messageContext: { topicTitle: 'Race Test' },
+      };
+
+      // Step 1 succeeds
+      const step1 = await handleInitInteractive(ctx, '');
+      expect(step1.inlineKeyboard).toBeDefined();
+
+      // Step 2: type select succeeds
+      const step2 = await handleInitTypeSelect(ctx, 'coding');
+      expect(step2.inlineKeyboard).toBeDefined();
+
+      // Meanwhile topic gets registered via direct init
+      await handleInit(ctx, 'race-test');
+
+      // Step 3: confirm detects already registered
+      const step3 = await handleInitNameConfirm(ctx, 'coding');
+      expect(step3.text).toContain('already registered');
+    });
+
+    it('should handle already-registered between picker and type select', async () => {
       const ctx: CommandContext = {
         workspaceDir,
         configDir,
@@ -550,7 +624,7 @@ describe('init flow integration', () => {
       // Meanwhile topic gets registered via direct init
       await handleInit(ctx, 'race-test');
 
-      // Step 2 detects already registered
+      // Step 2: type select detects already registered
       const step2 = await handleInitTypeSelect(ctx, 'coding');
       expect(step2.text).toContain('already registered');
     });

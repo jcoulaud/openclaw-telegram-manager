@@ -17,13 +17,36 @@ import {
   validateThreadId,
 } from '../lib/security.js';
 import { scaffoldCapsule } from '../lib/capsule.js';
-import { buildTopicCard, buildInitTypeButtons } from '../lib/telegram.js';
+import { buildTopicCard, buildInitTypeButtons, buildInitConfirmButton } from '../lib/telegram.js';
 import { generateInclude } from '../lib/include-generator.js';
 import { triggerRestart, getConfigWrites } from '../lib/config-restart.js';
 import { appendAudit, buildAuditEntry } from '../lib/audit.js';
 import type { CommandContext, CommandResult } from './help.js';
 
 const VALID_TYPES: ReadonlySet<string> = new Set<TopicType>(['coding', 'research', 'marketing', 'custom']);
+
+function deriveTopicName(
+  nameArg: string,
+  messageContext: Record<string, unknown> | undefined,
+  threadId: string,
+): string {
+  const topicTitle = (messageContext?.['topicTitle'] as string) ?? '';
+  let name: string;
+
+  if (nameArg) {
+    name = nameArg;
+  } else if (topicTitle) {
+    name = topicTitle;
+  } else {
+    name = `Topic ${threadId}`;
+  }
+
+  if (name.length > MAX_NAME_LENGTH) {
+    name = name.slice(0, MAX_NAME_LENGTH);
+  }
+
+  return name;
+}
 
 export async function handleInit(ctx: CommandContext, args: string): Promise<CommandResult> {
   const { workspaceDir, configDir, userId, groupId, threadId, rpc, logger, messageContext } = ctx;
@@ -79,21 +102,7 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
   }
 
   // Derive name: user arg > topicTitle > default
-  const topicTitle = (messageContext?.['topicTitle'] as string) ?? '';
-  let name: string;
-
-  if (nameArg) {
-    name = nameArg;
-  } else if (topicTitle) {
-    name = topicTitle;
-  } else {
-    name = `Topic ${threadId}`;
-  }
-
-  // Enforce name length
-  if (name.length > MAX_NAME_LENGTH) {
-    name = name.slice(0, MAX_NAME_LENGTH);
-  }
+  const name = deriveTopicName(nameArg, messageContext, threadId);
 
   // Generate stable slug
   const existingSlugs = new Set(Object.values(registry.topics).map((t) => t.slug));
@@ -258,8 +267,64 @@ async function buildTypePicker(ctx: CommandContext): Promise<CommandResult> {
 }
 
 /**
- * Callback handler for type buttons (`ic`/`ir`/`im`/`ix`): complete init with chosen type.
+ * Callback handler for type buttons (`ic`/`ir`/`im`/`ix`): show name confirmation.
+ * Re-validates context/auth/max-topics before showing.
  */
 export async function handleInitTypeSelect(ctx: CommandContext, type: TopicType): Promise<CommandResult> {
+  const { workspaceDir, userId, groupId, threadId, messageContext } = ctx;
+
+  if (!userId || !groupId || !threadId) {
+    return { text: 'Missing context: groupId, threadId, or userId not available. Run this command inside a Telegram forum topic.' };
+  }
+
+  if (!validateGroupId(groupId)) {
+    return { text: 'Invalid groupId format.' };
+  }
+  if (!validateThreadId(threadId)) {
+    return { text: 'Invalid threadId format.' };
+  }
+
+  const registry = readRegistry(workspaceDir);
+
+  const auth = checkAuthorization(userId, 'init', registry);
+  if (!auth.authorized) {
+    return { text: auth.message ?? 'Not authorized.' };
+  }
+
+  const topicCount = Object.keys(registry.topics).length;
+  if (topicCount >= registry.maxTopics) {
+    return { text: `Maximum number of topics (${registry.maxTopics}) reached. Archive or remove existing topics first.` };
+  }
+
+  const key = topicKey(groupId, threadId);
+  if (registry.topics[key]) {
+    return {
+      text: `This topic is already registered as <b>${htmlEscape(registry.topics[key]!.name)}</b>.`,
+      parseMode: 'HTML',
+    };
+  }
+
+  const name = deriveTopicName('', messageContext, threadId);
+  const keyboard = buildInitConfirmButton(groupId, threadId, registry.callbackSecret, userId, type);
+
+  return {
+    text: buildInitConfirmMessage(name, type),
+    parseMode: 'HTML',
+    inlineKeyboard: keyboard,
+  };
+}
+
+/**
+ * Callback handler for confirm buttons (`yc`/`yr`/`ym`/`yx`): complete init with chosen type.
+ */
+export async function handleInitNameConfirm(ctx: CommandContext, type: TopicType): Promise<CommandResult> {
   return handleInit(ctx, type);
+}
+
+function buildInitConfirmMessage(name: string, type: TopicType): string {
+  return [
+    `Name: <b>${htmlEscape(name)}</b> | Type: ${htmlEscape(type)}`,
+    '',
+    `To use a different name: /tm init &lt;name&gt; ${htmlEscape(type)}`,
+  ].join('\n');
 }

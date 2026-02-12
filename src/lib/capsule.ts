@@ -12,10 +12,10 @@ const BASE_TEMPLATES: Record<string, (name: string) => string> = {
     `# ${name}\n\n_Describe what this topic is about._\n`,
 
   'STATUS.md': (name) =>
-    `# Status: ${name}\n\n## Last done (UTC)\n\n${new Date().toISOString()}\n\n_No work recorded yet._\n\n## Next 3 actions\n\n1. [T-1] _Define first task in TODO.md_\n2. [T-2] _Define second task in TODO.md_\n3. [T-3] _Define third task in TODO.md_\n`,
+    `# Status: ${name}\n\n> This file is maintained by the agent — just send messages in the chat.\n\n## Last done (UTC)\n\n${new Date().toISOString()}\n\n_Waiting for first instructions._\n\n## Next 3 actions\n\n1. [T-1] _e.g. Set up project scaffolding_\n2. [T-2] _Waiting for next task_\n3. [T-3] _Waiting for next task_\n`,
 
   'TODO.md': (name) =>
-    `# TODO: ${name}\n\n## Backlog\n\n- [T-1] _First task placeholder — replace with actual task_\n- [T-2] _Second task placeholder — replace with actual task_\n- [T-3] _Third task placeholder — replace with actual task_\n\n## Completed\n\n_None yet._\n`,
+    `# TODO: ${name}\n\n## Backlog\n\n- [T-1] _e.g. Set up project scaffolding_\n- [T-2] _Waiting for next task_\n- [T-3] _Waiting for next task_\n\n## Completed\n\n_None yet._\n`,
 
   'COMMANDS.md': (name) =>
     `# Commands: ${name}\n\n_Build, deploy, test, and other commands for this topic. Kept here so they're not lost on reset._\n`,

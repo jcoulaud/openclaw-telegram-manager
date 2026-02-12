@@ -2,7 +2,7 @@ import { readRegistry, withRegistry } from './lib/registry.js';
 import { parseAndVerifyCallback, htmlEscape } from './lib/security.js';
 import { topicKey } from './lib/types.js';
 import { appendAudit, buildAuditEntry } from './lib/audit.js';
-import { handleInitInteractive, handleInitTypeSelect } from './commands/init.js';
+import { handleInitInteractive, handleInitTypeSelect, handleInitNameConfirm } from './commands/init.js';
 import { handleDoctor } from './commands/doctor.js';
 import { handleDoctorAll } from './commands/doctor-all.js';
 import { handleList } from './commands/list.js';
@@ -233,12 +233,23 @@ async function handleCallback(data: string, ctx: CommandContext): Promise<Comman
     ix: 'custom',
   };
 
+  const initConfirmMap: Record<string, 'coding' | 'research' | 'marketing' | 'custom'> = {
+    yc: 'coding',
+    yr: 'research',
+    ym: 'marketing',
+    yx: 'custom',
+  };
+
   // Build a context with callback-derived values so downstream handlers work
   // even when execContext didn't carry them.
   const cbCtx: CommandContext = { ...ctx, groupId: cbGroupId, threadId: cbThreadId, userId: cbUserId };
 
   if (action in initTypeMap) {
     return handleInitTypeSelect(cbCtx, initTypeMap[action]!);
+  }
+
+  if (action in initConfirmMap) {
+    return handleInitNameConfirm(cbCtx, initConfirmMap[action]!);
   }
 
   // Find the topic entry

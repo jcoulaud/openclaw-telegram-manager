@@ -1,3 +1,10 @@
+## [2.0.2](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.0.1...v2.0.2) (2026-02-12)
+
+
+### Bug Fixes
+
+* embed userId in callback data so callbacks work without execContext ([2e8477d](https://github.com/jcoulaud/openclaw-telegram-manager/commit/2e8477dad0c5ff995ce9b5fc944ebbdd1244eaa7))
+
 ## [2.0.1](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.0.0...v2.0.1) (2026-02-12)
 
 

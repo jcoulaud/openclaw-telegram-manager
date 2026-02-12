@@ -186,7 +186,7 @@ async function runUninstall(): Promise<void> {
   const projectsDir = path.join(configDir, 'workspace', 'projects');
   if (fs.existsSync(projectsDir)) {
     const purge = process.argv.includes('--purge-data')
-      || await confirm('Delete workspace data (topic capsules, registry)? This cannot be undone.');
+      || await confirm(`Also delete the plugin's stored data at ${projectsDir}? This cannot be undone.`);
     if (purge) {
       startSpinner('Removing workspace data…');
       fs.rmSync(projectsDir, { recursive: true });

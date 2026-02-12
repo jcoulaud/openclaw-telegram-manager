@@ -1,3 +1,15 @@
+# [2.3.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.2.2...v2.3.0) (2026-02-12)
+
+
+### Bug Fixes
+
+* revert memory flush prompt patch on uninstall ([4443e25](https://github.com/jcoulaud/openclaw-telegram-manager/commit/4443e25d9e1c197a69ad317254e613efbf2d5227))
+
+
+### Features
+
+* interactive init flow with direct Telegram posting via postFn ([574ce20](https://github.com/jcoulaud/openclaw-telegram-manager/commit/574ce20ae1240dbca3c2f71c4568ff6b4173219d))
+
 ## [2.2.2](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.2.1...v2.2.2) (2026-02-12)
 
 

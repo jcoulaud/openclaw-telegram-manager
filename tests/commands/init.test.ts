@@ -50,7 +50,6 @@ describe('commands/init', () => {
       const result = await handleInit(ctx, '');
 
       expect(result.text).toContain('My Test Project');
-      expect(result.parseMode).toBe('HTML');
       expect(result.pin).toBe(true);
 
       // Check registry
@@ -319,7 +318,6 @@ describe('commands/init', () => {
       const result = await handleInitInteractive(ctx, '');
 
       expect(result.text).toContain('Pick a topic type');
-      expect(result.parseMode).toBe('HTML');
       expect(result.inlineKeyboard).toBeDefined();
 
       const rows = result.inlineKeyboard!.inline_keyboard;
@@ -400,7 +398,6 @@ describe('commands/init', () => {
 
       expect(result.text).toContain('My Project');
       expect(result.text).toContain('coding');
-      expect(result.parseMode).toBe('HTML');
       expect(result.inlineKeyboard).toBeDefined();
       expect(result.inlineKeyboard!.inline_keyboard[0][0].text).toBe('Confirm');
       expect(result.pin).toBeUndefined();

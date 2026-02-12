@@ -2,7 +2,6 @@ import { withRegistry } from '../lib/registry.js';
 import { readRegistry } from '../lib/registry.js';
 import { checkAuthorization } from '../lib/auth.js';
 import { topicKey } from '../lib/types.js';
-import { htmlEscape } from '../lib/security.js';
 import { appendAudit, buildAuditEntry } from '../lib/audit.js';
 import type { CommandContext, CommandResult } from './help.js';
 
@@ -18,12 +17,12 @@ export async function handleSnooze(ctx: CommandContext, args: string): Promise<C
   // Parse duration
   const trimmed = args.trim();
   if (!trimmed) {
-    return { text: 'Usage: /tm snooze &lt;Nd&gt; (e.g., 7d, 30d)' };
+    return { text: 'Usage: /tm snooze <Nd> (e.g., 7d, 30d)' };
   }
 
   const match = DURATION_RE.exec(trimmed);
   if (!match) {
-    return { text: `Invalid duration "${htmlEscape(trimmed)}". Use format: 7d, 30d, etc.` };
+    return { text: `Invalid duration "${trimmed}". Use format: 7d, 30d, etc.` };
   }
 
   const days = parseInt(match[1]!, 10);
@@ -63,7 +62,6 @@ export async function handleSnooze(ctx: CommandContext, args: string): Promise<C
   );
 
   return {
-    text: `Topic <b>${htmlEscape(entry.name)}</b> snoozed for ${days} days (until ${htmlEscape(snoozeUntil)}).`,
-    parseMode: 'HTML',
+    text: `Topic **${entry.name}** snoozed for ${days} days (until ${snoozeUntil}).`,
   };
 }

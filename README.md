@@ -90,7 +90,7 @@ The first person to run `/tm init` automatically becomes admin.
 
 - Path traversal protection (jail checks + symlink rejection)
 - HMAC-signed inline keyboard callbacks
-- HTML escaping on all Telegram output
+- HTML escaping on direct Telegram API posts (fan-out doctor reports)
 - Schema validation on every registry read (bad entries get quarantined)
 - File locking to prevent concurrent write corruption
 
@@ -102,7 +102,7 @@ See [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
 npx openclaw-telegram-manager uninstall
 ```
 
-This removes the plugin extension files, the `$include` reference from `openclaw.json`, and the generated include file, then restarts the gateway. Workspace data (your topic capsules) is kept — the command prints the path if you want to remove it manually.
+This removes the plugin extension files, the `$include` reference from `openclaw.json`, the generated include file, and all workspace data (registry, topic capsules, audit log), then restarts the gateway.
 
 ## Contributing
 

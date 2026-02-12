@@ -6,6 +6,5 @@ export type { CommandContext, CommandResult };
 export function handleHelp(_ctx: CommandContext): CommandResult {
   return {
     text: buildHelpCard(),
-    parseMode: 'HTML',
   };
 }

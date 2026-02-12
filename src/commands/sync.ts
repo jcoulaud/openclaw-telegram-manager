@@ -1,6 +1,5 @@
 import { readRegistry } from '../lib/registry.js';
 import { checkAuthorization } from '../lib/auth.js';
-import { htmlEscape } from '../lib/security.js';
 import { generateInclude } from '../lib/include-generator.js';
 import { triggerRestart } from '../lib/config-restart.js';
 import type { CommandContext, CommandResult } from './help.js';
@@ -25,8 +24,7 @@ export async function handleSync(ctx: CommandContext): Promise<CommandResult> {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return {
-      text: `Sync failed: ${htmlEscape(msg)}`,
-      parseMode: 'HTML',
+      text: `Sync failed: ${msg}`,
     };
   }
 
@@ -41,6 +39,5 @@ export async function handleSync(ctx: CommandContext): Promise<CommandResult> {
 
   return {
     text,
-    parseMode: 'HTML',
   };
 }

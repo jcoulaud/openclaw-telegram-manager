@@ -1,7 +1,6 @@
 import { withRegistry, readRegistry } from '../lib/registry.js';
 import { checkAuthorization } from '../lib/auth.js';
 import { topicKey } from '../lib/types.js';
-import { htmlEscape } from '../lib/security.js';
 import { appendAudit, buildAuditEntry } from '../lib/audit.js';
 import { generateInclude } from '../lib/include-generator.js';
 import { triggerRestart, getConfigWrites } from '../lib/config-restart.js';
@@ -39,11 +38,11 @@ async function handleArchiveToggle(ctx: CommandContext, archive: boolean): Promi
   }
 
   if (archive && entry.status === 'archived') {
-    return { text: `Topic <b>${htmlEscape(entry.name)}</b> is already archived.`, parseMode: 'HTML' };
+    return { text: `Topic **${entry.name}** is already archived.` };
   }
 
   if (!archive && entry.status !== 'archived') {
-    return { text: `Topic <b>${htmlEscape(entry.name)}</b> is not archived.`, parseMode: 'HTML' };
+    return { text: `Topic **${entry.name}** is not archived.` };
   }
 
   const newStatus = archive ? 'archived' : 'active';
@@ -67,7 +66,7 @@ async function handleArchiveToggle(ctx: CommandContext, archive: boolean): Promi
       generateInclude(workspaceDir, updatedRegistry, configDir);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      restartMsg = `\nWarning: include generation failed: ${htmlEscape(msg)}`;
+      restartMsg = `\nWarning: include generation failed: ${msg}`;
     }
     const result = await triggerRestart(rpc, logger);
     if (!result.success && result.fallbackMessage) {
@@ -82,8 +81,7 @@ async function handleArchiveToggle(ctx: CommandContext, archive: boolean): Promi
 
   const action = archive ? 'archived' : 'unarchived';
   return {
-    text: `Topic <b>${htmlEscape(entry.name)}</b> ${action}.${restartMsg}`,
-    parseMode: 'HTML',
+    text: `Topic **${entry.name}** ${action}.${restartMsg}`,
   };
 }
 

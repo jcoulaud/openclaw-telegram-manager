@@ -151,7 +151,7 @@ describe('registerCommand handler', () => {
     expect(parts[0]).toBe('tm');
   });
 
-  it('should forward parseMode as channelData.telegram.parse_mode', async () => {
+  it('should not include parse_mode since commands use Markdown', async () => {
     const result = await registeredCommand.handler({
       args: 'init',
       commandBody: '/tm init',
@@ -160,7 +160,7 @@ describe('registerCommand handler', () => {
       messageThreadId: '456',
     });
 
-    expect(result.channelData?.telegram?.parse_mode).toBe('HTML');
+    expect((result.channelData?.telegram as Record<string, unknown>)?.parse_mode).toBeUndefined();
   });
 
   it('should not include buttons when command returns no keyboard', async () => {

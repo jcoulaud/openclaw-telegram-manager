@@ -23,6 +23,5 @@ export async function handleList(ctx: CommandContext): Promise<CommandResult> {
 
   return {
     text,
-    parseMode: 'HTML',
   };
 }

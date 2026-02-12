@@ -10,7 +10,6 @@ import {
   SPAM_THRESHOLD,
 } from '../lib/types.js';
 import type { TopicEntry, InlineKeyboardMarkup } from '../lib/types.js';
-import { htmlEscape } from '../lib/security.js';
 import { buildDoctorReport, buildDoctorButtons, createRateLimitedPoster } from '../lib/telegram.js';
 import { runAllChecksForTopic } from '../lib/doctor-checks.js';
 import { includePath } from '../lib/include-generator.js';
@@ -99,7 +98,7 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
         logger.info(`[doctor-all] Auto-snoozing ${entry.slug} (${entry.consecutiveSilentDoctors} silent runs)`);
       }
 
-      const reportText = buildDoctorReport(entry.name, results);
+      const reportText = buildDoctorReport(entry.name, results, 'html');
       const keyboard = buildDoctorButtons(
         entry.groupId,
         entry.threadId,
@@ -228,7 +227,7 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
 
   // Build summary
   const lines: string[] = [
-    `<b>Doctor All Summary</b>`,
+    `**Doctor All Summary**`,
     '',
     `Processed: ${processed}`,
     `Skipped (ineligible): ${skipped}`,
@@ -241,9 +240,9 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
 
   if (errors.length > 0) {
     lines.push('');
-    lines.push(`<b>Errors (${errors.length}):</b>`);
+    lines.push(`**Errors (${errors.length}):**`);
     for (const e of errors.slice(0, 10)) {
-      lines.push(`- ${htmlEscape(e)}`);
+      lines.push(`- ${e}`);
     }
     if (errors.length > 10) {
       lines.push(`... and ${errors.length - 10} more`);
@@ -252,15 +251,14 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
 
   if (migrationGroups.length > 0) {
     lines.push('');
-    lines.push('<b>Possible group migrations detected:</b>');
+    lines.push('**Possible group migrations detected:**');
     for (const gid of migrationGroups) {
-      lines.push(`- Group ${htmlEscape(gid)}: all topics failed. Check for group migration.`);
+      lines.push(`- Group ${gid}: all topics failed. Check for group migration.`);
     }
   }
 
   return {
     text: lines.join('\n'),
-    parseMode: 'HTML',
   };
 }
 

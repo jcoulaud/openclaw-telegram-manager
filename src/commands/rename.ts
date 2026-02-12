@@ -1,7 +1,6 @@
 import { readRegistry, withRegistry } from '../lib/registry.js';
 import { checkAuthorization } from '../lib/auth.js';
 import { topicKey, MAX_NAME_LENGTH } from '../lib/types.js';
-import { htmlEscape } from '../lib/security.js';
 import { buildTopicCard } from '../lib/telegram.js';
 import { generateInclude } from '../lib/include-generator.js';
 import { triggerRestart, getConfigWrites } from '../lib/config-restart.js';
@@ -17,7 +16,7 @@ export async function handleRename(ctx: CommandContext, newName: string): Promis
 
   const trimmedName = newName.trim();
   if (!trimmedName) {
-    return { text: 'Usage: /tm rename &lt;new-name&gt;' };
+    return { text: 'Usage: /tm rename <new-name>' };
   }
 
   if (trimmedName.length > MAX_NAME_LENGTH) {
@@ -41,7 +40,7 @@ export async function handleRename(ctx: CommandContext, newName: string): Promis
 
   const oldName = entry.name;
   if (oldName === trimmedName) {
-    return { text: `Topic is already named <b>${htmlEscape(oldName)}</b>.`, parseMode: 'HTML' };
+    return { text: `Topic is already named **${oldName}**.` };
   }
 
   // Update name in registry (metadata-only, no filesystem changes)
@@ -61,7 +60,7 @@ export async function handleRename(ctx: CommandContext, newName: string): Promis
       generateInclude(workspaceDir, updatedRegistry, configDir);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      restartMsg = `\nWarning: include generation failed: ${htmlEscape(msg)}`;
+      restartMsg = `\nWarning: include generation failed: ${msg}`;
     }
     const result = await triggerRestart(rpc, logger);
     if (!result.success && result.fallbackMessage) {
@@ -77,7 +76,6 @@ export async function handleRename(ctx: CommandContext, newName: string): Promis
   const topicCard = buildTopicCard(trimmedName, entry.slug, entry.type, entry.capsuleVersion);
 
   return {
-    text: `Topic renamed from <b>${htmlEscape(oldName)}</b> to <b>${htmlEscape(trimmedName)}</b>.\n\n${topicCard}${restartMsg}`,
-    parseMode: 'HTML',
+    text: `Topic renamed from **${oldName}** to **${trimmedName}**.\n\n${topicCard}${restartMsg}`,
   };
 }

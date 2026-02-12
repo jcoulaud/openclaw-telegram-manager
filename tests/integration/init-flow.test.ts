@@ -470,7 +470,6 @@ describe('init flow integration', () => {
       // Step 1: call handleInitInteractive with no args → type picker
       const step1 = await handleInitInteractive(ctx, '');
       expect(step1.text).toContain('Pick a topic type');
-      expect(step1.parseMode).toBe('HTML');
       expect(step1.inlineKeyboard).toBeDefined();
 
       const rows = step1.inlineKeyboard!.inline_keyboard;
@@ -484,7 +483,6 @@ describe('init flow integration', () => {
       const step2 = await handleInitTypeSelect(ctx, 'research');
       expect(step2.text).toContain('Interactive Project');
       expect(step2.text).toContain('research');
-      expect(step2.parseMode).toBe('HTML');
       expect(step2.inlineKeyboard).toBeDefined();
       expect(step2.inlineKeyboard!.inline_keyboard[0][0].text).toBe('Confirm');
       expect(step2.pin).toBeUndefined();

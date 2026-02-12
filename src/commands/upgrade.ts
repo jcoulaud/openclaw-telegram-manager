@@ -2,7 +2,6 @@ import * as path from 'node:path';
 import { readRegistry, withRegistry } from '../lib/registry.js';
 import { checkAuthorization } from '../lib/auth.js';
 import { topicKey, CAPSULE_VERSION } from '../lib/types.js';
-import { htmlEscape } from '../lib/security.js';
 import { upgradeCapsule } from '../lib/capsule.js';
 import type { CommandContext, CommandResult } from './help.js';
 
@@ -30,8 +29,7 @@ export async function handleUpgrade(ctx: CommandContext): Promise<CommandResult>
 
   if (entry.capsuleVersion >= CAPSULE_VERSION) {
     return {
-      text: `Topic <b>${htmlEscape(entry.name)}</b> is already at capsule version ${CAPSULE_VERSION}. No upgrade needed.`,
-      parseMode: 'HTML',
+      text: `Topic **${entry.name}** is already at capsule version ${CAPSULE_VERSION}. No upgrade needed.`,
     };
   }
 
@@ -40,8 +38,7 @@ export async function handleUpgrade(ctx: CommandContext): Promise<CommandResult>
 
   if (!result.upgraded) {
     return {
-      text: `No upgrade needed for <b>${htmlEscape(entry.name)}</b>.`,
-      parseMode: 'HTML',
+      text: `No upgrade needed for **${entry.name}**.`,
     };
   }
 
@@ -54,11 +51,10 @@ export async function handleUpgrade(ctx: CommandContext): Promise<CommandResult>
   });
 
   const addedList = result.addedFiles.length > 0
-    ? `\nAdded files: ${result.addedFiles.map((f) => htmlEscape(f)).join(', ')}`
+    ? `\nAdded files: ${result.addedFiles.join(', ')}`
     : '\nNo new files added.';
 
   return {
-    text: `Topic <b>${htmlEscape(entry.name)}</b> upgraded from v${entry.capsuleVersion} to v${result.newVersion}.${addedList}`,
-    parseMode: 'HTML',
+    text: `Topic **${entry.name}** upgraded from v${entry.capsuleVersion} to v${result.newVersion}.${addedList}`,
   };
 }

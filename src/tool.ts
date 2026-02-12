@@ -1,5 +1,5 @@
 import { readRegistry, withRegistry } from './lib/registry.js';
-import { parseAndVerifyCallback, htmlEscape } from './lib/security.js';
+import { parseAndVerifyCallback } from './lib/security.js';
 import { topicKey, CAPSULE_VERSION } from './lib/types.js';
 import type { InlineKeyboardMarkup } from './lib/types.js';
 import { appendAudit, buildAuditEntry } from './lib/audit.js';
@@ -147,14 +147,14 @@ export function createTopicManagerTool(deps: ToolDeps): TopicManagerTool {
 
           default:
             return {
-              text: `Unknown command: "${htmlEscape(subCommand)}". Try /tm help for available commands.`,
+              text: `Unknown command: "${subCommand}". Try /tm help for available commands.`,
             };
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         logger.error(`[topic_manager] Command "${subCommand}" failed: ${msg}`);
         return {
-          text: `Command failed: ${htmlEscape(msg)}`,
+          text: `Command failed: ${msg}`,
         };
       }
     },
@@ -324,7 +324,7 @@ async function handleCallback(data: string, ctx: CommandContext): Promise<Comman
     }
 
     default:
-      return { text: `Unknown callback action: ${htmlEscape(action)}` };
+      return { text: `Unknown callback action: ${action}` };
   }
 }
 

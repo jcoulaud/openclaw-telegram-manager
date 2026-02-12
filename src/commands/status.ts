@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import { readRegistry } from '../lib/registry.js';
 import { checkAuthorization } from '../lib/auth.js';
 import { topicKey } from '../lib/types.js';
-import { jailCheck, rejectSymlink, htmlEscape } from '../lib/security.js';
+import { jailCheck, rejectSymlink } from '../lib/security.js';
 import { truncateMessage } from '../lib/telegram.js';
 import type { CommandContext, CommandResult } from './help.js';
 
@@ -54,6 +54,6 @@ export async function handleStatus(ctx: CommandContext): Promise<CommandResult> 
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return { text: `Failed to read STATUS.md: ${htmlEscape(msg)}` };
+    return { text: `Failed to read STATUS.md: ${msg}` };
   }
 }

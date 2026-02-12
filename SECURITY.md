@@ -19,7 +19,7 @@ Don't open a public issue. Instead, use [GitHub's private vulnerability reportin
 - Registry file handling (`topics.json` read/write/validation)
 - Path traversal and symlink checks
 - HMAC callback authentication
-- HTML escaping in Telegram output
+- HTML escaping in direct Telegram API posts
 - File locking and atomic writes
 - Setup script permissions
 
@@ -28,6 +28,6 @@ Don't open a public issue. Instead, use [GitHub's private vulnerability reportin
 - **Path jail** — capsule paths are resolved to absolute and checked against the workspace root.
 - **Symlink rejection** — symlinks in capsule paths are blocked.
 - **HMAC signatures** — inline keyboard callbacks are signed with a per-registry secret.
-- **HTML escaping** — user data in Telegram messages is always escaped before rendering.
+- **HTML escaping** — user data in direct Telegram API posts (fan-out doctor reports) is HTML-escaped. Command responses use Markdown, which the gateway's text pipeline auto-converts safely.
 - **Schema validation** — registry entries are validated on every read. Invalid entries get quarantined instead of crashing.
 - **File locking** — `proper-lockfile` prevents concurrent writes from corrupting the registry.

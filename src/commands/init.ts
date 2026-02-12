@@ -12,7 +12,6 @@ import type { TopicType, TopicEntry } from '../lib/types.js';
 import {
   jailCheck,
   rejectSymlink,
-  htmlEscape,
   validateGroupId,
   validateThreadId,
 } from '../lib/security.js';
@@ -84,8 +83,7 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
   const key = topicKey(groupId, threadId);
   if (registry.topics[key]) {
     return {
-      text: `This topic is already registered as <b>${htmlEscape(registry.topics[key]!.name)}</b>.`,
-      parseMode: 'HTML',
+      text: `This topic is already registered as "${registry.topics[key]!.name}".`,
     };
   }
 
@@ -122,7 +120,7 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
 
   // Disk collision safety net
   if (fs.existsSync(path.join(projectsBase, finalSlug))) {
-    return { text: `Directory projects/${htmlEscape(finalSlug)}/ already exists on disk.` };
+    return { text: `Directory projects/${finalSlug}/ already exists on disk.` };
   }
 
   // Symlink check on target path
@@ -165,7 +163,7 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return { text: `Failed to initialize topic: ${htmlEscape(msg)}` };
+    return { text: `Failed to initialize topic: ${msg}` };
   }
 
   // If configWrites enabled: regenerate include + trigger restart
@@ -181,7 +179,7 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      restartMsg = `\nWarning: include generation failed: ${htmlEscape(msg)}`;
+      restartMsg = `\nWarning: include generation failed: ${msg}`;
     }
   }
 
@@ -203,7 +201,6 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
 
   return {
     text: `${topicCard}${adminNote}${restartMsg}${autopilotTip}`,
-    parseMode: 'HTML',
     pin: true,
   };
 }
@@ -254,8 +251,7 @@ async function buildTypePicker(ctx: CommandContext): Promise<CommandResult> {
   const key = topicKey(groupId, threadId);
   if (registry.topics[key]) {
     return {
-      text: `This topic is already registered as <b>${htmlEscape(registry.topics[key]!.name)}</b>.`,
-      parseMode: 'HTML',
+      text: `This topic is already registered as "${registry.topics[key]!.name}".`,
     };
   }
 
@@ -263,7 +259,6 @@ async function buildTypePicker(ctx: CommandContext): Promise<CommandResult> {
 
   return {
     text: 'Pick a topic type:',
-    parseMode: 'HTML',
     inlineKeyboard: keyboard,
   };
 }
@@ -301,8 +296,7 @@ export async function handleInitTypeSelect(ctx: CommandContext, type: TopicType)
   const key = topicKey(groupId, threadId);
   if (registry.topics[key]) {
     return {
-      text: `This topic is already registered as <b>${htmlEscape(registry.topics[key]!.name)}</b>.`,
-      parseMode: 'HTML',
+      text: `This topic is already registered as "${registry.topics[key]!.name}".`,
     };
   }
 
@@ -311,7 +305,6 @@ export async function handleInitTypeSelect(ctx: CommandContext, type: TopicType)
 
   return {
     text: buildInitConfirmMessage(name, type),
-    parseMode: 'HTML',
     inlineKeyboard: keyboard,
   };
 }
@@ -325,8 +318,8 @@ export async function handleInitNameConfirm(ctx: CommandContext, type: TopicType
 
 function buildInitConfirmMessage(name: string, type: TopicType): string {
   return [
-    `Name: <b>${htmlEscape(name)}</b> | Type: ${htmlEscape(type)}`,
+    `Name: **${name}** | Type: ${type}`,
     '',
-    `To use a different name: /tm init &lt;name&gt; ${htmlEscape(type)}`,
+    `To use a different name: /tm init <name> ${type}`,
   ].join('\n');
 }

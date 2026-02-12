@@ -94,7 +94,6 @@ export async function handleDoctor(ctx: CommandContext): Promise<CommandResult> 
 
   return {
     text: reportText + textCommands,
-    parseMode: 'HTML',
     inlineKeyboard: keyboard,
   };
 }

@@ -3,6 +3,8 @@ import type { TopicEntry, DoctorCheckResult, InlineKeyboardButton, InlineKeyboar
 import { Severity } from './types.js';
 import type { TopicType } from './types.js';
 
+export type TextFormat = 'html' | 'markdown';
+
 // ── Telegram message limit ─────────────────────────────────────────────
 
 const TELEGRAM_MSG_LIMIT = 4096;
@@ -98,29 +100,25 @@ export function buildInitConfirmButton(
 }
 
 /**
- * Build HTML Topic Card displayed after init.
+ * Build Markdown Topic Card displayed after init.
  */
 export function buildTopicCard(name: string, slug: string, type: TopicType, capsuleVersion: number): string {
-  const n = htmlEscape(name);
-  const s = htmlEscape(slug);
-  const t = htmlEscape(type);
-  const v = htmlEscape(String(capsuleVersion));
   return [
-    `<b>Topic: ${n}</b>`,
-    `Type: ${t} | Version: ${v}`,
-    `Capsule: projects/${s}/`,
+    `**Topic: ${name}**`,
+    `Type: ${type} | Version: ${capsuleVersion}`,
+    `Capsule: projects/${slug}/`,
     '',
-    '<b>How it works</b>',
+    '**How it works**',
     'Just send your instructions in this topic. The agent',
     'maintains STATUS.md and TODO.md automatically as it',
     'works — nothing is lost on reset or context compaction.',
     'Doctor checks run periodically and alert you if anything',
     'needs attention.',
     '',
-    '<b>Commands:</b>',
+    '**Commands:**',
     '/tm status — quick STATUS.md view',
     '/tm doctor — run health checks',
-    '/tm rename &lt;name&gt; — rename this topic',
+    '/tm rename <name> — rename this topic',
     '/tm list — all topics',
     '/tm archive — archive this topic',
     '/tm help — full command reference',
@@ -128,11 +126,15 @@ export function buildTopicCard(name: string, slug: string, type: TopicType, caps
 }
 
 /**
- * Build HTML doctor report with severity icons.
+ * Build doctor report with severity icons.
+ * @param format - 'markdown' for command responses, 'html' for direct postFn posts
  */
-export function buildDoctorReport(name: string, results: DoctorCheckResult[]): string {
-  const n = htmlEscape(name);
-  const lines: string[] = [`<b>Doctor: ${n}</b>`, ''];
+export function buildDoctorReport(name: string, results: DoctorCheckResult[], format: TextFormat = 'markdown'): string {
+  const isHtml = format === 'html';
+  const n = isHtml ? htmlEscape(name) : name;
+  const bold = (s: string) => isHtml ? `<b>${s}</b>` : `**${s}**`;
+  const code = (s: string) => isHtml ? `<code>${s}</code>` : `\`${s}\``;
+  const lines: string[] = [bold(`Doctor: ${n}`), ''];
 
   if (results.length === 0) {
     lines.push('All checks passed.');
@@ -141,9 +143,10 @@ export function buildDoctorReport(name: string, results: DoctorCheckResult[]): s
 
   for (const r of results) {
     const icon = severityIcon(r.severity);
-    const msg = htmlEscape(r.message);
+    const msg = isHtml ? htmlEscape(r.message) : r.message;
+    const checkId = isHtml ? htmlEscape(r.checkId) : r.checkId;
     const fix = r.fixable ? ' [fixable]' : '';
-    lines.push(`${icon} <code>${htmlEscape(r.checkId)}</code>: ${msg}${fix}`);
+    lines.push(`${icon} ${code(checkId)}: ${msg}${fix}`);
   }
 
   lines.push('');
@@ -166,21 +169,21 @@ function severityIcon(severity: Severity): string {
 }
 
 /**
- * Build HTML help card with command reference.
+ * Build Markdown help card with command reference.
  */
 export function buildHelpCard(): string {
   return [
-    '<b>Topic Manager Commands</b>',
+    '**Topic Manager Commands**',
     '',
     '/tm init — register this topic',
     '/tm status — quick STATUS.md view',
     '/tm doctor — run health checks',
     '/tm doctor --all — check all topics',
-    '/tm rename &lt;name&gt; — rename this topic',
+    '/tm rename <name> — rename this topic',
     '/tm list — all topics',
     '/tm sync — re-apply config',
     '/tm upgrade — update capsule template',
-    '/tm snooze &lt;Nd&gt; — snooze doctor (7d, 30d, etc.)',
+    '/tm snooze <Nd> — snooze doctor (7d, 30d, etc.)',
     '/tm archive — archive topic',
     '/tm unarchive — reactivate topic',
     '/tm autopilot [enable|disable|status] — daily sweeps',
@@ -189,12 +192,12 @@ export function buildHelpCard(): string {
 }
 
 /**
- * Build compact topic list message in HTML.
+ * Build compact topic list message in Markdown.
  * Groups by status: active first, snoozed, then archived.
  */
 export function buildListMessage(topics: TopicEntry[]): string {
   if (topics.length === 0) {
-    return '<b>Topic Registry</b> (0 topics)\n\nNo topics registered.';
+    return '**Topic Registry** (0 topics)\n\nNo topics registered.';
   }
 
   const sorted = [...topics].sort((a, b) => {
@@ -202,14 +205,14 @@ export function buildListMessage(topics: TopicEntry[]): string {
     return (order[a.status] ?? 3) - (order[b.status] ?? 3);
   });
 
-  const lines: string[] = [`<b>Topic Registry</b> (${topics.length} topics)`, ''];
+  const lines: string[] = [`**Topic Registry** (${topics.length} topics)`, ''];
   let rendered = 0;
 
   for (const t of sorted) {
     const entry = [
-      `<b>${htmlEscape(t.name)}</b> [${htmlEscape(t.type)}] ${htmlEscape(t.status)}`,
+      `**${t.name}** [${t.type}] ${t.status}`,
       `  Last active: ${t.lastMessageAt ? relativeTime(t.lastMessageAt) : 'never'}`,
-      `  Thread: #${htmlEscape(t.threadId)}`,
+      `  Thread: #${t.threadId}`,
     ].join('\n');
 
     // Check if adding this entry would exceed limit
@@ -316,11 +319,6 @@ function getRetryAfter(err: unknown): number {
 export function truncateMessage(msg: string, limit: number = TELEGRAM_MSG_LIMIT): string {
   if (msg.length <= limit) return msg;
   const suffix = '\n\n... (truncated)';
-  let truncated = msg.slice(0, limit - suffix.length);
-  // Strip any incomplete HTML tag at the truncation point
-  const lastOpen = truncated.lastIndexOf('<');
-  if (lastOpen !== -1 && lastOpen > truncated.lastIndexOf('>')) {
-    truncated = truncated.slice(0, lastOpen);
-  }
+  const truncated = msg.slice(0, limit - suffix.length);
   return truncated + suffix;
 }

@@ -2,7 +2,6 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { readRegistry, withRegistry } from '../lib/registry.js';
 import { checkAuthorization } from '../lib/auth.js';
-import { htmlEscape } from '../lib/security.js';
 import type { CommandContext, CommandResult } from './help.js';
 
 // ── Marker constants ────────────────────────────────────────────────
@@ -45,7 +44,7 @@ export async function handleAutopilot(ctx: CommandContext, args: string): Promis
     case 'status':
       return handleStatus(ctx);
     default:
-      return { text: `Unknown autopilot sub-command: "${htmlEscape(subCommand)}". Use enable, disable, or status.` };
+      return { text: `Unknown autopilot sub-command: "${subCommand}". Use enable, disable, or status.` };
   }
 }
 
@@ -86,8 +85,7 @@ async function handleEnable(ctx: CommandContext): Promise<CommandResult> {
   });
 
   return {
-    text: '<b>Autopilot enabled.</b>\nDaily health sweeps will run via the OpenClaw heartbeat.',
-    parseMode: 'HTML',
+    text: '**Autopilot enabled.**\nDaily health sweeps will run via the OpenClaw heartbeat.',
   };
 }
 
@@ -134,8 +132,7 @@ async function handleDisable(ctx: CommandContext): Promise<CommandResult> {
   });
 
   return {
-    text: '<b>Autopilot disabled.</b>\nDaily sweeps will no longer run automatically.',
-    parseMode: 'HTML',
+    text: '**Autopilot disabled.**\nDaily sweeps will no longer run automatically.',
   };
 }
 
@@ -149,12 +146,11 @@ async function handleStatus(ctx: CommandContext): Promise<CommandResult> {
   const lastRun = registry.lastDoctorAllRunAt ?? 'never';
 
   const lines = [
-    `<b>Autopilot:</b> ${enabled ? 'enabled' : 'disabled'}`,
-    `<b>Last doctor-all run:</b> ${htmlEscape(lastRun)}`,
+    `**Autopilot:** ${enabled ? 'enabled' : 'disabled'}`,
+    `**Last doctor-all run:** ${lastRun}`,
   ];
 
   return {
     text: lines.join('\n'),
-    parseMode: 'HTML',
   };
 }

@@ -191,19 +191,12 @@ export default function register(api: {
 
         const result = await tool.execute('cmd', { command: ctx.args }, execContext);
 
-        const reply: { text?: string; channelData?: { telegram?: { buttons?: unknown; parse_mode?: string } } } = {
+        const reply: { text?: string; channelData?: { telegram?: { buttons?: unknown } } } = {
           text: result.text,
         };
-        const telegramData: Record<string, unknown> = {};
         if (result.inlineKeyboard) {
           // OpenClaw expects the raw 2D button array, not the InlineKeyboardMarkup wrapper
-          telegramData.buttons = result.inlineKeyboard.inline_keyboard;
-        }
-        if (result.parseMode) {
-          telegramData.parse_mode = result.parseMode;
-        }
-        if (Object.keys(telegramData).length > 0) {
-          reply.channelData = { telegram: telegramData };
+          reply.channelData = { telegram: { buttons: result.inlineKeyboard.inline_keyboard } };
         }
         return reply;
       },

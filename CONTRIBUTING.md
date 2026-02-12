@@ -39,7 +39,7 @@ npm run lint
 - Generated config must use `JSON5.stringify()` — no string interpolation
 - File writes go through write-to-temp-then-rename (atomic writes)
 - All paths get resolved to absolute and checked against the workspace root
-- User data in Telegram messages must be HTML-escaped
+- Command responses use Markdown (the gateway auto-converts to Telegram HTML). Direct API posts (fan-out) use HTML with `htmlEscape()`.
 - A failing topic should never crash a batch operation
 
 **Tests:**

@@ -170,7 +170,6 @@ export interface CommandContext {
 
 export interface CommandResult {
   text: string;
-  parseMode?: 'HTML';
   inlineKeyboard?: InlineKeyboardMarkup;
   pin?: boolean;
 }

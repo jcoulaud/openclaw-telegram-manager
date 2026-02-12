@@ -1,3 +1,11 @@
+## [2.2.1](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.2.0...v2.2.1) (2026-02-12)
+
+
+### Bug Fixes
+
+* clarify uninstall data deletion prompt ([3ea031b](https://github.com/jcoulaud/openclaw-telegram-manager/commit/3ea031b415fa8ca82a926d2c6e0c33d3da3f6c7d))
+* move MEMORY_FLUSH_MARKER to top-level constants to avoid TDZ error ([675f639](https://github.com/jcoulaud/openclaw-telegram-manager/commit/675f63952c32d076c0089b8499f74f3265686d2c))
+
 # [2.2.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.1.0...v2.2.0) (2026-02-12)
 
 

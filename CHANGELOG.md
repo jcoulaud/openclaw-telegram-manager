@@ -1,3 +1,11 @@
+# [2.1.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.0.2...v2.1.0) (2026-02-12)
+
+
+### Features
+
+* add autopilot daily sweeps, LEARNINGS.md capsule, and bug fixes ([4ee4e5d](https://github.com/jcoulaud/openclaw-telegram-manager/commit/4ee4e5d9b00cb92410c6eef86b6bb7d71a527f39))
+* improve post-init onboarding and add name confirmation step ([4dbdb02](https://github.com/jcoulaud/openclaw-telegram-manager/commit/4dbdb02185ffc7131e5a7aa02ba050bbdca94339))
+
 ## [2.0.2](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.0.1...v2.0.2) (2026-02-12)
 
 

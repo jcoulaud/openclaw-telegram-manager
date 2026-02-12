@@ -1,6 +1,6 @@
 {
   "name": "openclaw-telegram-manager",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "type": "module",
   "description": "Deterministic Telegram forum topic management for OpenClaw",
   "license": "MIT",

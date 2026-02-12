@@ -12,7 +12,7 @@ Describe the bug clearly.
 
 ## How to reproduce
 
-1. Run `/topic ...`
+1. Run `/tm ...`
 2. ...
 3. See error
 

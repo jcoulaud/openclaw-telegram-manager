@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import JSON5 from 'json5';
 import {
   Severity,
   CAPSULE_VERSION,
@@ -150,7 +151,7 @@ export function runCapsuleChecks(
         check(
           Severity.INFO,
           'capsuleVersionBehind',
-          `Capsule version ${entry.capsuleVersion} is behind current ${CAPSULE_VERSION}. Run /tm upgrade.`,
+          `Capsule version ${entry.capsuleVersion} is behind current ${CAPSULE_VERSION}. Will auto-upgrade on next command.`,
           false,
         ),
       );
@@ -422,18 +423,11 @@ export function runConfigChecks(
 ): DoctorCheckResult[] {
   const results: DoctorCheckResult[] = [];
 
-  // Parse the include to check this topic's config
+  // Parse the include to check this topic's config (JSON5 handles // comments natively)
   let includeObj: Record<string, unknown>;
   try {
-    // Strip comment lines before parsing
-    const stripped = includeContent
-      .split('\n')
-      .filter((l) => !l.startsWith('//'))
-      .join('\n');
-    includeObj = JSON.parse(stripped) as Record<string, unknown>;
+    includeObj = JSON5.parse(includeContent) as Record<string, unknown>;
   } catch {
-    // Try json5 parsing - but we don't import json5 here to keep this pure
-    // If we can't parse, skip
     return results;
   }
 
@@ -618,7 +612,7 @@ function readCapsuleFiles(capsuleDir: string): Map<string, string> {
   const files = new Map<string, string>();
   const filenames = [
     'STATUS.md', 'TODO.md', 'COMMANDS.md', 'LINKS.md',
-    'CRON.md', 'NOTES.md', 'README.md',
+    'CRON.md', 'NOTES.md', 'README.md', 'LEARNINGS.md',
     'ARCHITECTURE.md', 'DEPLOY.md',
     'SOURCES.md', 'FINDINGS.md',
     'CAMPAIGNS.md', 'METRICS.md',

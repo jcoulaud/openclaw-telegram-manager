@@ -183,6 +183,7 @@ export function buildHelpCard(): string {
     '/tm snooze &lt;Nd&gt; — snooze doctor (7d, 30d, etc.)',
     '/tm archive — archive topic',
     '/tm unarchive — reactivate topic',
+    '/tm autopilot [enable|disable|status] — daily sweeps',
     '/tm help — this message',
   ].join('\n');
 }

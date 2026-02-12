@@ -19,6 +19,7 @@ const ADMIN_COMMANDS = new Set([
   'rename',
   'archive',
   'unarchive',
+  'autopilot',
 ]);
 
 const USER_COMMANDS = new Set([

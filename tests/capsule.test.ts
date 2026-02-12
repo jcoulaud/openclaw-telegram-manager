@@ -126,6 +126,19 @@ describe('capsule', () => {
       expect(() => scaffoldCapsule(symlinkBase, 'test', 'test', 'coding')).toThrow(/symlink/);
     });
 
+    it('should create LEARNINGS.md for new capsules', () => {
+      const slug = 'test-learnings';
+      scaffoldCapsule(projectsBase, slug, slug, 'coding');
+
+      const capsuleDir = path.join(projectsBase, slug);
+      const learningsPath = path.join(capsuleDir, 'LEARNINGS.md');
+      expect(fs.existsSync(learningsPath)).toBe(true);
+
+      const content = fs.readFileSync(learningsPath, 'utf-8');
+      expect(content).toContain('Learnings');
+      expect(content).toContain('Hard-won insights');
+    });
+
     it('should include slug in file content', () => {
       const slug = 'my-project';
       scaffoldCapsule(projectsBase, slug, slug, 'coding');
@@ -164,6 +177,23 @@ describe('capsule', () => {
       expect(result.newVersion).toBe(CAPSULE_VERSION);
       expect(result.addedFiles).toContain('NOTES.md');
       expect(fs.existsSync(path.join(capsuleDir, 'NOTES.md'))).toBe(true);
+    });
+
+    it('should add LEARNINGS.md when upgrading from v1', () => {
+      const slug = 'test-upgrade-learnings';
+      scaffoldCapsule(projectsBase, slug, slug, 'coding');
+
+      // Remove LEARNINGS.md to simulate a v1 capsule
+      const capsuleDir = path.join(projectsBase, slug);
+      const learningsPath = path.join(capsuleDir, 'LEARNINGS.md');
+      fs.unlinkSync(learningsPath);
+      expect(fs.existsSync(learningsPath)).toBe(false);
+
+      const result = upgradeCapsule(projectsBase, slug, slug, 'coding', 0);
+
+      expect(result.upgraded).toBe(true);
+      expect(result.addedFiles).toContain('LEARNINGS.md');
+      expect(fs.existsSync(learningsPath)).toBe(true);
     });
 
     it('should add missing overlay files', () => {

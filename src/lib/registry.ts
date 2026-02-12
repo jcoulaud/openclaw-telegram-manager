@@ -39,6 +39,12 @@ const migrations: Record<string, MigrationFn> = {
     }
     return data;
   },
+  '2_to_3': (data) => {
+    if (data['autopilotEnabled'] === undefined) {
+      data['autopilotEnabled'] = false;
+    }
+    return data;
+  },
 };
 
 function migrateRegistry(data: Record<string, unknown>): Record<string, unknown> {
@@ -200,6 +206,7 @@ export function createEmptyRegistry(callbackSecret: string): Registry {
     topicManagerAdmins: [],
     callbackSecret,
     lastDoctorAllRunAt: null,
+    autopilotEnabled: false,
     maxTopics: MAX_TOPICS_DEFAULT,
     topics: {},
   };

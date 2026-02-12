@@ -81,17 +81,60 @@ export default function register(api: {
     return;
   }
 
+  // Lazy-init postFn for fan-out posting (resolved on first use via dynamic import)
+  type PostFn = (
+    groupId: string,
+    threadId: string,
+    text: string,
+    keyboard?: { inline_keyboard: { text: string; callback_data: string }[][] },
+  ) => Promise<void>;
+
+  let resolvedPostFn: PostFn | undefined | null; // null = tried & unavailable
+
+  const lazyPostFn: PostFn = async (groupId, threadId, text, keyboard) => {
+    if (resolvedPostFn === null) return; // already checked, SDK unavailable
+    if (resolvedPostFn === undefined) {
+      try {
+        // Dynamic path prevents Vite/tsc from resolving at build time
+        const sdkPath = ['openclaw', 'dist', 'plugin-sdk', 'index.js'].join('/');
+        const sdk = (await import(/* @vite-ignore */ sdkPath)) as Record<string, unknown>;
+        if (typeof sdk['sendMessageTelegram'] === 'function') {
+          const sendMsg = sdk['sendMessageTelegram'] as (
+            chatId: string,
+            text: string,
+            opts?: Record<string, unknown>,
+          ) => Promise<void>;
+          resolvedPostFn = async (gId, tId, txt, kb) => {
+            const opts: Record<string, unknown> = {
+              messageThreadId: Number(tId),
+              textMode: 'html',
+            };
+            if (kb) opts.buttons = kb.inline_keyboard;
+            await sendMsg(gId, txt, opts);
+          };
+          api.logger.info('telegram-manager: postFn wired via plugin-sdk');
+        } else {
+          resolvedPostFn = null;
+        }
+      } catch {
+        resolvedPostFn = null;
+      }
+    }
+    if (resolvedPostFn) await resolvedPostFn(groupId, threadId, text, keyboard);
+  };
+
   const tool = createTopicManagerTool({
     logger: api.logger,
     configDir,
     workspaceDir,
     rpc: api.rpc,
+    postFn: lazyPostFn,
   });
 
   api.registerTool({
     name: 'topic_manager',
     description:
-      'Manage Telegram forum topics as deterministic workcells. Sub-commands: init, doctor, list, status, sync, rename, upgrade, snooze, archive, unarchive, help.',
+      'Manage Telegram forum topics as deterministic workcells. Sub-commands: init, doctor, list, status, sync, rename, upgrade, snooze, archive, unarchive, autopilot, help.',
     parameters: Type.Object({
       command: Type.String({
         description:
@@ -119,7 +162,7 @@ export default function register(api: {
     api.registerCommand({
       name: 'tm',
       description:
-        'Manage Telegram forum topics as deterministic workcells. Sub-commands: init, doctor, list, status, sync, rename, upgrade, snooze, archive, unarchive, help.',
+        'Manage Telegram forum topics as deterministic workcells. Sub-commands: init, doctor, list, status, sync, rename, upgrade, snooze, archive, unarchive, autopilot, help.',
       acceptsArgs: true,
       requireAuth: false,
       async handler(ctx) {

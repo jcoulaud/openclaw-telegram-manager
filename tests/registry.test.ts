@@ -44,6 +44,7 @@ describe('registry', () => {
       expect(registry.topicManagerAdmins).toEqual([]);
       expect(registry.callbackSecret).toBe(secret);
       expect(registry.lastDoctorAllRunAt).toBeNull();
+      expect(registry.autopilotEnabled).toBe(false);
       expect(registry.maxTopics).toBe(100);
       expect(registry.topics).toEqual({});
     });
@@ -156,6 +157,24 @@ describe('registry', () => {
       expect(result.topics['-100123:456']).toBeDefined();
       // Invalid entry should be quarantined
       expect(result.topics['-100123:789']).toBeUndefined();
+    });
+
+    it('should migrate v2 registry to v3 by adding autopilotEnabled', () => {
+      const regPath = registryPath(workspaceDir);
+      const v2Registry = {
+        version: 2,
+        topicManagerAdmins: ['admin1'],
+        callbackSecret: 'secret',
+        lastDoctorAllRunAt: null,
+        maxTopics: 100,
+        topics: {},
+      };
+      fs.writeFileSync(regPath, JSON.stringify(v2Registry), { mode: 0o600 });
+
+      const result = readRegistry(workspaceDir);
+
+      expect(result.version).toBe(CURRENT_REGISTRY_VERSION);
+      expect(result.autopilotEnabled).toBe(false);
     });
 
     it('should migrate v1 registry entries by setting name = slug', () => {

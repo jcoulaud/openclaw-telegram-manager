@@ -199,8 +199,10 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
     adminNote = '\n\nYou are the first user and have been added as a telegram-manager admin.';
   }
 
+  const autopilotTip = '\n\nTip: Enable daily health sweeps with /tm autopilot enable';
+
   return {
-    text: `${topicCard}${adminNote}${restartMsg}`,
+    text: `${topicCard}${adminNote}${restartMsg}${autopilotTip}`,
     parseMode: 'HTML',
     pin: true,
   };

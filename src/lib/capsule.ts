@@ -28,6 +28,9 @@ const BASE_TEMPLATES: Record<string, (name: string) => string> = {
 
   'NOTES.md': (name) =>
     `# Notes: ${name}\n\n_Anything worth remembering about this topic._\n`,
+
+  'LEARNINGS.md': (name) =>
+    `# Learnings: ${name}\n\n_Hard-won insights, mistakes, and workarounds._\n_Agent prepends here automatically. Most recent entries first._\n`,
 };
 
 const OVERLAY_TEMPLATES: Record<string, (name: string) => string> = {

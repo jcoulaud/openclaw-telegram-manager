@@ -1,7 +1,9 @@
 import { readRegistry, withRegistry } from './lib/registry.js';
 import { parseAndVerifyCallback, htmlEscape } from './lib/security.js';
-import { topicKey } from './lib/types.js';
+import { topicKey, CAPSULE_VERSION } from './lib/types.js';
+import type { InlineKeyboardMarkup } from './lib/types.js';
 import { appendAudit, buildAuditEntry } from './lib/audit.js';
+import { upgradeCapsule } from './lib/capsule.js';
 import { handleInitInteractive, handleInitTypeSelect, handleInitNameConfirm } from './commands/init.js';
 import { handleDoctor } from './commands/doctor.js';
 import { handleDoctorAll } from './commands/doctor-all.js';
@@ -12,6 +14,7 @@ import { handleRename } from './commands/rename.js';
 import { handleUpgrade } from './commands/upgrade.js';
 import { handleSnooze } from './commands/snooze.js';
 import { handleArchive, handleUnarchive } from './commands/archive.js';
+import { handleAutopilot } from './commands/autopilot.js';
 import { handleHelp } from './commands/help.js';
 import type { CommandContext, CommandResult } from './commands/help.js';
 import type { Logger, RpcInterface } from './lib/config-restart.js';
@@ -23,6 +26,12 @@ export interface ToolDeps {
   configDir: string;
   workspaceDir: string;
   rpc?: RpcInterface | null;
+  postFn?: (
+    groupId: string,
+    threadId: string,
+    text: string,
+    keyboard?: InlineKeyboardMarkup,
+  ) => Promise<void>;
 }
 
 // ── Tool instance ─────────────────────────────────────────────────────
@@ -55,13 +64,42 @@ export function createTopicManagerTool(deps: ToolDeps): TopicManagerTool {
       // Extract context from execution params
       const ctx = buildContext(deps, execContext);
 
-      // Handle tm: callback routing
+      // Handle tm: callback routing (no activity tracking for callbacks)
       if (commandStr.startsWith('tm:')) {
         return handleCallback(commandStr, ctx);
       }
 
       // Parse sub-command and args
       const { subCommand, args, flags } = parseCommand(commandStr);
+
+      // Activity tracking + auto-upgrade for registered topics (user commands only)
+      if (ctx.groupId && ctx.threadId) {
+        const key = topicKey(ctx.groupId, ctx.threadId);
+        const projectsBase = `${workspaceDir}/projects`;
+        void withRegistry(workspaceDir, (data) => {
+          const entry = data.topics[key];
+          if (!entry) return;
+
+          // Update lastMessageAt
+          entry.lastMessageAt = new Date().toISOString();
+
+          // Auto-upgrade capsule if version is behind
+          if (entry.capsuleVersion < CAPSULE_VERSION) {
+            const oldVersion = entry.capsuleVersion;
+            try {
+              upgradeCapsule(projectsBase, entry.slug, entry.name, entry.type, entry.capsuleVersion);
+              entry.capsuleVersion = CAPSULE_VERSION;
+              logger.info(`[auto-upgrade] ${entry.slug} v${oldVersion} → v${CAPSULE_VERSION}`);
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err);
+              logger.error(`[auto-upgrade] ${entry.slug} failed: ${msg}`);
+            }
+          }
+        }).catch((err) => {
+          const msg = err instanceof Error ? err.message : String(err);
+          logger.error(`[activity-tracking] Failed: ${msg}`);
+        });
+      }
 
       try {
         switch (subCommand) {
@@ -100,6 +138,9 @@ export function createTopicManagerTool(deps: ToolDeps): TopicManagerTool {
 
           case 'unarchive':
             return await handleUnarchive(ctx);
+
+          case 'autopilot':
+            return await handleAutopilot(ctx, args);
 
           case 'help':
             return await handleHelp(ctx);
@@ -175,6 +216,7 @@ function buildContext(deps: ToolDeps, execContext?: Record<string, unknown>): Co
     threadId: threadId ?? undefined,
     userId: userId ?? undefined,
     messageContext: execContext,
+    postFn: deps.postFn,
   };
 }
 

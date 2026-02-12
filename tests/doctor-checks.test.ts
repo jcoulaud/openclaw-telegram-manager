@@ -509,6 +509,44 @@ backup-daily-abc123 - Runs at midnight
     });
   });
 
+  describe('runConfigChecks with JSON5', () => {
+    it('should parse JSON5 content with trailing commas and comments', () => {
+      const entry = createTestEntry();
+      const registry = createEmptyRegistry('secret');
+      registry.topics['-100:123'] = entry;
+
+      // JSON5 content with comments and trailing commas
+      const includeContent = `// This is a generated file
+// registry-hash: sha256:abc123
+{
+  "-100": {
+    topics: {
+      "123": {
+        enabled: true,
+        skills: ['coding-agent'],
+        systemPrompt: 'test prompt',
+      },
+    },
+  },
+}`;
+
+      const results = runConfigChecks(entry, includeContent, registry);
+
+      // Should parse successfully and not return early (no configGroupMissing)
+      expect(results.some(r => r.checkId === 'configGroupMissing')).toBe(false);
+    });
+
+    it('should return empty results for unparseable content', () => {
+      const entry = createTestEntry();
+      const registry = createEmptyRegistry('secret');
+      registry.topics['-100:123'] = entry;
+
+      const results = runConfigChecks(entry, '{{invalid', registry);
+
+      expect(results).toHaveLength(0);
+    });
+  });
+
   describe('runAllChecksForTopic', () => {
     it('should run all applicable checks', () => {
       const registry = createEmptyRegistry('secret');

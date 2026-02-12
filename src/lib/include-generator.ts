@@ -23,8 +23,9 @@ export function getSystemPromptTemplate(name: string, slug: string, absoluteWork
 Determinism rules:
 - Source of truth is the project capsule at: ${absoluteWorkspacePath}/projects/${slug}/
 - After /reset, /new, or context compaction: ALWAYS re-read STATUS.md,
-  then TODO.md, then COMMANDS.md before continuing work. Do not rely on
-  summarized memory for paths, commands, or task state.
+  then TODO.md, then LEARNINGS.md (last 20 entries), then COMMANDS.md
+  before continuing work. Do not rely on summarized memory for paths,
+  commands, or task state.
 - Before context compaction or when the conversation is long: proactively
   flush current progress to STATUS.md (update "Last done (UTC)" and
   "Next 3 actions") so compaction cannot erase critical state.
@@ -34,6 +35,14 @@ Determinism rules:
 - When new links/paths/services appear, add them to LINKS.md.
 - If automation/cron is involved, record job IDs + schedules in CRON.md.
 - Task IDs (e.g., [T-1]) must stay consistent between STATUS.md and TODO.md.
+
+Learning capture:
+- When you discover something unexpected, a mistake, a workaround, or a
+  constraint — prepend a dated entry to LEARNINGS.md.
+- Format: ## YYYY-MM-DD\\n- source: (chat/debug/research)\\n- insight text
+- Most recent first (prepend after the header, before existing entries).
+- Only write when a genuinely new insight exists — avoid restating known facts.
+- If LEARNINGS.md exceeds ~200 lines, archive older entries to LEARNINGS-archive.md.
 
 Separation:
 - Do not mix in other topics' work unless explicitly requested.

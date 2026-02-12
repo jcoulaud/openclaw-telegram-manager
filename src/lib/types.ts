@@ -2,8 +2,8 @@ import { Type, type Static } from '@sinclair/typebox';
 
 // ── Constants ──────────────────────────────────────────────────────────
 
-export const CURRENT_REGISTRY_VERSION = 2;
-export const CAPSULE_VERSION = 1;
+export const CURRENT_REGISTRY_VERSION = 3;
+export const CAPSULE_VERSION = 2;
 export const MAX_EXTRAS_BYTES = 10_240;
 export const MAX_POST_ERROR_LENGTH = 500;
 export const MAX_TOPICS_DEFAULT = 100;
@@ -80,6 +80,7 @@ export const RegistrySchema = Type.Object({
   topicManagerAdmins: Type.Array(Type.String()),
   callbackSecret: Type.String(),
   lastDoctorAllRunAt: Type.Union([Type.String(), Type.Null()]),
+  autopilotEnabled: Type.Boolean(),
   maxTopics: Type.Integer({ minimum: 1 }),
   topics: Type.Record(Type.String(), TopicEntrySchema),
 });
@@ -112,6 +113,7 @@ export const BASE_FILES = [
   'LINKS.md',
   'CRON.md',
   'NOTES.md',
+  'LEARNINGS.md',
 ] as const;
 
 // ── Audit ──────────────────────────────────────────────────────────────
@@ -158,6 +160,12 @@ export interface CommandContext {
   threadId?: string;
   userId?: string;
   messageContext?: Record<string, unknown>;
+  postFn?: (
+    groupId: string,
+    threadId: string,
+    text: string,
+    keyboard?: InlineKeyboardMarkup,
+  ) => Promise<void>;
 }
 
 export interface CommandResult {

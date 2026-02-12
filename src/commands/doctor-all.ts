@@ -6,11 +6,12 @@ import {
   DOCTOR_ALL_COOLDOWN_MS,
   DOCTOR_PER_TOPIC_CAP_MS,
   INACTIVE_AFTER_DAYS,
+  MAX_POST_ERROR_LENGTH,
   SPAM_THRESHOLD,
 } from '../lib/types.js';
 import type { TopicEntry, InlineKeyboardMarkup } from '../lib/types.js';
 import { htmlEscape } from '../lib/security.js';
-import { buildDoctorReport, buildDoctorButtons } from '../lib/telegram.js';
+import { buildDoctorReport, buildDoctorButtons, createRateLimitedPoster } from '../lib/telegram.js';
 import { runAllChecksForTopic } from '../lib/doctor-checks.js';
 import { includePath } from '../lib/include-generator.js';
 import type { CommandContext, CommandResult } from './help.js';
@@ -147,6 +148,44 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
     }
   }
 
+  // Fan-out posting: post individual reports to each topic if postFn is available
+  let postErrors = 0;
+  let postSuccesses = 0;
+
+  if (ctx.postFn && reports.length > 0) {
+    const rateLimitedPost = createRateLimitedPoster(ctx.postFn);
+
+    for (const report of reports) {
+      try {
+        await rateLimitedPost(report.groupId, report.threadId, report.text, report.keyboard);
+        postSuccesses++;
+
+        // Update lastDoctorReportAt transactionally on success
+        await withRegistry(workspaceDir, (data) => {
+          const key = `${report.groupId}:${report.threadId}`;
+          const entry = data.topics[key];
+          if (entry) {
+            entry.lastDoctorReportAt = now.toISOString();
+            entry.lastPostError = null;
+          }
+        });
+      } catch (err) {
+        postErrors++;
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.error(`[doctor-all] Post failed for ${report.slug}: ${msg}`);
+
+        // Store error on topic entry
+        await withRegistry(workspaceDir, (data) => {
+          const key = `${report.groupId}:${report.threadId}`;
+          const entry = data.topics[key];
+          if (entry) {
+            entry.lastPostError = msg.slice(0, MAX_POST_ERROR_LENGTH);
+          }
+        });
+      }
+    }
+  }
+
   // Update registry: lastDoctorAllRunAt and per-topic timestamps
   await withRegistry(workspaceDir, (data) => {
     data.lastDoctorAllRunAt = now.toISOString();
@@ -173,6 +212,11 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
 
       entry.lastDoctorRunAt = now.toISOString();
 
+      // Update lastDoctorReportAt for non-fanout path (when postFn is undefined)
+      if (!ctx.postFn) {
+        entry.lastDoctorReportAt = now.toISOString();
+      }
+
       // Auto-snooze for spam control
       if (entry.consecutiveSilentDoctors >= SPAM_THRESHOLD) {
         entry.snoozeUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -190,6 +234,10 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
     `Skipped (ineligible): ${skipped}`,
     `Total: ${allEntries.length}`,
   ];
+
+  if (ctx.postFn) {
+    lines.push(`Posted: ${postSuccesses}, Post failures: ${postErrors}`);
+  }
 
   if (errors.length > 0) {
     lines.push('');
@@ -210,9 +258,6 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
     }
   }
 
-  // Per-topic reports are returned as a summary for the calling context.
-  // The tool router is responsible for posting individual reports to each topic.
-  // Here we return the summary to the current thread.
   return {
     text: lines.join('\n'),
     parseMode: 'HTML',

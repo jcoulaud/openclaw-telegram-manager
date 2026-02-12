@@ -168,10 +168,13 @@ async function runUninstall(): Promise<void> {
   startSpinner('Restarting gateway…');
   if (triggerRestart()) ok('Gateway restarted');
 
+  startSpinner('Removing workspace data…');
   const projectsDir = path.join(configDir, 'workspace', 'projects');
   if (fs.existsSync(projectsDir)) {
-    info('Workspace data kept: ' + projectsDir);
-    info('To remove: rm -rf ' + projectsDir);
+    fs.rmSync(projectsDir, { recursive: true });
+    ok('Workspace data removed');
+  } else {
+    ok('No workspace data to remove');
   }
 
   footer('Uninstall complete');

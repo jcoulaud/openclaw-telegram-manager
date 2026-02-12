@@ -44,6 +44,7 @@ describe('doctor-checks', () => {
     groupId: '-100',
     threadId: '123',
     slug: 'test-topic',
+    name: 'test-topic',
     type: 'coding',
     status: 'active',
     capsuleVersion: CAPSULE_VERSION,
@@ -61,7 +62,7 @@ describe('doctor-checks', () => {
   describe('runRegistryChecks', () => {
     it('should pass when capsule path exists', () => {
       const entry = createTestEntry();
-      scaffoldCapsule(projectsBase, entry.slug, entry.type);
+      scaffoldCapsule(projectsBase, entry.slug, entry.name, entry.type);
 
       const results = runRegistryChecks(entry, projectsBase);
 
@@ -135,7 +136,7 @@ describe('doctor-checks', () => {
   describe('runCapsuleChecks', () => {
     it('should detect missing STATUS.md', () => {
       const entry = createTestEntry();
-      scaffoldCapsule(projectsBase, entry.slug, entry.type);
+      scaffoldCapsule(projectsBase, entry.slug, entry.name, entry.type);
       fs.unlinkSync(path.join(projectsBase, entry.slug, 'STATUS.md'));
 
       const results = runCapsuleChecks(entry, projectsBase);
@@ -145,7 +146,7 @@ describe('doctor-checks', () => {
 
     it('should detect missing TODO.md', () => {
       const entry = createTestEntry();
-      scaffoldCapsule(projectsBase, entry.slug, entry.type);
+      scaffoldCapsule(projectsBase, entry.slug, entry.name, entry.type);
       fs.unlinkSync(path.join(projectsBase, entry.slug, 'TODO.md'));
 
       const results = runCapsuleChecks(entry, projectsBase);
@@ -155,7 +156,7 @@ describe('doctor-checks', () => {
 
     it('should respect ignoreChecks for TODO.md', () => {
       const entry = createTestEntry({ ignoreChecks: ['todoMissing'] });
-      scaffoldCapsule(projectsBase, entry.slug, entry.type);
+      scaffoldCapsule(projectsBase, entry.slug, entry.name, entry.type);
       fs.unlinkSync(path.join(projectsBase, entry.slug, 'TODO.md'));
 
       const results = runCapsuleChecks(entry, projectsBase);
@@ -165,7 +166,7 @@ describe('doctor-checks', () => {
 
     it('should detect missing overlay files', () => {
       const entry = createTestEntry({ type: 'coding' });
-      scaffoldCapsule(projectsBase, entry.slug, entry.type);
+      scaffoldCapsule(projectsBase, entry.slug, entry.name, entry.type);
       fs.unlinkSync(path.join(projectsBase, entry.slug, 'ARCHITECTURE.md'));
 
       const results = runCapsuleChecks(entry, projectsBase);
@@ -175,7 +176,7 @@ describe('doctor-checks', () => {
 
     it('should detect capsule version behind', () => {
       const entry = createTestEntry({ capsuleVersion: 0 });
-      scaffoldCapsule(projectsBase, entry.slug, entry.type);
+      scaffoldCapsule(projectsBase, entry.slug, entry.name, entry.type);
 
       const results = runCapsuleChecks(entry, projectsBase);
 
@@ -514,7 +515,7 @@ backup-daily-abc123 - Runs at midnight
       const entry = createTestEntry();
       registry.topics['-100:123'] = entry;
 
-      scaffoldCapsule(projectsBase, entry.slug, entry.type);
+      scaffoldCapsule(projectsBase, entry.slug, entry.name, entry.type);
 
       const results = runAllChecksForTopic(entry, projectsBase);
 

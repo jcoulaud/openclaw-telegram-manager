@@ -127,6 +127,7 @@ describe('registry', () => {
         groupId: '-100123',
         threadId: '456',
         slug: 'test-topic',
+        name: 'test-topic',
         type: 'coding',
         status: 'active',
         capsuleVersion: 1,
@@ -155,6 +156,59 @@ describe('registry', () => {
       expect(result.topics['-100123:456']).toBeDefined();
       // Invalid entry should be quarantined
       expect(result.topics['-100123:789']).toBeUndefined();
+    });
+
+    it('should migrate v1 registry entries by setting name = slug', () => {
+      const regPath = registryPath(workspaceDir);
+      // Write a v1-shaped registry (entries have no `name` field)
+      const v1Registry = {
+        version: 1,
+        topicManagerAdmins: [],
+        callbackSecret: 'secret',
+        lastDoctorAllRunAt: null,
+        maxTopics: 100,
+        topics: {
+          '-100:1': {
+            groupId: '-100',
+            threadId: '1',
+            slug: 'alpha',
+            type: 'coding',
+            status: 'active',
+            capsuleVersion: 1,
+            lastMessageAt: null,
+            lastDoctorReportAt: null,
+            lastDoctorRunAt: null,
+            snoozeUntil: null,
+            ignoreChecks: [],
+            consecutiveSilentDoctors: 0,
+            lastPostError: null,
+            extras: {},
+          },
+          '-100:2': {
+            groupId: '-100',
+            threadId: '2',
+            slug: 'beta',
+            type: 'research',
+            status: 'snoozed',
+            capsuleVersion: 1,
+            lastMessageAt: null,
+            lastDoctorReportAt: null,
+            lastDoctorRunAt: null,
+            snoozeUntil: null,
+            ignoreChecks: [],
+            consecutiveSilentDoctors: 0,
+            lastPostError: null,
+            extras: {},
+          },
+        },
+      };
+      fs.writeFileSync(regPath, JSON.stringify(v1Registry), { mode: 0o600 });
+
+      const result = readRegistry(workspaceDir);
+
+      expect(result.version).toBe(CURRENT_REGISTRY_VERSION);
+      expect(result.topics['-100:1']?.name).toBe('alpha');
+      expect(result.topics['-100:2']?.name).toBe('beta');
     });
   });
 
@@ -223,6 +277,7 @@ describe('registry', () => {
         groupId: '-100123',
         threadId: '456',
         slug: 'valid-slug',
+        name: 'valid-slug',
         type: 'research',
         status: 'snoozed',
         capsuleVersion: 1,

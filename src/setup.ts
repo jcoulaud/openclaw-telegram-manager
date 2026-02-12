@@ -370,7 +370,7 @@ function initRegistry(projectsDir: string): void {
 
   const callbackSecret = crypto.randomBytes(32).toString('hex');
   const registry = {
-    version: 1,
+    version: 2,
     topicManagerAdmins: [],
     callbackSecret,
     lastDoctorAllRunAt: null,

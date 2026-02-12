@@ -28,8 +28,17 @@ export function registryPath(workspaceDir: string): string {
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<string, MigrationFn> = {
-  // Add migrations here as needed:
-  // '1_to_2': (data) => { ... return data; },
+  '1_to_2': (data) => {
+    const topics = data['topics'];
+    if (topics && typeof topics === 'object' && !Array.isArray(topics)) {
+      for (const entry of Object.values(topics as Record<string, Record<string, unknown>>)) {
+        if (!entry['name'] && typeof entry['slug'] === 'string') {
+          entry['name'] = entry['slug'];
+        }
+      }
+    }
+    return data;
+  },
 };
 
 function migrateRegistry(data: Record<string, unknown>): Record<string, unknown> {

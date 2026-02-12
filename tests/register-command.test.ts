@@ -123,17 +123,54 @@ describe('registerCommand handler', () => {
     expect(result.text).toContain('Missing context');
   });
 
-  it('should map inlineKeyboard to channelData.telegram.buttons', async () => {
+  it('should map inlineKeyboard to channelData.telegram.buttons as raw 2D array', async () => {
+    // init with no args returns a type picker with 4 buttons in 2 rows
     const result = await registeredCommand.handler({
-      args: 'help',
-      commandBody: '/tm help',
+      args: 'init',
+      commandBody: '/tm init',
       senderId: 'user1',
       from: 'telegram:-100123',
       messageThreadId: '456',
     });
 
-    // help command has no inline keyboard, so channelData should be absent
-    expect(result.channelData).toBeUndefined();
+    // buttons should be the raw 2D array, not wrapped in { inline_keyboard: ... }
+    const buttons = result.channelData?.telegram?.buttons as Array<Array<{ text: string; callback_data: string }>>;
+    expect(buttons).toBeDefined();
+    expect(Array.isArray(buttons)).toBe(true);
+    expect(Array.isArray(buttons[0])).toBe(true);
+    expect(buttons[0][0]).toHaveProperty('text');
+    expect(buttons[0][0]).toHaveProperty('callback_data');
+    // Type picker: row 1 = Coding, Research; row 2 = Marketing, Custom
+    expect(buttons[0][0].text).toBe('Coding');
+    expect(buttons[0][1].text).toBe('Research');
+    expect(buttons[1][0].text).toBe('Marketing');
+    expect(buttons[1][1].text).toBe('Custom');
+    // Callback format: tm:action:groupId:threadId:hmac (5 parts)
+    const parts = buttons[0][0].callback_data.split(':');
+    expect(parts).toHaveLength(5);
+    expect(parts[0]).toBe('tm');
+  });
+
+  it('should forward parseMode as channelData.telegram.parse_mode', async () => {
+    const result = await registeredCommand.handler({
+      args: 'init',
+      commandBody: '/tm init',
+      senderId: 'user1',
+      from: 'telegram:-100123',
+      messageThreadId: '456',
+    });
+
+    expect(result.channelData?.telegram?.parse_mode).toBe('HTML');
+  });
+
+  it('should not include buttons when command returns no keyboard', async () => {
+    const result = await registeredCommand.handler({
+      args: 'help',
+      commandBody: '/tm help',
+    });
+
+    // help command has no inline keyboard, so no buttons in channelData
+    expect(result.channelData?.telegram?.buttons).toBeUndefined();
   });
 
   it('should convert numeric messageThreadId to string', async () => {

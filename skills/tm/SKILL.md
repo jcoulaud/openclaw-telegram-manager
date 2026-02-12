@@ -24,9 +24,9 @@ If you detect any of these conditions, invoke `topic_manager` proactively:
 
 If a message starts with `tm:`, pass the entire string as the `command`
 argument to `topic_manager`. This routes inline keyboard callbacks
-(e.g., `tm:snooze7d:my-topic:...`) to the tool for verification and handling.
+(e.g., `tm:snooze7d:-100123:456:...`) to the tool for verification and handling.
 
 ## Available sub-commands
 
-init, doctor, doctor --all, status, list, sync, rename <slug>,
+init, doctor, doctor --all, status, list, sync, rename <name>,
 upgrade, snooze <Nd>, archive, unarchive, help

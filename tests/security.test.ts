@@ -3,8 +3,6 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import {
-  validateSlug,
-  sanitizeSlug,
   jailCheck,
   rejectSymlink,
   hmacSign,
@@ -25,72 +23,6 @@ describe('security', () => {
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
-  });
-
-  describe('validateSlug', () => {
-    it('should accept valid slugs', () => {
-      expect(validateSlug('valid-slug')).toBe(true);
-      expect(validateSlug('a')).toBe(true);
-      expect(validateSlug('test123')).toBe(true);
-      expect(validateSlug('my-project-name')).toBe(true);
-      expect(validateSlug('t-123')).toBe(true);
-    });
-
-    it('should reject invalid slugs', () => {
-      expect(validateSlug('UPPERCASE')).toBe(false);
-      expect(validateSlug('has spaces')).toBe(false);
-      expect(validateSlug('has_underscores')).toBe(false);
-      expect(validateSlug('123-starts-with-number')).toBe(false);
-      expect(validateSlug('-starts-with-hyphen')).toBe(false);
-      expect(validateSlug('has.dots')).toBe(false);
-      expect(validateSlug('')).toBe(false);
-      expect(validateSlug('a'.repeat(51))).toBe(false); // Too long
-    });
-
-    it('should enforce max length of 50 chars', () => {
-      expect(validateSlug('a'.repeat(50))).toBe(true);
-      expect(validateSlug('a'.repeat(51))).toBe(false);
-    });
-  });
-
-  describe('sanitizeSlug', () => {
-    it('should convert to lowercase', () => {
-      expect(sanitizeSlug('UPPERCASE')).toBe('uppercase');
-      expect(sanitizeSlug('MixedCase')).toBe('mixedcase');
-    });
-
-    it('should replace spaces with hyphens', () => {
-      expect(sanitizeSlug('my project name')).toBe('my-project-name');
-    });
-
-    it('should strip dots', () => {
-      expect(sanitizeSlug('test.file.name')).toBe('testfilename');
-    });
-
-    it('should replace special chars with hyphens', () => {
-      expect(sanitizeSlug('test@project#name')).toBe('test-project-name');
-      expect(sanitizeSlug('my_project_name')).toBe('my-project-name');
-    });
-
-    it('should collapse consecutive hyphens', () => {
-      expect(sanitizeSlug('test---name')).toBe('test-name');
-      expect(sanitizeSlug('a--b--c')).toBe('a-b-c');
-    });
-
-    it('should trim leading and trailing hyphens', () => {
-      expect(sanitizeSlug('-test-')).toBe('test');
-      expect(sanitizeSlug('---test---')).toBe('test');
-    });
-
-    it('should enforce max length', () => {
-      const long = 'a'.repeat(100);
-      expect(sanitizeSlug(long)).toHaveLength(50);
-    });
-
-    it('should handle complex inputs', () => {
-      // Dots are stripped, so 2.0 becomes 20
-      expect(sanitizeSlug('My Project (v2.0) - Final!')).toBe('my-project-v20-final');
-    });
   });
 
   describe('jailCheck', () => {
@@ -252,23 +184,21 @@ describe('security', () => {
   describe('callback data handling', () => {
     const secret = 'test-callback-secret';
     const action = 'snooze';
-    const slug = 'test-topic';
     const groupId = '-100123';
     const threadId = '456';
 
     it('should build valid callback data', () => {
-      const data = buildCallbackData(action, slug, groupId, threadId, secret);
+      const data = buildCallbackData(action, groupId, threadId, secret);
 
-      expect(data).toMatch(/^tm:snooze:test-topic:-100123:456:[a-f0-9]+$/);
+      expect(data).toMatch(/^tm:snooze:-100123:456:[a-f0-9]+$/);
     });
 
     it('should parse and verify valid callback data', () => {
-      const data = buildCallbackData(action, slug, groupId, threadId, secret);
+      const data = buildCallbackData(action, groupId, threadId, secret);
       const result = parseAndVerifyCallback(data, secret, groupId, threadId);
 
       expect(result).not.toBeNull();
       expect(result?.action).toBe(action);
-      expect(result?.slug).toBe(slug);
       expect(result?.groupId).toBe(groupId);
       expect(result?.threadId).toBe(threadId);
     });
@@ -279,21 +209,21 @@ describe('security', () => {
     });
 
     it('should reject callback with wrong HMAC', () => {
-      const data = 'tm:snooze:test-topic:-100123:456:wronghmac123';
+      const data = 'tm:snooze:-100123:456:wronghmac12345';
       const result = parseAndVerifyCallback(data, secret, groupId, threadId);
 
       expect(result).toBeNull();
     });
 
     it('should reject callback with wrong secret', () => {
-      const data = buildCallbackData(action, slug, groupId, threadId, secret);
+      const data = buildCallbackData(action, groupId, threadId, secret);
       const result = parseAndVerifyCallback(data, 'wrong-secret', groupId, threadId);
 
       expect(result).toBeNull();
     });
 
     it('should reject callback with mismatched context', () => {
-      const data = buildCallbackData(action, slug, groupId, threadId, secret);
+      const data = buildCallbackData(action, groupId, threadId, secret);
 
       // Wrong groupId
       expect(parseAndVerifyCallback(data, secret, '-999', threadId)).toBeNull();
@@ -303,7 +233,7 @@ describe('security', () => {
     });
 
     it('should prevent cross-topic tampering', () => {
-      const data = buildCallbackData(action, slug, groupId, threadId, secret);
+      const data = buildCallbackData(action, groupId, threadId, secret);
 
       // Try to use callback from different topic
       const result = parseAndVerifyCallback(data, secret, '-100999', '789');

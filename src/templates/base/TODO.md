@@ -1,4 +1,4 @@
-# TODO: {{slug}}
+# TODO: {{name}}
 
 ## Backlog
 

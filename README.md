@@ -33,11 +33,11 @@ Once that's done, head to your Telegram group:
 
 1. Open any topic
 2. Type `/tm init` in the chat
-3. Confirm the suggested slug, then pick a topic type
+3. Pick a topic type (Coding, Research, Marketing, or Custom)
 4. The plugin creates a capsule (a folder of markdown files — see below) and confirms in chat
 5. From now on, the agent reads the capsule on every session start — no context lost
 
-You can also skip the interactive flow: `/tm init my-project coding`
+You can also skip the interactive flow: `/tm init my-project coding` (the first argument is the display name, second is the type)
 
 ## Commands
 
@@ -45,14 +45,14 @@ All commands are typed directly in the Telegram group chat:
 
 | Command | What it does |
 |---------|-------------|
-| `/tm init` | Interactive setup — confirm slug, pick type |
-| `/tm init <slug> [type]` | One-step setup. Types: `coding`, `research`, `marketing`, `custom` |
+| `/tm init` | Interactive setup — pick a topic type |
+| `/tm init [name] [type]` | One-step setup. Types: `coding`, `research`, `marketing`, `custom` |
 | `/tm status` | Show the current STATUS.md |
 | `/tm list` | List all topics, grouped by status |
 | `/tm doctor` | Run health checks on the current topic |
 | `/tm doctor --all` | Health check all active topics at once |
 | `/tm sync` | Regenerate the include file from the registry |
-| `/tm rename <new-slug>` | Rename a topic |
+| `/tm rename <new-name>` | Rename a topic's display name |
 | `/tm upgrade` | Upgrade the capsule to the latest template version |
 | `/tm snooze <duration>` | Snooze a topic (e.g. `7d`, `30d`) |
 | `/tm archive` | Archive a topic |
@@ -61,7 +61,7 @@ All commands are typed directly in the Telegram group chat:
 
 ## What's in a capsule
 
-Each topic gets a folder at `~/.openclaw/workspace/projects/<slug>/` with these files:
+Each topic gets a folder at `~/.openclaw/workspace/projects/t-<threadId>/` with these files:
 
 **Always included:**
 - `STATUS.md` — what's happening, last activity, next 3 actions

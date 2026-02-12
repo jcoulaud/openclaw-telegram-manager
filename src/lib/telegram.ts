@@ -35,12 +35,11 @@ export function buildInlineKeyboard(rows: InlineKeyboardButton[][]): InlineKeybo
  * Build inline keyboard buttons for a doctor report.
  */
 export function buildDoctorButtons(
-  slug: string,
   groupId: string,
   threadId: string,
   secret: string,
 ): InlineKeyboardMarkup {
-  const cb = (action: string) => buildCallbackData(action, slug, groupId, threadId, secret);
+  const cb = (action: string) => buildCallbackData(action, groupId, threadId, secret);
   return buildInlineKeyboard([
     [
       { text: 'Fix', callback_data: cb('fix') },
@@ -55,30 +54,14 @@ export function buildDoctorButtons(
 }
 
 /**
- * Build inline keyboard with a [Confirm] button for slug confirmation (init step 1).
- */
-export function buildInitSlugButtons(
-  slug: string,
-  groupId: string,
-  threadId: string,
-  secret: string,
-): InlineKeyboardMarkup {
-  const cb = (action: string) => buildCallbackData(action, slug, groupId, threadId, secret);
-  return buildInlineKeyboard([
-    [{ text: 'Confirm', callback_data: cb('is') }],
-  ]);
-}
-
-/**
- * Build inline keyboard with type picker buttons for init step 2.
+ * Build inline keyboard with type picker buttons for init.
  */
 export function buildInitTypeButtons(
-  slug: string,
   groupId: string,
   threadId: string,
   secret: string,
 ): InlineKeyboardMarkup {
-  const cb = (action: string) => buildCallbackData(action, slug, groupId, threadId, secret);
+  const cb = (action: string) => buildCallbackData(action, groupId, threadId, secret);
   return buildInlineKeyboard([
     [
       { text: 'Coding', callback_data: cb('ic') },
@@ -94,12 +77,13 @@ export function buildInitTypeButtons(
 /**
  * Build HTML Topic Card displayed after init.
  */
-export function buildTopicCard(slug: string, type: TopicType, capsuleVersion: number): string {
+export function buildTopicCard(name: string, slug: string, type: TopicType, capsuleVersion: number): string {
+  const n = htmlEscape(name);
   const s = htmlEscape(slug);
   const t = htmlEscape(type);
   const v = htmlEscape(String(capsuleVersion));
   return [
-    `<b>Topic: ${s}</b>`,
+    `<b>Topic: ${n}</b>`,
     `Type: ${t} | Version: ${v}`,
     `Capsule: projects/${s}/`,
     '',
@@ -116,9 +100,9 @@ export function buildTopicCard(slug: string, type: TopicType, capsuleVersion: nu
 /**
  * Build HTML doctor report with severity icons.
  */
-export function buildDoctorReport(slug: string, results: DoctorCheckResult[]): string {
-  const s = htmlEscape(slug);
-  const lines: string[] = [`<b>Doctor: ${s}</b>`, ''];
+export function buildDoctorReport(name: string, results: DoctorCheckResult[]): string {
+  const n = htmlEscape(name);
+  const lines: string[] = [`<b>Doctor: ${n}</b>`, ''];
 
   if (results.length === 0) {
     lines.push('All checks passed.');
@@ -164,7 +148,7 @@ export function buildHelpCard(): string {
     '/tm status \u2014 quick STATUS.md view',
     '/tm list \u2014 show all topics',
     '/tm sync \u2014 re-apply config',
-    '/tm rename &lt;slug&gt; \u2014 rename topic',
+    '/tm rename &lt;name&gt; \u2014 rename topic',
     '/tm upgrade \u2014 update capsule template',
     '/tm snooze &lt;Nd&gt; \u2014 snooze doctor (7d, 30d, etc.)',
     '/tm archive \u2014 archive topic',
@@ -192,7 +176,7 @@ export function buildListMessage(topics: TopicEntry[]): string {
 
   for (const t of sorted) {
     const entry = [
-      `<code>${htmlEscape(t.slug)}</code> [${htmlEscape(t.type)}] ${htmlEscape(t.status)}`,
+      `<b>${htmlEscape(t.name)}</b> [${htmlEscape(t.type)}] ${htmlEscape(t.status)}`,
       `  Last active: ${t.lastMessageAt ? relativeTime(t.lastMessageAt) : 'never'}`,
       `  Thread: #${htmlEscape(t.threadId)}`,
     ].join('\n');

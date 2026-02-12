@@ -2,11 +2,12 @@ import { Type, type Static } from '@sinclair/typebox';
 
 // ── Constants ──────────────────────────────────────────────────────────
 
-export const CURRENT_REGISTRY_VERSION = 1;
+export const CURRENT_REGISTRY_VERSION = 2;
 export const CAPSULE_VERSION = 1;
 export const MAX_EXTRAS_BYTES = 10_240;
 export const MAX_POST_ERROR_LENGTH = 500;
 export const MAX_TOPICS_DEFAULT = 100;
+export const MAX_NAME_LENGTH = 100;
 export const DOCTOR_ALL_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 export const DOCTOR_PER_TOPIC_CAP_MS = 24 * 60 * 60 * 1000; // 24 hours
 export const INACTIVE_AFTER_DAYS = 7;
@@ -58,6 +59,7 @@ export const TopicEntrySchema = Type.Object({
   groupId: Type.String({ pattern: '^-?\\d+$' }),
   threadId: Type.String({ pattern: '^\\d+$' }),
   slug: Type.String({ pattern: '^[a-z][a-z0-9-]{0,49}$' }),
+  name: Type.String({ minLength: 1, maxLength: MAX_NAME_LENGTH }),
   type: TopicTypeSchema,
   status: TopicStatusSchema,
   capsuleVersion: Type.Integer({ minimum: 1 }),
@@ -169,4 +171,21 @@ export interface CommandResult {
 
 export function topicKey(groupId: string, threadId: string): string {
   return `${groupId}:${threadId}`;
+}
+
+// ── Slug generation ─────────────────────────────────────────────────
+
+/**
+ * Generate a stable, immutable slug for a topic.
+ * Returns `t-{threadId}` if unique, otherwise `t-{threadId}-{last4OfGroupId}`.
+ */
+export function generateSlug(
+  threadId: string,
+  groupId: string,
+  existingSlugs: Set<string>,
+): string {
+  const base = `t-${threadId}`;
+  if (!existingSlugs.has(base)) return base;
+  const suffix = groupId.replace(/^-/, '').slice(-4);
+  return `t-${threadId}-${suffix}`;
 }

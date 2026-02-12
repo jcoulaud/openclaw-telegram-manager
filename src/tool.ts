@@ -2,7 +2,7 @@ import { readRegistry, withRegistry } from './lib/registry.js';
 import { parseAndVerifyCallback, htmlEscape } from './lib/security.js';
 import { topicKey } from './lib/types.js';
 import { appendAudit, buildAuditEntry } from './lib/audit.js';
-import { handleInitInteractive, handleInitSlugConfirm, handleInitTypeSelect } from './commands/init.js';
+import { handleInitInteractive, handleInitTypeSelect } from './commands/init.js';
 import { handleDoctor } from './commands/doctor.js';
 import { handleDoctorAll } from './commands/doctor-all.js';
 import { handleList } from './commands/list.js';
@@ -215,7 +215,7 @@ async function handleCallback(data: string, ctx: CommandContext): Promise<Comman
     return { text: 'Invalid or expired callback.' };
   }
 
-  const { action, slug } = parsed;
+  const { action } = parsed;
 
   // Init callbacks: topic doesn't exist in registry yet
   const initTypeMap: Record<string, 'coding' | 'research' | 'marketing' | 'custom'> = {
@@ -225,19 +225,16 @@ async function handleCallback(data: string, ctx: CommandContext): Promise<Comman
     ix: 'custom',
   };
 
-  if (action === 'is') {
-    return handleInitSlugConfirm(ctx, slug);
-  }
   if (action in initTypeMap) {
-    return handleInitTypeSelect(ctx, slug, initTypeMap[action]!);
+    return handleInitTypeSelect(ctx, initTypeMap[action]!);
   }
 
-  // Find the topic entry by slug
+  // Find the topic entry
   const key = topicKey(groupId, threadId);
   const entry = registry.topics[key];
 
-  if (!entry || entry.slug !== slug) {
-    return { text: 'Topic not found or slug mismatch.' };
+  if (!entry) {
+    return { text: 'Topic not found.' };
   }
 
   switch (action) {

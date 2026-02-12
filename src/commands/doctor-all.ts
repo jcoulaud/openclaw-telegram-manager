@@ -98,9 +98,8 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
         logger.info(`[doctor-all] Auto-snoozing ${entry.slug} (${entry.consecutiveSilentDoctors} silent runs)`);
       }
 
-      const reportText = buildDoctorReport(entry.slug, results);
+      const reportText = buildDoctorReport(entry.name, results);
       const keyboard = buildDoctorButtons(
-        entry.slug,
         entry.groupId,
         entry.threadId,
         registry.callbackSecret,

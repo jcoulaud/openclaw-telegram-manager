@@ -30,17 +30,17 @@ export async function handleUpgrade(ctx: CommandContext): Promise<CommandResult>
 
   if (entry.capsuleVersion >= CAPSULE_VERSION) {
     return {
-      text: `Topic <code>${htmlEscape(entry.slug)}</code> is already at capsule version ${CAPSULE_VERSION}. No upgrade needed.`,
+      text: `Topic <b>${htmlEscape(entry.name)}</b> is already at capsule version ${CAPSULE_VERSION}. No upgrade needed.`,
       parseMode: 'HTML',
     };
   }
 
   const projectsBase = path.join(workspaceDir, 'projects');
-  const result = upgradeCapsule(projectsBase, entry.slug, entry.type, entry.capsuleVersion);
+  const result = upgradeCapsule(projectsBase, entry.slug, entry.name, entry.type, entry.capsuleVersion);
 
   if (!result.upgraded) {
     return {
-      text: `No upgrade needed for <code>${htmlEscape(entry.slug)}</code>.`,
+      text: `No upgrade needed for <b>${htmlEscape(entry.name)}</b>.`,
       parseMode: 'HTML',
     };
   }
@@ -58,7 +58,7 @@ export async function handleUpgrade(ctx: CommandContext): Promise<CommandResult>
     : '\nNo new files added.';
 
   return {
-    text: `Topic <code>${htmlEscape(entry.slug)}</code> upgraded from v${entry.capsuleVersion} to v${result.newVersion}.${addedList}`,
+    text: `Topic <b>${htmlEscape(entry.name)}</b> upgraded from v${entry.capsuleVersion} to v${result.newVersion}.${addedList}`,
     parseMode: 'HTML',
   };
 }

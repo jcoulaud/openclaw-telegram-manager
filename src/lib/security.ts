@@ -2,30 +2,6 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-// ── Slug validation ────────────────────────────────────────────────────
-
-const SLUG_RE = /^[a-z][a-z0-9-]{0,49}$/;
-
-/** Validate a slug against the allowed pattern. */
-export function validateSlug(slug: string): boolean {
-  return SLUG_RE.test(slug);
-}
-
-/**
- * Sanitize a title into a valid slug.
- * Strip non-alphanumeric (except hyphens), strip dots, collapse
- * consecutive hyphens, trim leading/trailing hyphens, lowercase.
- */
-export function sanitizeSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/\./g, '')                // strip dots explicitly
-    .replace(/[^a-z0-9-]/g, '-')      // non-alphanum to hyphen
-    .replace(/-{2,}/g, '-')           // collapse consecutive hyphens
-    .replace(/^-+|-+$/g, '')          // trim leading/trailing hyphens
-    .slice(0, 50);                    // enforce max length
-}
-
 // ── Path safety ────────────────────────────────────────────────────────
 
 /**
@@ -113,27 +89,25 @@ export function validateThreadId(id: string): boolean {
 
 // ── Callback data handling ─────────────────────────────────────────────
 
-const CALLBACK_RE = /^tm:[a-z0-9]+:[a-z0-9-]+:-?\d+:\d+:[a-f0-9]+$/;
+const CALLBACK_RE = /^tm:[a-z0-9]+:-?\d+:\d+:[a-f0-9]+$/;
 
 export interface CallbackData {
   action: string;
-  slug: string;
   groupId: string;
   threadId: string;
 }
 
 /**
  * Build callback data string with HMAC signature.
- * Format: tm:<action>:<slug>:<groupId>:<threadId>:<hmac>
+ * Format: tm:<action>:<groupId>:<threadId>:<hmac>
  */
 export function buildCallbackData(
   action: string,
-  slug: string,
   groupId: string,
   threadId: string,
   secret: string,
 ): string {
-  const payload = `tm:${action}:${slug}:${groupId}:${threadId}`;
+  const payload = `tm:${action}:${groupId}:${threadId}`;
   const sig = hmacSign(secret, payload);
   return `${payload}:${sig}`;
 }
@@ -156,19 +130,19 @@ export function parseAndVerifyCallback(
   if (!CALLBACK_RE.test(data)) return null;
 
   const parts = data.split(':');
-  // tm : action : slug : groupId : threadId : hmac
-  if (parts.length !== 6) return null;
+  // tm : action : groupId : threadId : hmac
+  if (parts.length !== 5) return null;
 
-  const [, action, slug, groupId, threadId, signature] = parts as [
-    string, string, string, string, string, string,
+  const [, action, groupId, threadId, signature] = parts as [
+    string, string, string, string, string,
   ];
 
   // Verify context match (prevent cross-topic tampering)
   if (groupId !== contextGroupId || threadId !== contextThreadId) return null;
 
   // Verify HMAC
-  const payload = `tm:${action}:${slug}:${groupId}:${threadId}`;
+  const payload = `tm:${action}:${groupId}:${threadId}`;
   if (!hmacVerify(secret, payload, signature)) return null;
 
-  return { action, slug, groupId, threadId };
+  return { action, groupId, threadId };
 }

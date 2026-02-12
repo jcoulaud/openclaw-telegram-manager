@@ -37,6 +37,7 @@ describe('include-generator', () => {
         '-100:123': {
           groupId: '-100',
           threadId: '123',
+          name: 'test',
           slug: 'test',
           type: 'coding',
           status: 'active',
@@ -64,6 +65,7 @@ describe('include-generator', () => {
         '-100:123': {
           groupId: '-100',
           threadId: '123',
+          name: 'test',
           slug: 'test',
           type: 'coding',
           status: 'active',
@@ -83,6 +85,7 @@ describe('include-generator', () => {
         '-100:456': {
           ...topics1['-100:123']!,
           threadId: '456',
+          name: 'different',
           slug: 'different',
         },
       };
@@ -100,18 +103,18 @@ describe('include-generator', () => {
   });
 
   describe('getSystemPromptTemplate', () => {
-    it('should include slug in prompt', () => {
-      const prompt = getSystemPromptTemplate('my-topic', '/workspace');
+    it('should include name in prompt', () => {
+      const prompt = getSystemPromptTemplate('my-topic', 'my-topic', '/workspace');
       expect(prompt).toContain('my-topic');
     });
 
     it('should include absolute workspace path', () => {
-      const prompt = getSystemPromptTemplate('test', '/absolute/path');
+      const prompt = getSystemPromptTemplate('test', 'test', '/absolute/path');
       expect(prompt).toContain('/absolute/path/projects/test');
     });
 
     it('should include determinism rules', () => {
-      const prompt = getSystemPromptTemplate('test', '/workspace');
+      const prompt = getSystemPromptTemplate('test', 'test', '/workspace');
       expect(prompt).toContain('STATUS.md');
       expect(prompt).toContain('TODO.md');
       expect(prompt).toContain('COMMANDS.md');
@@ -125,6 +128,7 @@ describe('include-generator', () => {
       const entry: TopicEntry = {
         groupId: '-100',
         threadId: '123',
+        name: 'test-topic',
         slug: 'test-topic',
         type: 'coding',
         status: 'active',
@@ -153,6 +157,7 @@ describe('include-generator', () => {
       const entry: TopicEntry = {
         groupId: '-100',
         threadId: '123',
+        name: 'archived',
         slug: 'archived',
         type: 'coding',
         status: 'archived',
@@ -179,6 +184,7 @@ describe('include-generator', () => {
       const entry: TopicEntry = {
         groupId: '-100',
         threadId: '123',
+        name: 'active',
         slug: 'active',
         type: 'coding',
         status: 'active',
@@ -206,6 +212,7 @@ describe('include-generator', () => {
       const coding: TopicEntry = {
         groupId: '-100',
         threadId: '1',
+        name: 'coding',
         slug: 'coding',
         type: 'coding',
         status: 'active',
@@ -223,6 +230,7 @@ describe('include-generator', () => {
       const research: TopicEntry = {
         ...coding,
         threadId: '2',
+        name: 'research',
         slug: 'research',
         type: 'research',
       };
@@ -230,6 +238,7 @@ describe('include-generator', () => {
       const marketing: TopicEntry = {
         ...coding,
         threadId: '3',
+        name: 'marketing',
         slug: 'marketing',
         type: 'marketing',
       };
@@ -253,6 +262,7 @@ describe('include-generator', () => {
       const entry: TopicEntry = {
         groupId: '-100',
         threadId: '123',
+        name: 'test-topic',
         slug: 'test-topic',
         type: 'coding',
         status: 'active',
@@ -317,6 +327,7 @@ describe('include-generator', () => {
       const entry: TopicEntry = {
         groupId: '-100',
         threadId: '1',
+        name: 'test',
         slug: 'test',
         type: 'coding',
         status: 'active',
@@ -345,6 +356,7 @@ describe('include-generator', () => {
       const entry: TopicEntry = {
         groupId: '-100',
         threadId: '1',
+        name: 'test',
         slug: 'test',
         type: 'coding',
         status: 'active',
@@ -372,6 +384,7 @@ describe('include-generator', () => {
       const entry1: TopicEntry = {
         groupId: '-100',
         threadId: '1',
+        name: 'topic1',
         slug: 'topic1',
         type: 'coding',
         status: 'active',
@@ -390,6 +403,7 @@ describe('include-generator', () => {
         ...entry1,
         groupId: '-200',
         threadId: '2',
+        name: 'topic2',
         slug: 'topic2',
       };
 
@@ -409,6 +423,7 @@ describe('include-generator', () => {
       const entry: TopicEntry = {
         groupId: '-100',
         threadId: '123',
+        name: 'test',
         slug: 'test',
         type: 'coding',
         status: 'active',
@@ -480,6 +495,7 @@ describe('include-generator', () => {
       const entry: TopicEntry = {
         groupId: '-100',
         threadId: '123',
+        name: 'test',
         slug: 'test',
         type: 'research',
         status: 'snoozed',
@@ -559,6 +575,7 @@ describe('include-generator', () => {
       const entry: TopicEntry = {
         groupId: '-100',
         threadId: '123',
+        name: 'integrated',
         slug: 'integrated',
         type: 'coding',
         status: 'active',

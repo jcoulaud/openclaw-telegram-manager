@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { handleInit, handleInitInteractive, handleInitSlugConfirm, handleInitTypeSelect } from '../../src/commands/init.js';
+import { handleInit, handleInitInteractive, handleInitTypeSelect } from '../../src/commands/init.js';
 import { createEmptyRegistry, writeRegistryAtomic, registryPath, readRegistry } from '../../src/lib/registry.js';
 import { validateCapsule } from '../../src/lib/capsule.js';
 import { generateInclude, includePath, extractRegistryHash, computeRegistryHash } from '../../src/lib/include-generator.js';
@@ -57,23 +57,24 @@ describe('init flow integration', () => {
       const registry = readRegistry(workspaceDir);
       const entry = registry.topics['-100123:456'];
       expect(entry).toBeDefined();
-      expect(entry?.slug).toBe('test-project');
+      expect(entry?.slug).toBe('t-456');
+      expect(entry?.name).toBe('Test Project');
       expect(entry?.type).toBe('coding');
       expect(entry?.status).toBe('active');
 
       // Step 3: Verify capsule created
-      const capsuleDir = path.join(projectsDir, 'test-project');
+      const capsuleDir = path.join(projectsDir, 't-456');
       expect(fs.existsSync(capsuleDir)).toBe(true);
 
       // Step 4: Verify capsule structure
-      const validation = validateCapsule(projectsDir, 'test-project', 'coding');
+      const validation = validateCapsule(projectsDir, 't-456', 'coding');
       expect(validation.missing).toEqual([]);
       expect(validation.present.length).toBeGreaterThan(0);
 
       // Step 5: Verify files have content
       const statusPath = path.join(capsuleDir, 'STATUS.md');
       const statusContent = fs.readFileSync(statusPath, 'utf-8');
-      expect(statusContent).toContain('test-project');
+      expect(statusContent).toContain('Test Project');
       expect(statusContent).toContain('Last done (UTC)');
       expect(statusContent).toContain('Next 3 actions');
 
@@ -124,10 +125,14 @@ describe('init flow integration', () => {
       const registry = readRegistry(workspaceDir);
       expect(registry.topics['-100123:1']).toBeDefined();
       expect(registry.topics['-100123:2']).toBeDefined();
+      expect(registry.topics['-100123:1']?.slug).toBe('t-1');
+      expect(registry.topics['-100123:1']?.name).toBe('topic-one');
+      expect(registry.topics['-100123:2']?.slug).toBe('t-2');
+      expect(registry.topics['-100123:2']?.name).toBe('topic-two');
 
       // Verify both capsules exist
-      expect(fs.existsSync(path.join(projectsDir, 'topic-one'))).toBe(true);
-      expect(fs.existsSync(path.join(projectsDir, 'topic-two'))).toBe(true);
+      expect(fs.existsSync(path.join(projectsDir, 't-1'))).toBe(true);
+      expect(fs.existsSync(path.join(projectsDir, 't-2'))).toBe(true);
 
       // Generate include and verify grouping
       generateInclude(workspaceDir, registry, configDir);
@@ -163,8 +168,12 @@ describe('init flow integration', () => {
 
       await handleInit(ctx2, 'group2-topic');
 
-      // Generate include and verify separate groups
+      // Verify slugs are auto-generated
       const registry = readRegistry(workspaceDir);
+      expect(registry.topics['-100111:1']?.slug).toBe('t-1');
+      expect(registry.topics['-100222:2']?.slug).toBe('t-2');
+
+      // Generate include and verify separate groups
       generateInclude(workspaceDir, registry, configDir);
       const includeContent = fs.readFileSync(includePath(configDir), 'utf-8');
       const parsed = JSON5.parse(includeContent);
@@ -238,7 +247,7 @@ describe('init flow integration', () => {
           configDir,
           userId: 'user123',
           groupId: '-100123',
-          threadId: String(threadNum++),
+          threadId: String(threadNum),
           rpc: null,
           logger: console,
           messageContext: {},
@@ -246,10 +255,12 @@ describe('init flow integration', () => {
 
         await handleInit(ctx, `${type}-topic ${type}`);
 
-        const capsuleDir = path.join(projectsDir, `${type}-topic`);
+        const capsuleDir = path.join(projectsDir, `t-${threadNum}`);
         for (const overlay of overlays) {
           expect(fs.existsSync(path.join(capsuleDir, overlay))).toBe(true);
         }
+
+        threadNum++;
       }
     });
 
@@ -273,6 +284,11 @@ describe('init flow integration', () => {
       // Verify registry integrity
       const registry = readRegistry(workspaceDir);
       expect(Object.keys(registry.topics)).toHaveLength(3);
+
+      // Verify slugs are auto-generated
+      for (let i = 1; i <= 3; i++) {
+        expect(registry.topics[`-100123:${i}`]?.slug).toBe(`t-${i}`);
+      }
 
       // Generate include
       generateInclude(workspaceDir, registry, configDir);
@@ -303,6 +319,8 @@ describe('init flow integration', () => {
       const entry = registry.topics['-100123:1'];
 
       expect(entry).toBeDefined();
+      expect(entry?.slug).toBe('t-1');
+      expect(entry?.name).toBe('doctor-test');
 
       // Run all doctor checks
       const checks = runAllChecksForTopic(entry!, projectsDir);
@@ -316,7 +334,7 @@ describe('init flow integration', () => {
       expect(criticalErrors).toHaveLength(0);
     });
 
-    it('should handle slug collision gracefully', async () => {
+    it('should generate unique slugs for different threadIds', async () => {
       // First topic
       const ctx1: CommandContext = {
         workspaceDir,
@@ -329,26 +347,30 @@ describe('init flow integration', () => {
         messageContext: {},
       };
 
-      await handleInit(ctx1, 'popular-name');
+      await handleInit(ctx1, 'same-name');
 
-      // Second topic with same slug
+      // Second topic with different threadId
       const ctx2: CommandContext = {
         ...ctx1,
         groupId: '-100456',
         threadId: '2',
       };
 
-      const result = await handleInit(ctx2, 'popular-name');
-
-      expect(result.text).toContain('taken');
+      await handleInit(ctx2, 'same-name');
 
       const registry = readRegistry(workspaceDir);
-      const entry = registry.topics['-100456:2'];
+      const entry1 = registry.topics['-100123:1'];
+      const entry2 = registry.topics['-100456:2'];
 
-      // Should have created with different slug
-      expect(entry).toBeDefined();
-      expect(entry?.slug).not.toBe('popular-name');
-      expect(fs.existsSync(path.join(projectsDir, entry!.slug))).toBe(true);
+      expect(entry1).toBeDefined();
+      expect(entry2).toBeDefined();
+      expect(entry1?.slug).toBe('t-1');
+      expect(entry2?.slug).toBe('t-2');
+      expect(entry1?.slug).not.toBe(entry2?.slug);
+
+      // Both capsule dirs should exist
+      expect(fs.existsSync(path.join(projectsDir, 't-1'))).toBe(true);
+      expect(fs.existsSync(path.join(projectsDir, 't-2'))).toBe(true);
     });
 
     it('should maintain atomic operations even with failures', async () => {
@@ -363,8 +385,8 @@ describe('init flow integration', () => {
         messageContext: {},
       };
 
-      // Create a directory that will cause collision
-      const collisionDir = path.join(projectsDir, 'collision-test');
+      // Create a directory at the auto-generated slug path to cause collision
+      const collisionDir = path.join(projectsDir, 't-1');
       fs.mkdirSync(collisionDir);
 
       const result = await handleInit(ctx, 'collision-test');
@@ -398,13 +420,21 @@ describe('init flow integration', () => {
       let registry = readRegistry(workspaceDir);
       expect(registry.topicManagerAdmins).toContain('admin');
 
+      // Verify auto-generated slug
+      expect(registry.topics['-100123:1']?.slug).toBe('t-1');
+      expect(registry.topics['-100123:1']?.name).toBe('Backend Development');
+
       // 3. Admin creates another topic
       adminCtx.threadId = '2';
       adminCtx.messageContext = { topicTitle: 'Frontend Development' };
       await handleInit(adminCtx, '');
 
-      // 4. Generate include for topics
+      // Verify second topic
       registry = readRegistry(workspaceDir);
+      expect(registry.topics['-100123:2']?.slug).toBe('t-2');
+      expect(registry.topics['-100123:2']?.name).toBe('Frontend Development');
+
+      // 4. Generate include for topics
       generateInclude(workspaceDir, registry, configDir);
 
       // 5. Verify include is valid
@@ -425,7 +455,7 @@ describe('init flow integration', () => {
   });
 
   describe('interactive init flow', () => {
-    it('should complete full interactive init: slug confirm → type pick → registered', async () => {
+    it('should complete full interactive init: type pick → registered', async () => {
       const ctx: CommandContext = {
         workspaceDir,
         configDir,
@@ -437,44 +467,38 @@ describe('init flow integration', () => {
         messageContext: { topicTitle: 'Interactive Project' },
       };
 
-      // Step 1: call handleInitInteractive with no args → slug confirmation
+      // Step 1: call handleInitInteractive with no args → type picker
       const step1 = await handleInitInteractive(ctx, '');
-      expect(step1.text).toContain('interactive-project');
-      expect(step1.text).toContain('Initialize this topic');
+      expect(step1.text).toContain('Pick a topic type');
+      expect(step1.parseMode).toBe('HTML');
       expect(step1.inlineKeyboard).toBeDefined();
-      expect(step1.inlineKeyboard!.inline_keyboard[0][0].text).toBe('Confirm');
 
-      // Step 2: call handleInitSlugConfirm → type picker
-      const step2 = await handleInitSlugConfirm(ctx, 'interactive-project');
-      expect(step2.text).toContain('interactive-project');
-      expect(step2.text).toContain('Pick a topic type');
-      expect(step2.inlineKeyboard).toBeDefined();
-
-      const rows = step2.inlineKeyboard!.inline_keyboard;
+      const rows = step1.inlineKeyboard!.inline_keyboard;
+      expect(rows).toHaveLength(2);
       expect(rows[0][0].text).toBe('Coding');
       expect(rows[0][1].text).toBe('Research');
       expect(rows[1][0].text).toBe('Marketing');
       expect(rows[1][1].text).toBe('Custom');
 
-      // Step 3: call handleInitTypeSelect → topic registered
-      const step3 = await handleInitTypeSelect(ctx, 'interactive-project', 'research');
-      expect(step3.text).toContain('interactive-project');
-      expect(step3.text).toContain('research');
-      expect(step3.pin).toBe(true);
+      // Step 2: call handleInitTypeSelect → topic registered
+      const step2 = await handleInitTypeSelect(ctx, 'research');
+      expect(step2.text).toContain('Interactive Project');
+      expect(step2.pin).toBe(true);
 
       // Verify registry
       const registry = readRegistry(workspaceDir);
       const entry = registry.topics['-100123:456'];
       expect(entry).toBeDefined();
-      expect(entry?.slug).toBe('interactive-project');
+      expect(entry?.slug).toBe('t-456');
+      expect(entry?.name).toBe('Interactive Project');
       expect(entry?.type).toBe('research');
       expect(entry?.status).toBe('active');
 
       // Verify capsule created
-      const capsuleDir = path.join(projectsDir, 'interactive-project');
+      const capsuleDir = path.join(projectsDir, 't-456');
       expect(fs.existsSync(capsuleDir)).toBe(true);
 
-      const validation = validateCapsule(projectsDir, 'interactive-project', 'research');
+      const validation = validateCapsule(projectsDir, 't-456', 'research');
       expect(validation.missing).toEqual([]);
     });
 
@@ -503,7 +527,7 @@ describe('init flow integration', () => {
       await handleInit(otherCtx, 'other-topic');
 
       // Now user123 is no longer authorized (not admin, not first user)
-      const step2 = await handleInitSlugConfirm(ctx, 'auth-test');
+      const step2 = await handleInitTypeSelect(ctx, 'coding');
       expect(step2.text).toContain('Not authorized');
     });
 
@@ -527,7 +551,7 @@ describe('init flow integration', () => {
       await handleInit(ctx, 'race-test');
 
       // Step 2 detects already registered
-      const step2 = await handleInitSlugConfirm(ctx, 'race-test');
+      const step2 = await handleInitTypeSelect(ctx, 'coding');
       expect(step2.text).toContain('already registered');
     });
   });

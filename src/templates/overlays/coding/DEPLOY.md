@@ -1,3 +1,3 @@
-# Deployment: {{slug}}
+# Deployment: {{name}}
 
 _Environments, deployment steps, rollback procedures, and infra details._

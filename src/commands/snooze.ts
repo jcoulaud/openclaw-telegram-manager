@@ -63,7 +63,7 @@ export async function handleSnooze(ctx: CommandContext, args: string): Promise<C
   );
 
   return {
-    text: `Topic <code>${htmlEscape(entry.slug)}</code> snoozed for ${days} days (until ${htmlEscape(snoozeUntil)}).`,
+    text: `Topic <b>${htmlEscape(entry.name)}</b> snoozed for ${days} days (until ${htmlEscape(snoozeUntil)}).`,
     parseMode: 'HTML',
   };
 }

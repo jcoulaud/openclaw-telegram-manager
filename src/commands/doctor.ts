@@ -65,11 +65,10 @@ export async function handleDoctor(ctx: CommandContext): Promise<CommandResult> 
   );
 
   // Build report
-  const reportText = buildDoctorReport(entry.slug, results);
+  const reportText = buildDoctorReport(entry.name, results);
 
   // Build inline keyboard with HMAC-signed callbacks
   const keyboard = buildDoctorButtons(
-    entry.slug,
     groupId,
     threadId,
     registry.callbackSecret,

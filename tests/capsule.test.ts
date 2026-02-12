@@ -27,7 +27,7 @@ describe('capsule', () => {
   describe('scaffoldCapsule', () => {
     it('should create capsule directory atomically', () => {
       const slug = 'test-topic';
-      scaffoldCapsule(projectsBase, slug, 'coding');
+      scaffoldCapsule(projectsBase, slug, slug, 'coding');
 
       const capsuleDir = path.join(projectsBase, slug);
       expect(fs.existsSync(capsuleDir)).toBe(true);
@@ -39,12 +39,12 @@ describe('capsule', () => {
       const capsuleDir = path.join(projectsBase, slug);
       fs.mkdirSync(capsuleDir);
 
-      expect(() => scaffoldCapsule(projectsBase, slug, 'coding')).toThrow();
+      expect(() => scaffoldCapsule(projectsBase, slug, slug, 'coding')).toThrow();
     });
 
     it('should create all base files', () => {
       const slug = 'test-topic';
-      scaffoldCapsule(projectsBase, slug, 'coding');
+      scaffoldCapsule(projectsBase, slug, slug, 'coding');
 
       const capsuleDir = path.join(projectsBase, slug);
       for (const file of BASE_FILES) {
@@ -55,7 +55,7 @@ describe('capsule', () => {
 
     it('should create coding overlay files', () => {
       const slug = 'test-coding';
-      scaffoldCapsule(projectsBase, slug, 'coding');
+      scaffoldCapsule(projectsBase, slug, slug, 'coding');
 
       const capsuleDir = path.join(projectsBase, slug);
       const overlays = OVERLAY_FILES['coding'];
@@ -71,7 +71,7 @@ describe('capsule', () => {
 
     it('should create research overlay files', () => {
       const slug = 'test-research';
-      scaffoldCapsule(projectsBase, slug, 'research');
+      scaffoldCapsule(projectsBase, slug, slug, 'research');
 
       const capsuleDir = path.join(projectsBase, slug);
       const overlays = OVERLAY_FILES['research'];
@@ -87,7 +87,7 @@ describe('capsule', () => {
 
     it('should create marketing overlay files', () => {
       const slug = 'test-marketing';
-      scaffoldCapsule(projectsBase, slug, 'marketing');
+      scaffoldCapsule(projectsBase, slug, slug, 'marketing');
 
       const capsuleDir = path.join(projectsBase, slug);
       const overlays = OVERLAY_FILES['marketing'];
@@ -103,7 +103,7 @@ describe('capsule', () => {
 
     it('should set correct file permissions', () => {
       const slug = 'test-perms';
-      scaffoldCapsule(projectsBase, slug, 'coding');
+      scaffoldCapsule(projectsBase, slug, slug, 'coding');
 
       const capsuleDir = path.join(projectsBase, slug);
       const statusPath = path.join(capsuleDir, 'STATUS.md');
@@ -115,20 +115,20 @@ describe('capsule', () => {
     });
 
     it('should reject path traversal attempts', () => {
-      expect(() => scaffoldCapsule(projectsBase, '../escape', 'coding')).toThrow(/Path escapes/);
-      expect(() => scaffoldCapsule(projectsBase, '../../double-escape', 'coding')).toThrow(/Path escapes/);
+      expect(() => scaffoldCapsule(projectsBase, '../escape', '../escape', 'coding')).toThrow(/Path escapes/);
+      expect(() => scaffoldCapsule(projectsBase, '../../double-escape', '../../double-escape', 'coding')).toThrow(/Path escapes/);
     });
 
     it('should reject symlink in projects base', () => {
       const symlinkBase = path.join(tmpDir, 'symlink-base');
       fs.symlinkSync(projectsBase, symlinkBase);
 
-      expect(() => scaffoldCapsule(symlinkBase, 'test', 'coding')).toThrow(/symlink/);
+      expect(() => scaffoldCapsule(symlinkBase, 'test', 'test', 'coding')).toThrow(/symlink/);
     });
 
     it('should include slug in file content', () => {
       const slug = 'my-project';
-      scaffoldCapsule(projectsBase, slug, 'coding');
+      scaffoldCapsule(projectsBase, slug, slug, 'coding');
 
       const capsuleDir = path.join(projectsBase, slug);
       const readmePath = path.join(capsuleDir, 'README.md');
@@ -141,9 +141,9 @@ describe('capsule', () => {
   describe('upgradeCapsule', () => {
     it('should not upgrade if already at current version', () => {
       const slug = 'test-topic';
-      scaffoldCapsule(projectsBase, slug, 'coding');
+      scaffoldCapsule(projectsBase, slug, slug, 'coding');
 
-      const result = upgradeCapsule(projectsBase, slug, 'coding', CAPSULE_VERSION);
+      const result = upgradeCapsule(projectsBase, slug, slug, 'coding', CAPSULE_VERSION);
 
       expect(result.upgraded).toBe(false);
       expect(result.newVersion).toBe(CAPSULE_VERSION);
@@ -152,13 +152,13 @@ describe('capsule', () => {
 
     it('should add missing base files', () => {
       const slug = 'test-upgrade';
-      scaffoldCapsule(projectsBase, slug, 'coding');
+      scaffoldCapsule(projectsBase, slug, slug, 'coding');
 
       // Remove a base file
       const capsuleDir = path.join(projectsBase, slug);
       fs.unlinkSync(path.join(capsuleDir, 'NOTES.md'));
 
-      const result = upgradeCapsule(projectsBase, slug, 'coding', 0);
+      const result = upgradeCapsule(projectsBase, slug, slug, 'coding', 0);
 
       expect(result.upgraded).toBe(true);
       expect(result.newVersion).toBe(CAPSULE_VERSION);
@@ -168,13 +168,13 @@ describe('capsule', () => {
 
     it('should add missing overlay files', () => {
       const slug = 'test-overlay-upgrade';
-      scaffoldCapsule(projectsBase, slug, 'research');
+      scaffoldCapsule(projectsBase, slug, slug, 'research');
 
       // Remove an overlay file
       const capsuleDir = path.join(projectsBase, slug);
       fs.unlinkSync(path.join(capsuleDir, 'FINDINGS.md'));
 
-      const result = upgradeCapsule(projectsBase, slug, 'research', 0);
+      const result = upgradeCapsule(projectsBase, slug, slug, 'research', 0);
 
       expect(result.upgraded).toBe(true);
       expect(result.addedFiles).toContain('FINDINGS.md');
@@ -183,7 +183,7 @@ describe('capsule', () => {
 
     it('should not overwrite existing files', () => {
       const slug = 'test-no-overwrite';
-      scaffoldCapsule(projectsBase, slug, 'coding');
+      scaffoldCapsule(projectsBase, slug, slug, 'coding');
 
       const capsuleDir = path.join(projectsBase, slug);
       const statusPath = path.join(capsuleDir, 'STATUS.md');
@@ -191,33 +191,33 @@ describe('capsule', () => {
 
       fs.writeFileSync(statusPath, 'CUSTOM CONTENT', 'utf-8');
 
-      upgradeCapsule(projectsBase, slug, 'coding', 0);
+      upgradeCapsule(projectsBase, slug, slug, 'coding', 0);
 
       const afterContent = fs.readFileSync(statusPath, 'utf-8');
       expect(afterContent).toBe('CUSTOM CONTENT');
     });
 
     it('should reject path traversal', () => {
-      expect(() => upgradeCapsule(projectsBase, '../escape', 'coding', 0)).toThrow(/Path escapes/);
+      expect(() => upgradeCapsule(projectsBase, '../escape', '../escape', 'coding', 0)).toThrow(/Path escapes/);
     });
 
     it('should reject symlink directory', () => {
       const slug = 'real-dir';
       const symlinkSlug = 'symlink-dir';
-      scaffoldCapsule(projectsBase, slug, 'coding');
+      scaffoldCapsule(projectsBase, slug, slug, 'coding');
 
       const capsuleDir = path.join(projectsBase, slug);
       const symlinkDir = path.join(projectsBase, symlinkSlug);
       fs.symlinkSync(capsuleDir, symlinkDir);
 
-      expect(() => upgradeCapsule(projectsBase, symlinkSlug, 'coding', 0)).toThrow(/symlink/);
+      expect(() => upgradeCapsule(projectsBase, symlinkSlug, symlinkSlug, 'coding', 0)).toThrow(/symlink/);
     });
   });
 
   describe('validateCapsule', () => {
     it('should validate complete capsule', () => {
       const slug = 'complete-topic';
-      scaffoldCapsule(projectsBase, slug, 'coding');
+      scaffoldCapsule(projectsBase, slug, slug, 'coding');
 
       const result = validateCapsule(projectsBase, slug, 'coding');
 
@@ -228,7 +228,7 @@ describe('capsule', () => {
 
     it('should detect missing base files', () => {
       const slug = 'incomplete-topic';
-      scaffoldCapsule(projectsBase, slug, 'coding');
+      scaffoldCapsule(projectsBase, slug, slug, 'coding');
 
       const capsuleDir = path.join(projectsBase, slug);
       fs.unlinkSync(path.join(capsuleDir, 'TODO.md'));
@@ -244,7 +244,7 @@ describe('capsule', () => {
 
     it('should detect missing overlay files', () => {
       const slug = 'missing-overlays';
-      scaffoldCapsule(projectsBase, slug, 'research');
+      scaffoldCapsule(projectsBase, slug, slug, 'research');
 
       const capsuleDir = path.join(projectsBase, slug);
       fs.unlinkSync(path.join(capsuleDir, 'SOURCES.md'));
@@ -260,7 +260,7 @@ describe('capsule', () => {
 
       for (const type of types) {
         const slug = `test-${type}`;
-        scaffoldCapsule(projectsBase, slug, type);
+        scaffoldCapsule(projectsBase, slug, slug, type);
 
         const result = validateCapsule(projectsBase, slug, type);
 

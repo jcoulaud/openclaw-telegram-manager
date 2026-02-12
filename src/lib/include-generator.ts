@@ -13,9 +13,12 @@ const FILE_MODE = 0o600;
 
 /**
  * Build the per-topic systemPrompt using absolute paths resolved at generation time.
+ *
+ * @param name - human-readable display label for identity
+ * @param slug - stable ID used for capsule path
  */
-export function getSystemPromptTemplate(slug: string, absoluteWorkspacePath: string): string {
-  return `You are the assistant for the Telegram topic: ${slug}.
+export function getSystemPromptTemplate(name: string, slug: string, absoluteWorkspacePath: string): string {
+  return `You are the assistant for the Telegram topic: ${name}.
 
 Determinism rules:
 - Source of truth is the project capsule at: ${absoluteWorkspacePath}/projects/${slug}/
@@ -79,7 +82,7 @@ export function buildIncludeObject(
   }
 
   for (const entry of Object.values(registry.topics)) {
-    const { groupId, threadId, slug, type, status } = entry;
+    const { groupId, threadId, slug, name, type, status } = entry;
 
     if (!groups[groupId]) {
       groups[groupId] = { topics: {} };
@@ -90,7 +93,7 @@ export function buildIncludeObject(
 
     const isEnabled = status !== 'archived';
     const skills = getSkillsForType(type);
-    const systemPrompt = getSystemPromptTemplate(slug, absoluteWorkspacePath);
+    const systemPrompt = getSystemPromptTemplate(name, slug, absoluteWorkspacePath);
 
     (groups[groupId].topics as Record<string, unknown>)[threadId] = {
       enabled: isEnabled,

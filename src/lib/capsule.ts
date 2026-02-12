@@ -7,47 +7,47 @@ import { jailCheck, rejectSymlink } from './security.js';
 // ── Template content (embedded string constants) ───────────────────────
 // These are the source-of-truth defaults, matching src/templates/.
 
-const BASE_TEMPLATES: Record<string, (slug: string) => string> = {
-  'README.md': (slug) =>
-    `# ${slug}\n\n_Describe what this topic is about._\n`,
+const BASE_TEMPLATES: Record<string, (name: string) => string> = {
+  'README.md': (name) =>
+    `# ${name}\n\n_Describe what this topic is about._\n`,
 
-  'STATUS.md': (slug) =>
-    `# Status: ${slug}\n\n## Last done (UTC)\n\n${new Date().toISOString()}\n\n_No work recorded yet._\n\n## Next 3 actions\n\n1. [T-1] _Define first task in TODO.md_\n2. [T-2] _Define second task in TODO.md_\n3. [T-3] _Define third task in TODO.md_\n`,
+  'STATUS.md': (name) =>
+    `# Status: ${name}\n\n## Last done (UTC)\n\n${new Date().toISOString()}\n\n_No work recorded yet._\n\n## Next 3 actions\n\n1. [T-1] _Define first task in TODO.md_\n2. [T-2] _Define second task in TODO.md_\n3. [T-3] _Define third task in TODO.md_\n`,
 
-  'TODO.md': (slug) =>
-    `# TODO: ${slug}\n\n## Backlog\n\n- [T-1] _First task placeholder — replace with actual task_\n- [T-2] _Second task placeholder — replace with actual task_\n- [T-3] _Third task placeholder — replace with actual task_\n\n## Completed\n\n_None yet._\n`,
+  'TODO.md': (name) =>
+    `# TODO: ${name}\n\n## Backlog\n\n- [T-1] _First task placeholder — replace with actual task_\n- [T-2] _Second task placeholder — replace with actual task_\n- [T-3] _Third task placeholder — replace with actual task_\n\n## Completed\n\n_None yet._\n`,
 
-  'COMMANDS.md': (slug) =>
-    `# Commands: ${slug}\n\n_Build, deploy, test, and other commands for this topic. Kept here so they're not lost on reset._\n`,
+  'COMMANDS.md': (name) =>
+    `# Commands: ${name}\n\n_Build, deploy, test, and other commands for this topic. Kept here so they're not lost on reset._\n`,
 
-  'LINKS.md': (slug) =>
-    `# Links: ${slug}\n\n_URLs, paths, and service endpoints for this topic._\n`,
+  'LINKS.md': (name) =>
+    `# Links: ${name}\n\n_URLs, paths, and service endpoints for this topic._\n`,
 
-  'CRON.md': (slug) =>
-    `# Cron: ${slug}\n\n_Cron job IDs and schedules for this topic._\n`,
+  'CRON.md': (name) =>
+    `# Cron: ${name}\n\n_Cron job IDs and schedules for this topic._\n`,
 
-  'NOTES.md': (slug) =>
-    `# Notes: ${slug}\n\n_Anything worth remembering about this topic._\n`,
+  'NOTES.md': (name) =>
+    `# Notes: ${name}\n\n_Anything worth remembering about this topic._\n`,
 };
 
-const OVERLAY_TEMPLATES: Record<string, (slug: string) => string> = {
-  'ARCHITECTURE.md': (slug) =>
-    `# Architecture: ${slug}\n\n_Components, data flow, dependencies, and design decisions._\n`,
+const OVERLAY_TEMPLATES: Record<string, (name: string) => string> = {
+  'ARCHITECTURE.md': (name) =>
+    `# Architecture: ${name}\n\n_Components, data flow, dependencies, and design decisions._\n`,
 
-  'DEPLOY.md': (slug) =>
-    `# Deployment: ${slug}\n\n_Environments, deployment steps, rollback procedures, and infra details._\n`,
+  'DEPLOY.md': (name) =>
+    `# Deployment: ${name}\n\n_Environments, deployment steps, rollback procedures, and infra details._\n`,
 
-  'SOURCES.md': (slug) =>
-    `# Sources: ${slug}\n\n_Papers, articles, datasets, APIs, and other reference material._\n`,
+  'SOURCES.md': (name) =>
+    `# Sources: ${name}\n\n_Papers, articles, datasets, APIs, and other reference material._\n`,
 
-  'FINDINGS.md': (slug) =>
-    `# Findings: ${slug}\n\n_Conclusions, insights, data summaries, and recommendations._\n`,
+  'FINDINGS.md': (name) =>
+    `# Findings: ${name}\n\n_Conclusions, insights, data summaries, and recommendations._\n`,
 
-  'CAMPAIGNS.md': (slug) =>
-    `# Campaigns: ${slug}\n\n_Active campaigns, target audiences, channels, timelines, and budgets._\n`,
+  'CAMPAIGNS.md': (name) =>
+    `# Campaigns: ${name}\n\n_Active campaigns, target audiences, channels, timelines, and budgets._\n`,
 
-  'METRICS.md': (slug) =>
-    `# Metrics: ${slug}\n\n_KPIs, conversion rates, engagement stats, and performance data._\n`,
+  'METRICS.md': (name) =>
+    `# Metrics: ${name}\n\n_KPIs, conversion rates, engagement stats, and performance data._\n`,
 };
 
 // ── File permissions ───────────────────────────────────────────────────
@@ -60,10 +60,14 @@ const CAPSULE_FILE_MODE = 0o640;
  * Scaffold a new capsule directory with base kit + type overlays.
  * Uses fs.mkdirSync with exclusive flag as the atomic reservation mechanism.
  * Throws if the directory already exists (collision).
+ *
+ * @param slug - stable ID used for directory name
+ * @param name - human-readable label used in template headers
  */
 export function scaffoldCapsule(
   projectsBase: string,
   slug: string,
+  name: string,
   type: TopicType,
 ): void {
   const capsuleDir = path.join(projectsBase, slug);
@@ -86,7 +90,7 @@ export function scaffoldCapsule(
     const templateFn = BASE_TEMPLATES[file];
     if (templateFn) {
       const filePath = path.join(capsuleDir, file);
-      fs.writeFileSync(filePath, templateFn(slug), { mode: CAPSULE_FILE_MODE });
+      fs.writeFileSync(filePath, templateFn(name), { mode: CAPSULE_FILE_MODE });
     }
   }
 
@@ -96,7 +100,7 @@ export function scaffoldCapsule(
     const templateFn = OVERLAY_TEMPLATES[file];
     if (templateFn) {
       const filePath = path.join(capsuleDir, file);
-      fs.writeFileSync(filePath, templateFn(slug), { mode: CAPSULE_FILE_MODE });
+      fs.writeFileSync(filePath, templateFn(name), { mode: CAPSULE_FILE_MODE });
     }
   }
 }
@@ -112,10 +116,14 @@ export interface UpgradeResult {
 /**
  * Upgrade an existing capsule to the latest template version.
  * Adds missing files without overwriting existing ones.
+ *
+ * @param slug - stable ID used for directory name
+ * @param name - human-readable label used in template headers
  */
 export function upgradeCapsule(
   projectsBase: string,
   slug: string,
+  name: string,
   type: TopicType,
   currentVersion: number,
 ): UpgradeResult {
@@ -141,7 +149,7 @@ export function upgradeCapsule(
     if (!fs.existsSync(filePath)) {
       const templateFn = BASE_TEMPLATES[file];
       if (templateFn) {
-        fs.writeFileSync(filePath, templateFn(slug), { mode: CAPSULE_FILE_MODE });
+        fs.writeFileSync(filePath, templateFn(name), { mode: CAPSULE_FILE_MODE });
         addedFiles.push(file);
       }
     }
@@ -154,7 +162,7 @@ export function upgradeCapsule(
     if (!fs.existsSync(filePath)) {
       const templateFn = OVERLAY_TEMPLATES[file];
       if (templateFn) {
-        fs.writeFileSync(filePath, templateFn(slug), { mode: CAPSULE_FILE_MODE });
+        fs.writeFileSync(filePath, templateFn(name), { mode: CAPSULE_FILE_MODE });
         addedFiles.push(file);
       }
     }

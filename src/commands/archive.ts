@@ -39,11 +39,11 @@ async function handleArchiveToggle(ctx: CommandContext, archive: boolean): Promi
   }
 
   if (archive && entry.status === 'archived') {
-    return { text: `Topic <code>${htmlEscape(entry.slug)}</code> is already archived.` };
+    return { text: `Topic <b>${htmlEscape(entry.name)}</b> is already archived.`, parseMode: 'HTML' };
   }
 
   if (!archive && entry.status !== 'archived') {
-    return { text: `Topic <code>${htmlEscape(entry.slug)}</code> is not archived.` };
+    return { text: `Topic <b>${htmlEscape(entry.name)}</b> is not archived.`, parseMode: 'HTML' };
   }
 
   const newStatus = archive ? 'archived' : 'active';
@@ -82,7 +82,7 @@ async function handleArchiveToggle(ctx: CommandContext, archive: boolean): Promi
 
   const action = archive ? 'archived' : 'unarchived';
   return {
-    text: `Topic <code>${htmlEscape(entry.slug)}</code> ${action}.${restartMsg}`,
+    text: `Topic <b>${htmlEscape(entry.name)}</b> ${action}.${restartMsg}`,
     parseMode: 'HTML',
   };
 }

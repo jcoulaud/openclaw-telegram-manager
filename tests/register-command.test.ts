@@ -100,6 +100,19 @@ describe('registerCommand handler', () => {
     expect(result.text).not.toContain('Missing context');
   });
 
+  it('should strip :topic: suffix from channel for groupId', async () => {
+    const result = await registeredCommand.handler({
+      args: 'init',
+      commandBody: '/tm init',
+      senderId: 'user1',
+      channel: 'telegram:group:-1003731538650:topic:123',
+      messageThreadId: '456',
+    });
+
+    expect(result.text).toBeDefined();
+    expect(result.text).not.toContain('Missing context');
+  });
+
   it('should return "Missing context" when senderId/channel/threadId are absent', async () => {
     const result = await registeredCommand.handler({
       args: 'init',

@@ -127,6 +127,7 @@ export default function register(api: {
         // Strip common prefixes to extract the numeric chat ID.
         const groupId = ctx.channel
           ?.replace(/^telegram:(?:group:)?/, '')
+          .split(':topic:')[0]
           || undefined;
         // messageThreadId is present at runtime for Telegram forum topics
         // (confirmed in gateway source) but not yet in the public docs.

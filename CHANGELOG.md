@@ -1,3 +1,10 @@
+## [1.3.9](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.8...v1.3.9) (2026-02-12)
+
+
+### Bug Fixes
+
+* resolve /tm command conflict between skill and registerCommand ([2125ef7](https://github.com/jcoulaud/openclaw-telegram-manager/commit/2125ef709aa2a7fba6c1a31c3e3e82855b3266c2))
+
 ## [1.3.8](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.7...v1.3.8) (2026-02-12)
 
 

@@ -55,6 +55,7 @@ export default function register(api: {
       args: string;
       commandBody: string;
       senderId?: string;
+      from?: string;
       channel?: string;
       isAuthorizedSender?: boolean;
       config?: Record<string, unknown>;

@@ -1,3 +1,18 @@
+# [2.2.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.1.0...v2.2.0) (2026-02-12)
+
+
+### Bug Fixes
+
+* remove workspace data on uninstall instead of keeping it ([be1c27e](https://github.com/jcoulaud/openclaw-telegram-manager/commit/be1c27ec3808972303133f61132b8817c14d6e99))
+* throw on unavailable SDK postFn and prompt before deleting workspace data ([81332ab](https://github.com/jcoulaud/openclaw-telegram-manager/commit/81332abdd1e8c3540c1d09c2d2b7f3391f49b5c3))
+
+
+### Features
+
+* add 5 determinism improvements for topic capsules ([9f0efd2](https://github.com/jcoulaud/openclaw-telegram-manager/commit/9f0efd21f0983e01a1f6ad48b8a7b735b89c77e0))
+* add two-tier STATUS.md queue, daily reports, and activity tiers ([620acb4](https://github.com/jcoulaud/openclaw-telegram-manager/commit/620acb4dab3cbcc78c0467f70d884320e8ee3a29))
+* switch command responses from HTML to Markdown formatting ([a26d115](https://github.com/jcoulaud/openclaw-telegram-manager/commit/a26d115cfaa1038657d36635ef8c5829ea58beec))
+
 # [2.1.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.0.2...v2.1.0) (2026-02-12)
 
 

@@ -1,3 +1,11 @@
+## [1.3.11](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.10...v1.3.11) (2026-02-12)
+
+
+### Bug Fixes
+
+* add from property to registerCommand handler ctx type ([6d1bbed](https://github.com/jcoulaud/openclaw-telegram-manager/commit/6d1bbed2a574908e4634ef22de5587d6de7f0f8c))
+* extract groupId from ctx.from instead of ctx.channel ([f62fd67](https://github.com/jcoulaud/openclaw-telegram-manager/commit/f62fd67bb6d299e032f3c6141d625f1c19d65b26))
+
 ## [1.3.10](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v1.3.9...v1.3.10) (2026-02-12)
 
 

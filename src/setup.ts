@@ -18,6 +18,8 @@ const REGISTRY_FILENAME = 'topics.json';
 const PLUGIN_FILES = ['openclaw.plugin.json', 'dist/plugin.js', 'skills', 'package.json'];
 const REQUIRED_PLUGIN_FILES = ['openclaw.plugin.json', 'dist/plugin.js'];
 const MEMORY_FLUSH_MARKER = 'topic capsule';
+// Keep in sync with CURRENT_REGISTRY_VERSION in src/lib/types.ts
+const SETUP_REGISTRY_VERSION = 4;
 const MEMORY_FLUSH_INSTRUCTION =
   'If you are working on a Telegram topic capsule (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted.';
 
@@ -386,9 +388,6 @@ function patchConfig(configDir: string): Record<string, unknown> | null {
 
   return existingGroups;
 }
-
-// Keep in sync with CURRENT_REGISTRY_VERSION in src/lib/types.ts
-const SETUP_REGISTRY_VERSION = 4;
 
 function initRegistry(projectsDir: string): void {
   const registryPath = path.join(projectsDir, REGISTRY_FILENAME);

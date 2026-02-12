@@ -17,6 +17,9 @@ const INCLUDE_FILENAME = 'telegram-manager.generated.groups.json5';
 const REGISTRY_FILENAME = 'topics.json';
 const PLUGIN_FILES = ['openclaw.plugin.json', 'dist/plugin.js', 'skills', 'package.json'];
 const REQUIRED_PLUGIN_FILES = ['openclaw.plugin.json', 'dist/plugin.js'];
+const MEMORY_FLUSH_MARKER = 'topic capsule';
+const MEMORY_FLUSH_INSTRUCTION =
+  'If you are working on a Telegram topic capsule (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted.';
 
 // ── Colors (zero dependencies, respects NO_COLOR / non-TTY) ──────────
 
@@ -527,10 +530,6 @@ function removePluginDir(configDir: string): void {
 }
 
 // ── Memory flush patching ─────────────────────────────────────────────
-
-const MEMORY_FLUSH_MARKER = 'topic capsule';
-const MEMORY_FLUSH_INSTRUCTION =
-  'If you are working on a Telegram topic capsule (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted.';
 
 function patchMemoryFlush(configDir: string): void {
   const configPath = path.join(configDir, 'openclaw.json');

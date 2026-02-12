@@ -57,7 +57,15 @@ describe('auth', () => {
         expect(result.message).toBeUndefined();
       });
 
-      it('should not allow other commands during bootstrap', () => {
+      it('should allow user-tier commands during bootstrap', () => {
+        expect(registry.topicManagerAdmins).toEqual([]);
+
+        expect(checkAuthorization('user123', 'status', registry).authorized).toBe(true);
+        expect(checkAuthorization('user123', 'help', registry).authorized).toBe(true);
+        expect(checkAuthorization('user123', 'doctor', registry).authorized).toBe(true);
+      });
+
+      it('should not allow admin-tier commands during bootstrap', () => {
         expect(registry.topicManagerAdmins).toEqual([]);
 
         const result = checkAuthorization('user123', 'list', registry);

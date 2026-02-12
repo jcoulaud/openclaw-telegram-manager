@@ -67,8 +67,10 @@ export function checkAuthorization(
   const tier = getCommandTier(command);
   const admins = registry.topicManagerAdmins;
 
-  // First-user bootstrap: if no admins set yet, allow anyone for init
-  if (command === 'init' && admins.length === 0) {
+  // First-user bootstrap: if no admins set yet, allow anyone for user-tier commands.
+  // This covers init (so the first user can set up) and other user-tier commands
+  // (status, help, doctor, etc.) that shouldn't be blocked before setup completes.
+  if (admins.length === 0 && tier === AuthTier.User) {
     return { authorized: true };
   }
 

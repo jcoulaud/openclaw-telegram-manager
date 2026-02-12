@@ -202,14 +202,20 @@ function extractNestedString(
 // ── Callback handling ───────────────────────────────────────────────
 
 async function handleCallback(data: string, ctx: CommandContext): Promise<CommandResult> {
-  const { workspaceDir, groupId, threadId, userId } = ctx;
+  const { workspaceDir, userId } = ctx;
 
-  if (!groupId || !threadId || !userId) {
+  // Extract groupId and threadId from the callback data itself (format: tm:action:groupId:threadId:hmac).
+  // This avoids depending on execContext which may not carry these fields for callback queries.
+  const cbParts = data.split(':');
+  const cbGroupId = cbParts[2];
+  const cbThreadId = cbParts[3];
+
+  if (!cbGroupId || !cbThreadId || !userId) {
     return { text: 'Cannot verify callback: missing context.' };
   }
 
   const registry = readRegistry(workspaceDir);
-  const parsed = parseAndVerifyCallback(data, registry.callbackSecret, groupId, threadId);
+  const parsed = parseAndVerifyCallback(data, registry.callbackSecret, cbGroupId, cbThreadId);
 
   if (!parsed) {
     return { text: 'Invalid or expired callback.' };
@@ -225,12 +231,16 @@ async function handleCallback(data: string, ctx: CommandContext): Promise<Comman
     ix: 'custom',
   };
 
+  // Build a context with the callback-derived groupId/threadId so downstream
+  // handlers have correct values even when execContext didn't carry them.
+  const cbCtx: CommandContext = { ...ctx, groupId: cbGroupId, threadId: cbThreadId };
+
   if (action in initTypeMap) {
-    return handleInitTypeSelect(ctx, initTypeMap[action]!);
+    return handleInitTypeSelect(cbCtx, initTypeMap[action]!);
   }
 
   // Find the topic entry
-  const key = topicKey(groupId, threadId);
+  const key = topicKey(cbGroupId, cbThreadId);
   const entry = registry.topics[key];
 
   if (!entry) {
@@ -239,16 +249,16 @@ async function handleCallback(data: string, ctx: CommandContext): Promise<Comman
 
   switch (action) {
     case 'fix':
-      return handleCallbackFix(ctx);
+      return handleCallbackFix(cbCtx);
 
     case 'snooze7d':
-      return handleSnooze(ctx, '7d');
+      return handleSnooze(cbCtx, '7d');
 
     case 'snooze30d':
-      return handleSnooze(ctx, '30d');
+      return handleSnooze(cbCtx, '30d');
 
     case 'archive':
-      return handleArchive(ctx);
+      return handleArchive(cbCtx);
 
     case 'ignore': {
       // Add the most recent failing check to ignoreChecks

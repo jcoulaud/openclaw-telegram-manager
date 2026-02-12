@@ -187,6 +187,10 @@ export function buildDoctorReport(name: string, results: DoctorCheckResult[], fo
     const checkId = isHtml ? htmlEscape(r.checkId) : r.checkId;
     const fix = r.fixable ? ' [fixable]' : '';
     lines.push(`${icon} ${code(checkId)}: ${msg}${fix}`);
+    if (r.remediation) {
+      const rem = isHtml ? htmlEscape(r.remediation) : r.remediation;
+      lines.push(`   \u2192 ${rem}`);
+    }
   }
 
   lines.push('');

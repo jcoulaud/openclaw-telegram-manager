@@ -143,6 +143,9 @@ async function runSetup(): Promise<void> {
   startSpinner('Patching config…');
   const existingGroups = patchConfig(configDir);
 
+  startSpinner('Patching memory flush…');
+  patchMemoryFlush(configDir);
+
   startSpinner('Preparing workspace…');
   const projectsDir = path.join(configDir, 'workspace', 'projects');
   ensureDir(projectsDir);
@@ -521,6 +524,65 @@ function removePluginDir(configDir: string): void {
   if (fs.existsSync(extDir)) {
     fs.rmSync(extDir, { recursive: true });
   }
+}
+
+// ── Memory flush patching ─────────────────────────────────────────────
+
+const MEMORY_FLUSH_MARKER = 'topic capsule';
+const MEMORY_FLUSH_INSTRUCTION =
+  'If you are working on a Telegram topic capsule (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted.';
+
+function patchMemoryFlush(configDir: string): void {
+  const configPath = path.join(configDir, 'openclaw.json');
+
+  if (!fs.existsSync(configPath)) {
+    warn('openclaw.json not found. Skipping memoryFlush patch.');
+    return;
+  }
+
+  let content: string;
+  try {
+    content = fs.readFileSync(configPath, 'utf-8');
+  } catch {
+    warn('Could not read openclaw.json. Skipping memoryFlush patch.');
+    return;
+  }
+
+  let config: Record<string, unknown>;
+  try {
+    config = JSON.parse(content) as Record<string, unknown>;
+  } catch {
+    warn('Could not parse openclaw.json. Skipping memoryFlush patch.');
+    return;
+  }
+
+  // Navigate to agents.defaults.compaction.memoryFlush.prompt
+  if (!config['agents']) config['agents'] = {};
+  const agents = config['agents'] as Record<string, unknown>;
+
+  if (!agents['defaults']) agents['defaults'] = {};
+  const defaults = agents['defaults'] as Record<string, unknown>;
+
+  if (!defaults['compaction']) defaults['compaction'] = {};
+  const compaction = defaults['compaction'] as Record<string, unknown>;
+
+  if (!compaction['memoryFlush']) compaction['memoryFlush'] = {};
+  const memoryFlush = compaction['memoryFlush'] as Record<string, unknown>;
+
+  const existing = typeof memoryFlush['prompt'] === 'string' ? memoryFlush['prompt'] : '';
+
+  // Idempotent: skip if already contains our marker
+  if (existing.includes(MEMORY_FLUSH_MARKER)) {
+    ok('Memory flush prompt already patched');
+    return;
+  }
+
+  memoryFlush['prompt'] = existing
+    ? existing + '\n' + MEMORY_FLUSH_INSTRUCTION
+    : MEMORY_FLUSH_INSTRUCTION;
+
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
+  ok('Memory flush prompt patched');
 }
 
 // ── Shared helpers ────────────────────────────────────────────────────

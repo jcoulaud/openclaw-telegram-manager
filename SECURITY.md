@@ -1,11 +1,5 @@
 # Security
 
-## Supported versions
-
-| Version | Supported |
-|---------|-----------|
-| 1.x     | Yes       |
-
 ## Reporting vulnerabilities
 
 Don't open a public issue. Instead, use [GitHub's private vulnerability reporting](https://github.com/jcoulaud/openclaw-telegram-manager/security/advisories/new):

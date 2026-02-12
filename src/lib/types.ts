@@ -95,6 +95,7 @@ export interface DoctorCheckResult {
   checkId: string;
   message: string;
   fixable: boolean;
+  remediation?: string;
 }
 
 // ── Overlay mappings ───────────────────────────────────────────────────

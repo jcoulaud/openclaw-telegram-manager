@@ -538,6 +538,72 @@ describe('setup integration', () => {
     });
   });
 
+  describe('patchMemoryFlush', () => {
+    const MEMORY_FLUSH_MARKER = 'topic capsule';
+    const MEMORY_FLUSH_INSTRUCTION =
+      'If you are working on a Telegram topic capsule (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted.';
+
+    function patchMemoryFlush(cfgDir: string): void {
+      const configPath = path.join(cfgDir, 'openclaw.json');
+      if (!fs.existsSync(configPath)) return;
+
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+
+      if (!config.agents) config.agents = {};
+      if (!config.agents.defaults) config.agents.defaults = {};
+      if (!config.agents.defaults.compaction) config.agents.defaults.compaction = {};
+      if (!config.agents.defaults.compaction.memoryFlush) config.agents.defaults.compaction.memoryFlush = {};
+
+      const memoryFlush = config.agents.defaults.compaction.memoryFlush;
+      const existing = typeof memoryFlush.prompt === 'string' ? memoryFlush.prompt : '';
+
+      if (existing.includes(MEMORY_FLUSH_MARKER)) return;
+
+      memoryFlush.prompt = existing
+        ? existing + '\n' + MEMORY_FLUSH_INSTRUCTION
+        : MEMORY_FLUSH_INSTRUCTION;
+
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
+    }
+
+    it('should set prompt when missing', () => {
+      patchMemoryFlush(configDir);
+
+      const config = JSON.parse(fs.readFileSync(path.join(configDir, 'openclaw.json'), 'utf-8'));
+      expect(config.agents.defaults.compaction.memoryFlush.prompt).toBe(MEMORY_FLUSH_INSTRUCTION);
+    });
+
+    it('should append to existing custom prompt', () => {
+      const configPath = path.join(configDir, 'openclaw.json');
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      config.agents = {
+        defaults: {
+          compaction: {
+            memoryFlush: { prompt: 'Save important context before compaction.' },
+          },
+        },
+      };
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+
+      patchMemoryFlush(configDir);
+
+      const updated = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      const prompt = updated.agents.defaults.compaction.memoryFlush.prompt;
+      expect(prompt).toContain('Save important context');
+      expect(prompt).toContain(MEMORY_FLUSH_MARKER);
+    });
+
+    it('should be idempotent (does not duplicate)', () => {
+      patchMemoryFlush(configDir);
+      patchMemoryFlush(configDir);
+
+      const config = JSON.parse(fs.readFileSync(path.join(configDir, 'openclaw.json'), 'utf-8'));
+      const prompt = config.agents.defaults.compaction.memoryFlush.prompt as string;
+      const occurrences = prompt.split(MEMORY_FLUSH_MARKER).length - 1;
+      expect(occurrences).toBe(1);
+    });
+  });
+
   describe('complete setup flow', () => {
     it('should complete all setup steps', () => {
       const workspaceDir = path.join(configDir, 'workspace');

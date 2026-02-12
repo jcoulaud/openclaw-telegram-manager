@@ -12,17 +12,13 @@ const MARKER_END = '<!-- TM_AUTOPILOT_END -->';
 const HEARTBEAT_BLOCK = `${MARKER_START}
 ## Topic Manager — Balanced Autopilot
 
-For each active topic in {workspace}/projects/:
-- [ ] Read STATUS.md. If "Last done (UTC)" timestamp is >3 days old, post a
-      nudge in the topic asking for a status update.
-- [ ] Verify task IDs in "Next actions (now)" exist in TODO.md.
-      If 2+ are missing, update STATUS.md to match TODO.md.
-- [ ] If 24+ hours since the last doctor report (check \`lastDoctorReportAt\`
-      in {workspace}/projects/topics.json), call \`topic_manager\` with command
-      "doctor --all" to health-check all active topics.
-- [ ] If any topic has \`lastPostError\` set, log a warning and retry once.
+Execute these steps IN ORDER. Do not skip steps.
 
-If none of the above triggered any action, no writes are needed (HEARTBEAT_OK).
+1. CALL \`topic_manager\` with command "doctor --all" to health-check all active topics.
+   This handles stale timestamps, task ID mismatches, and posting errors automatically.
+2. For each topic where STATUS.md "Last done (UTC)" is >3 days old:
+   post a brief nudge in that topic asking the user for a status update.
+3. If no actions were taken in steps 1-2, do nothing (HEARTBEAT_OK).
 ${MARKER_END}`;
 
 const HEARTBEAT_FILENAME = 'HEARTBEAT.md';
@@ -63,9 +59,6 @@ async function handleEnable(ctx: CommandContext): Promise<CommandResult> {
   const { workspaceDir } = ctx;
   const heartbeatPath = path.join(workspaceDir, HEARTBEAT_FILENAME);
 
-  // Build the block with the actual workspace path
-  const block = HEARTBEAT_BLOCK.replace('{workspace}', path.resolve(workspaceDir));
-
   // Read or create HEARTBEAT.md
   let content = '';
   try {
@@ -86,7 +79,7 @@ async function handleEnable(ctx: CommandContext): Promise<CommandResult> {
   }
 
   // Append block to HEARTBEAT.md
-  const newContent = content ? content.trimEnd() + '\n\n' + block + '\n' : block + '\n';
+  const newContent = content ? content.trimEnd() + '\n\n' + HEARTBEAT_BLOCK + '\n' : HEARTBEAT_BLOCK + '\n';
   fs.writeFileSync(heartbeatPath, newContent, { mode: 0o640 });
 
   await withRegistry(workspaceDir, (data) => {

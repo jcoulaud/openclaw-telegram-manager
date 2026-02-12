@@ -11,7 +11,7 @@ import {
 } from '../lib/types.js';
 import type { TopicEntry, InlineKeyboardMarkup } from '../lib/types.js';
 import { buildDoctorReport, buildDoctorButtons, createRateLimitedPoster } from '../lib/telegram.js';
-import { runAllChecksForTopic } from '../lib/doctor-checks.js';
+import { runAllChecksForTopic, backupCapsuleIfHealthy } from '../lib/doctor-checks.js';
 import { includePath } from '../lib/include-generator.js';
 import type { CommandContext, CommandResult } from './help.js';
 
@@ -97,6 +97,9 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
         // Auto-snooze is handled via the check result; we just note it
         logger.info(`[doctor-all] Auto-snoozing ${entry.slug} (${entry.consecutiveSilentDoctors} silent runs)`);
       }
+
+      // Backup if healthy
+      backupCapsuleIfHealthy(projectsBase, entry.slug, results);
 
       const reportText = buildDoctorReport(entry.name, results, 'html');
       const keyboard = buildDoctorButtons(

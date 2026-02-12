@@ -22,8 +22,11 @@ function check(
   checkId: string,
   message: string,
   fixable: boolean,
+  remediation?: string,
 ): DoctorCheckResult {
-  return { severity, checkId, message, fixable };
+  return remediation
+    ? { severity, checkId, message, fixable, remediation }
+    : { severity, checkId, message, fixable };
 }
 
 // ── Registry / mapping checks ──────────────────────────────────────────
@@ -41,7 +44,7 @@ export function runRegistryChecks(
   // Check path exists
   if (!fs.existsSync(capsuleDir)) {
     results.push(
-      check(Severity.ERROR, 'pathMissing', `Capsule path does not exist: projects/${entry.slug}/`, false),
+      check(Severity.ERROR, 'pathMissing', `Capsule path does not exist: projects/${entry.slug}/`, false, 'Run /tm init to create the capsule, or remove the registry entry'),
     );
     return results; // No point checking further if path doesn't exist
   }
@@ -118,7 +121,7 @@ export function runCapsuleChecks(
   // STATUS.md is critical
   if (!fs.existsSync(path.join(capsuleDir, 'STATUS.md'))) {
     results.push(
-      check(Severity.ERROR, 'statusMissing', 'STATUS.md is missing from capsule', true),
+      check(Severity.ERROR, 'statusMissing', 'STATUS.md is missing from capsule', true, 'Run /tm upgrade to recreate STATUS.md, or restore from .tm-backup/STATUS.md if available'),
     );
   }
 
@@ -126,7 +129,7 @@ export function runCapsuleChecks(
   if (!fs.existsSync(path.join(capsuleDir, 'TODO.md'))) {
     if (!isIgnored(entry, 'todoMissing')) {
       results.push(
-        check(Severity.WARN, 'todoMissing', 'TODO.md is missing from capsule', true),
+        check(Severity.WARN, 'todoMissing', 'TODO.md is missing from capsule', true, 'Run /tm upgrade to recreate TODO.md'),
       );
     }
   }
@@ -182,7 +185,7 @@ export function runStatusQualityChecks(
   if (!LAST_DONE_RE.test(statusContent)) {
     if (!isIgnored(entry, 'lastDoneMissing')) {
       results.push(
-        check(Severity.ERROR, 'lastDoneMissing', 'STATUS.md missing "Last done (UTC)" section', true),
+        check(Severity.ERROR, 'lastDoneMissing', 'STATUS.md missing "Last done (UTC)" section', true, 'Add "## Last done (UTC)" section with a timestamp to STATUS.md, or restore from .tm-backup/STATUS.md if available'),
       );
     }
   } else {
@@ -197,7 +200,7 @@ export function runStatusQualityChecks(
     if (!TIMESTAMP_RE.test(lastDoneSection)) {
       if (!isIgnored(entry, 'lastDoneNoTimestamp')) {
         results.push(
-          check(Severity.ERROR, 'lastDoneNoTimestamp', 'STATUS.md "Last done" section has no timestamp', true),
+          check(Severity.ERROR, 'lastDoneNoTimestamp', 'STATUS.md "Last done" section has no timestamp', true, 'Add a YYYY-MM-DDTHH:MM timestamp under "Last done (UTC)" in STATUS.md, or restore from .tm-backup/STATUS.md if available'),
         );
       }
     } else if (entry.status === 'active') {
@@ -214,6 +217,7 @@ export function runStatusQualityChecks(
                 'lastDoneStale',
                 `STATUS.md "Last done" timestamp is ${Math.floor(ageDays)} days old`,
                 false,
+                'Update the "Last done (UTC)" timestamp in STATUS.md or /tm snooze 7d',
               ),
             );
           }
@@ -226,7 +230,7 @@ export function runStatusQualityChecks(
   if (!NEXT_ACTIONS_RE.test(statusContent)) {
     if (!isIgnored(entry, 'nextActionsMissing')) {
       results.push(
-        check(Severity.ERROR, 'nextActionsMissing', 'STATUS.md missing "Next actions (now)" section', true),
+        check(Severity.ERROR, 'nextActionsMissing', 'STATUS.md missing "Next actions (now)" section', true, 'Add "## Next actions (now)" section with task IDs to STATUS.md'),
       );
     }
   } else {
@@ -249,6 +253,7 @@ export function runStatusQualityChecks(
             'nextActionsEmpty',
             '"Next actions (now)" has no task IDs or entries',
             false,
+            'Add task IDs like [T-1] under "Next actions (now)" in STATUS.md',
           ),
         );
       }
@@ -297,6 +302,7 @@ export function runNextVsTodoChecks(
         'nextNotInTodo',
         `${missing.length} task IDs in "Next actions (now)" not found in TODO.md: ${missing.join(', ')}`,
         false,
+        'Add missing task IDs to TODO.md or remove stale ones from STATUS.md',
       ),
     );
   }
@@ -321,7 +327,7 @@ export function runCommandsLinksChecks(
     if (commandsContent !== undefined && isEffectivelyEmpty(commandsContent)) {
       if (!isIgnored(entry, 'commandsEmpty')) {
         results.push(
-          check(Severity.INFO, 'commandsEmpty', 'COMMANDS.md is empty for a coding topic', false),
+          check(Severity.INFO, 'commandsEmpty', 'COMMANDS.md is empty for a coding topic', false, 'Add build/test/deploy commands to COMMANDS.md'),
         );
       }
     }
@@ -333,7 +339,7 @@ export function runCommandsLinksChecks(
     if (linksContent !== undefined && isEffectivelyEmpty(linksContent)) {
       if (!isIgnored(entry, 'linksEmpty')) {
         results.push(
-          check(Severity.INFO, 'linksEmpty', 'LINKS.md is empty for a coding/research topic', false),
+          check(Severity.INFO, 'linksEmpty', 'LINKS.md is empty for a coding/research topic', false, 'Add URLs and endpoints to LINKS.md'),
         );
       }
     }
@@ -435,7 +441,7 @@ export function runConfigChecks(
   if (!groupConfig) {
     if (!isIgnored(entry, 'configGroupMissing')) {
       results.push(
-        check(Severity.WARN, 'configGroupMissing', `Group ${entry.groupId} missing from generated include`, false),
+        check(Severity.WARN, 'configGroupMissing', `Group ${entry.groupId} missing from generated include`, false, 'Run /tm sync to add group to generated include'),
       );
     }
     return results;
@@ -447,7 +453,7 @@ export function runConfigChecks(
   if (!topicConfig) {
     if (!isIgnored(entry, 'configTopicMissing')) {
       results.push(
-        check(Severity.WARN, 'configTopicMissing', `Topic config missing for thread ${entry.threadId}`, false),
+        check(Severity.WARN, 'configTopicMissing', `Topic config missing for thread ${entry.threadId}`, false, 'Run /tm sync to add topic config to generated include'),
       );
     }
     return results;
@@ -457,7 +463,7 @@ export function runConfigChecks(
   if (!topicConfig['systemPrompt']) {
     if (!isIgnored(entry, 'configNoSystemPrompt')) {
       results.push(
-        check(Severity.WARN, 'configNoSystemPrompt', 'Per-topic systemPrompt is missing in generated include', false),
+        check(Severity.WARN, 'configNoSystemPrompt', 'Per-topic systemPrompt is missing in generated include', false, 'Run /tm sync to regenerate systemPrompt in config'),
       );
     }
   }
@@ -466,7 +472,7 @@ export function runConfigChecks(
   if (!topicConfig['skills'] || !Array.isArray(topicConfig['skills'])) {
     if (!isIgnored(entry, 'configNoSkills')) {
       results.push(
-        check(Severity.WARN, 'configNoSkills', 'Per-topic skills list is missing in generated include', false),
+        check(Severity.WARN, 'configNoSkills', 'Per-topic skills list is missing in generated include', false, 'Run /tm sync to regenerate skills list in config'),
       );
     }
   }
@@ -493,6 +499,7 @@ export function runIncludeDriftCheck(
         'includeDrift',
         'Generated include file has no registry-hash comment. Run /tm sync.',
         false,
+        'Run /tm sync to regenerate the config include',
       ),
     );
     return results;
@@ -507,6 +514,7 @@ export function runIncludeDriftCheck(
         'includeDrift',
         'Generated include is out of sync with registry. Run /tm sync.',
         false,
+        'Run /tm sync to regenerate the config include',
       ),
     );
   }
@@ -531,6 +539,7 @@ export function runSpamControlCheck(
         'spamControl',
         `${entry.consecutiveSilentDoctors} consecutive doctor reports with no user interaction. Auto-snoozing for 30 days.`,
         true,
+        'Interact with the topic or /tm snooze 30d to silence reports',
       ),
     );
   }
@@ -604,6 +613,39 @@ export function runAllChecksForTopic(
   results.push(...runSpamControlCheck(entry));
 
   return results;
+}
+
+// ── Backup helper ──────────────────────────────────────────────────────
+
+const BACKUP_DIR = '.tm-backup';
+const BACKUP_FILES = ['STATUS.md', 'TODO.md'];
+
+/**
+ * Snapshot STATUS.md and TODO.md to .tm-backup/ when all checks pass.
+ * Only creates a backup if no ERROR or WARN findings exist.
+ */
+export function backupCapsuleIfHealthy(
+  projectsBase: string,
+  slug: string,
+  results: DoctorCheckResult[],
+): void {
+  const hasIssues = results.some(r => r.severity === Severity.ERROR || r.severity === Severity.WARN);
+  if (hasIssues) return;
+
+  const capsuleDir = path.join(projectsBase, slug);
+  const backupDir = path.join(capsuleDir, BACKUP_DIR);
+
+  if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir, { recursive: true });
+  }
+
+  for (const file of BACKUP_FILES) {
+    const src = path.join(capsuleDir, file);
+    const dst = path.join(backupDir, file);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, dst);
+    }
+  }
 }
 
 // ── File reading helper ────────────────────────────────────────────────

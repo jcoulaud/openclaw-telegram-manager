@@ -14,11 +14,12 @@ import {
   runIncludeDriftCheck,
   runSpamControlCheck,
   runAllChecksForTopic,
+  backupCapsuleIfHealthy,
 } from '../src/lib/doctor-checks.js';
 import { scaffoldCapsule } from '../src/lib/capsule.js';
 import { createEmptyRegistry, writeRegistryAtomic, registryPath } from '../src/lib/registry.js';
 import { generateInclude, includePath } from '../src/lib/include-generator.js';
-import type { TopicEntry, Registry } from '../src/lib/types.js';
+import type { TopicEntry, Registry, DoctorCheckResult } from '../src/lib/types.js';
 import { Severity, CAPSULE_VERSION } from '../src/lib/types.js';
 
 describe('doctor-checks', () => {
@@ -70,7 +71,7 @@ describe('doctor-checks', () => {
       expect(results).toHaveLength(0);
     });
 
-    it('should detect missing capsule path', () => {
+    it('should detect missing capsule path with remediation', () => {
       const entry = createTestEntry();
 
       const results = runRegistryChecks(entry, projectsBase);
@@ -78,6 +79,7 @@ describe('doctor-checks', () => {
       expect(results).toHaveLength(1);
       expect(results[0]?.severity).toBe(Severity.ERROR);
       expect(results[0]?.checkId).toBe('pathMissing');
+      expect(results[0]?.remediation).toBe('Run /tm init to create the capsule, or remove the registry entry');
     });
 
     it('should detect when path is not a directory', () => {
@@ -135,14 +137,17 @@ describe('doctor-checks', () => {
   });
 
   describe('runCapsuleChecks', () => {
-    it('should detect missing STATUS.md', () => {
+    it('should detect missing STATUS.md with remediation', () => {
       const entry = createTestEntry();
       scaffoldCapsule(projectsBase, entry.slug, entry.name, entry.type);
       fs.unlinkSync(path.join(projectsBase, entry.slug, 'STATUS.md'));
 
       const results = runCapsuleChecks(entry, projectsBase);
 
-      expect(results.some(r => r.checkId === 'statusMissing' && r.severity === Severity.ERROR)).toBe(true);
+      const finding = results.find(r => r.checkId === 'statusMissing');
+      expect(finding).toBeDefined();
+      expect(finding!.severity).toBe(Severity.ERROR);
+      expect(finding!.remediation).toContain('Run /tm upgrade');
     });
 
     it('should detect missing TODO.md', () => {
@@ -585,6 +590,125 @@ backup-daily-abc123 - Runs at midnight
       const results = runConfigChecks(entry, '{{invalid', registry);
 
       expect(results).toHaveLength(0);
+    });
+  });
+
+  describe('remediation hints', () => {
+    it('should include remediation in findings', () => {
+      const entry = createTestEntry();
+      const status = '# Status\n\nSome content without sections';
+
+      const results = runStatusQualityChecks(status, entry);
+
+      const lastDoneMissing = results.find(r => r.checkId === 'lastDoneMissing');
+      expect(lastDoneMissing).toBeDefined();
+      expect(lastDoneMissing!.remediation).toContain('Last done (UTC)');
+
+      const nextActionsMissing = results.find(r => r.checkId === 'nextActionsMissing');
+      expect(nextActionsMissing).toBeDefined();
+      expect(nextActionsMissing!.remediation).toContain('Next actions (now)');
+    });
+
+    it('should include remediation for spam control', () => {
+      const entry = createTestEntry({ consecutiveSilentDoctors: 3 });
+
+      const results = runSpamControlCheck(entry);
+
+      expect(results[0]?.remediation).toBe('Interact with the topic or /tm snooze 30d to silence reports');
+    });
+  });
+
+  describe('backupCapsuleIfHealthy', () => {
+    it('should create .tm-backup/ with STATUS.md and TODO.md when all checks pass', () => {
+      const entry = createTestEntry();
+      scaffoldCapsule(projectsBase, entry.slug, entry.name, entry.type);
+
+      const results: DoctorCheckResult[] = []; // No issues
+
+      backupCapsuleIfHealthy(projectsBase, entry.slug, results);
+
+      const backupDir = path.join(projectsBase, entry.slug, '.tm-backup');
+      expect(fs.existsSync(backupDir)).toBe(true);
+      expect(fs.existsSync(path.join(backupDir, 'STATUS.md'))).toBe(true);
+      expect(fs.existsSync(path.join(backupDir, 'TODO.md'))).toBe(true);
+    });
+
+    it('should NOT create backup when ERROR findings exist', () => {
+      const entry = createTestEntry();
+      scaffoldCapsule(projectsBase, entry.slug, entry.name, entry.type);
+
+      const results: DoctorCheckResult[] = [
+        { severity: Severity.ERROR, checkId: 'test', message: 'err', fixable: false },
+      ];
+
+      backupCapsuleIfHealthy(projectsBase, entry.slug, results);
+
+      const backupDir = path.join(projectsBase, entry.slug, '.tm-backup');
+      expect(fs.existsSync(backupDir)).toBe(false);
+    });
+
+    it('should NOT create backup when WARN findings exist', () => {
+      const entry = createTestEntry();
+      scaffoldCapsule(projectsBase, entry.slug, entry.name, entry.type);
+
+      const results: DoctorCheckResult[] = [
+        { severity: Severity.WARN, checkId: 'test', message: 'warn', fixable: false },
+      ];
+
+      backupCapsuleIfHealthy(projectsBase, entry.slug, results);
+
+      const backupDir = path.join(projectsBase, entry.slug, '.tm-backup');
+      expect(fs.existsSync(backupDir)).toBe(false);
+    });
+
+    it('should overwrite previous backup (only keeps latest)', () => {
+      const entry = createTestEntry();
+      scaffoldCapsule(projectsBase, entry.slug, entry.name, entry.type);
+
+      // First backup
+      backupCapsuleIfHealthy(projectsBase, entry.slug, []);
+
+      // Modify STATUS.md
+      const statusPath = path.join(projectsBase, entry.slug, 'STATUS.md');
+      fs.writeFileSync(statusPath, '# Updated STATUS');
+
+      // Second backup
+      backupCapsuleIfHealthy(projectsBase, entry.slug, []);
+
+      const backupStatus = fs.readFileSync(
+        path.join(projectsBase, entry.slug, '.tm-backup', 'STATUS.md'),
+        'utf-8',
+      );
+      expect(backupStatus).toBe('# Updated STATUS');
+    });
+
+    it('should handle missing source files gracefully', () => {
+      const entry = createTestEntry();
+      const capsuleDir = path.join(projectsBase, entry.slug);
+      fs.mkdirSync(capsuleDir, { recursive: true });
+      // No STATUS.md or TODO.md
+
+      // Should not throw
+      backupCapsuleIfHealthy(projectsBase, entry.slug, []);
+
+      const backupDir = path.join(capsuleDir, '.tm-backup');
+      expect(fs.existsSync(backupDir)).toBe(true);
+      expect(fs.existsSync(path.join(backupDir, 'STATUS.md'))).toBe(false);
+      expect(fs.existsSync(path.join(backupDir, 'TODO.md'))).toBe(false);
+    });
+
+    it('should allow backup with only INFO findings', () => {
+      const entry = createTestEntry();
+      scaffoldCapsule(projectsBase, entry.slug, entry.name, entry.type);
+
+      const results: DoctorCheckResult[] = [
+        { severity: Severity.INFO, checkId: 'info', message: 'info', fixable: false },
+      ];
+
+      backupCapsuleIfHealthy(projectsBase, entry.slug, results);
+
+      const backupDir = path.join(projectsBase, entry.slug, '.tm-backup');
+      expect(fs.existsSync(backupDir)).toBe(true);
     });
   });
 

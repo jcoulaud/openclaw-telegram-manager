@@ -1,6 +1,6 @@
 ---
 name: tm
-description: Manage Telegram topics as deterministic workcells with durable capsule state
+description: Manage Telegram topic capsules — call topic_manager after reset/compaction to rehydrate, and before long conversations to flush state
 user-invocable: false
 ---
 

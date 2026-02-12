@@ -5,7 +5,7 @@ import { checkAuthorization } from '../lib/auth.js';
 import { topicKey } from '../lib/types.js';
 import { jailCheck, rejectSymlink } from '../lib/security.js';
 import { buildDoctorReport, buildDoctorButtons } from '../lib/telegram.js';
-import { runAllChecksForTopic } from '../lib/doctor-checks.js';
+import { runAllChecksForTopic, backupCapsuleIfHealthy } from '../lib/doctor-checks.js';
 import { includePath } from '../lib/include-generator.js';
 import type { CommandContext, CommandResult } from './help.js';
 
@@ -63,6 +63,9 @@ export async function handleDoctor(ctx: CommandContext): Promise<CommandResult> 
     registry,
     cronJobsPath,
   );
+
+  // Backup if healthy
+  backupCapsuleIfHealthy(projectsBase, entry.slug, results);
 
   // Build report
   const reportText = buildDoctorReport(entry.name, results);

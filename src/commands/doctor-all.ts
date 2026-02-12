@@ -211,11 +211,6 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
 
       entry.lastDoctorRunAt = now.toISOString();
 
-      // Update lastDoctorReportAt for non-fanout path (when postFn is undefined)
-      if (!ctx.postFn) {
-        entry.lastDoctorReportAt = now.toISOString();
-      }
-
       // Auto-snooze for spam control
       if (entry.consecutiveSilentDoctors >= SPAM_THRESHOLD) {
         entry.snoozeUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();

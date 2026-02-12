@@ -8,8 +8,10 @@
 
 _Waiting for first instructions._
 
-## Next 3 actions
+## Next actions (now)
 
-1. [T-1] _e.g. Set up project scaffolding_
-2. [T-2] _Waiting for next task_
-3. [T-3] _Waiting for next task_
+1. _e.g. Set up project scaffolding_
+
+## Upcoming actions
+
+_See TODO.md for full backlog._

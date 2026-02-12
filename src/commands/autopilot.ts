@@ -10,10 +10,19 @@ const MARKER_START = '<!-- TM_AUTOPILOT_START -->';
 const MARKER_END = '<!-- TM_AUTOPILOT_END -->';
 
 const HEARTBEAT_BLOCK = `${MARKER_START}
-## Topic Manager Daily Sweep
-- [ ] If 24+ hours since the last topic sweep (check \`lastDoctorAllRunAt\` in
-      {workspace}/projects/topics.json), call \`topic_manager\` with command
+## Topic Manager — Balanced Autopilot
+
+For each active topic in {workspace}/projects/:
+- [ ] Read STATUS.md. If "Last done (UTC)" timestamp is >3 days old, post a
+      nudge in the topic asking for a status update.
+- [ ] Verify task IDs in "Next actions (now)" exist in TODO.md.
+      If 2+ are missing, update STATUS.md to match TODO.md.
+- [ ] If 24+ hours since the last doctor report (check \`lastDoctorReportAt\`
+      in {workspace}/projects/topics.json), call \`topic_manager\` with command
       "doctor --all" to health-check all active topics.
+- [ ] If any topic has \`lastPostError\` set, log a warning and retry once.
+
+If none of the above triggered any action, no writes are needed (HEARTBEAT_OK).
 ${MARKER_END}`;
 
 const HEARTBEAT_FILENAME = 'HEARTBEAT.md';

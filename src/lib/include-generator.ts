@@ -28,13 +28,16 @@ Determinism rules:
   commands, or task state.
 - Before context compaction or when the conversation is long: proactively
   flush current progress to STATUS.md (update "Last done (UTC)" and
-  "Next 3 actions") so compaction cannot erase critical state.
+  "Next actions (now)") so compaction cannot erase critical state.
   Use the standard file write tool directly — do not route through /tm.
-- Keep STATUS.md accurate: always maintain "Last done (UTC)" and "Next 3 actions".
+- Keep STATUS.md accurate: always maintain "Last done (UTC)", "Next actions (now)",
+  and "Upcoming actions".
 - When new commands appear, add them to COMMANDS.md (don't leave them only in chat).
 - When new links/paths/services appear, add them to LINKS.md.
 - If automation/cron is involved, record job IDs + schedules in CRON.md.
 - Task IDs (e.g., [T-1]) must stay consistent between STATUS.md and TODO.md.
+- STATUS.md has two priority sections: "Next actions (now)" for immediate work
+  and "Upcoming actions" for the near-future pipeline.
 
 Learning capture:
 - When you discover something unexpected, a mistake, a workaround, or a
@@ -45,7 +48,11 @@ Learning capture:
 - If LEARNINGS.md exceeds ~200 lines, archive older entries to LEARNINGS-archive.md.
 
 Separation:
-- Do not mix in other topics' work unless explicitly requested.
+- Your workspace is strictly projects/${slug}/. Do not read, write, or reference
+  files in any other topic's capsule directory.
+- If the user mentions another topic by name or slug, ask for explicit
+  confirmation before mixing work: "This references topic X — switch context?"
+- Never copy data between topic capsules without explicit user instruction.
 - Ask one clarifying question if the next action is ambiguous.`;
 }
 

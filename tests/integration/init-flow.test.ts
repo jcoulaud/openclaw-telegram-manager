@@ -76,7 +76,7 @@ describe('init flow integration', () => {
       const statusContent = fs.readFileSync(statusPath, 'utf-8');
       expect(statusContent).toContain('Test Project');
       expect(statusContent).toContain('Last done (UTC)');
-      expect(statusContent).toContain('Next 3 actions');
+      expect(statusContent).toContain('Next actions (now)');
 
       // Step 6: Generate include and verify
       generateInclude(workspaceDir, registry, configDir);

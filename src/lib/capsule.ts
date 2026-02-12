@@ -12,7 +12,7 @@ const BASE_TEMPLATES: Record<string, (name: string) => string> = {
     `# ${name}\n\n_Describe what this topic is about._\n`,
 
   'STATUS.md': (name) =>
-    `# Status: ${name}\n\n> This file is maintained by the agent — just send messages in the chat.\n\n## Last done (UTC)\n\n${new Date().toISOString()}\n\n_Waiting for first instructions._\n\n## Next 3 actions\n\n1. [T-1] _e.g. Set up project scaffolding_\n2. [T-2] _Waiting for next task_\n3. [T-3] _Waiting for next task_\n`,
+    `# Status: ${name}\n\n> This file is maintained by the agent — just send messages in the chat.\n\n## Last done (UTC)\n\n${new Date().toISOString()}\n\n_Waiting for first instructions._\n\n## Next actions (now)\n\n1. _e.g. Set up project scaffolding_\n\n## Upcoming actions\n\n_See TODO.md for full backlog._\n`,
 
   'TODO.md': (name) =>
     `# TODO: ${name}\n\n## Backlog\n\n- [T-1] _e.g. Set up project scaffolding_\n- [T-2] _Waiting for next task_\n- [T-3] _Waiting for next task_\n\n## Completed\n\n_None yet._\n`,
@@ -176,6 +176,21 @@ export function upgradeCapsule(
     newVersion: CAPSULE_VERSION,
     addedFiles,
   };
+}
+
+// ── No-op write guard ───────────────────────────────────────────────────
+
+/**
+ * Write a capsule file only if its content has actually changed.
+ * Returns true if the file was written, false if skipped (identical content).
+ */
+export function writeCapsuleFileIfChanged(filePath: string, newContent: string): boolean {
+  if (fs.existsSync(filePath)) {
+    const existing = fs.readFileSync(filePath, 'utf-8');
+    if (existing === newContent) return false;
+  }
+  fs.writeFileSync(filePath, newContent, { mode: CAPSULE_FILE_MODE });
+  return true;
 }
 
 // ── Validate ───────────────────────────────────────────────────────────

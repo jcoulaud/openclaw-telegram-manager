@@ -381,6 +381,9 @@ function patchConfig(configDir: string): Record<string, unknown> | null {
   return existingGroups;
 }
 
+// Keep in sync with CURRENT_REGISTRY_VERSION in src/lib/types.ts
+const SETUP_REGISTRY_VERSION = 4;
+
 function initRegistry(projectsDir: string): void {
   const registryPath = path.join(projectsDir, REGISTRY_FILENAME);
 
@@ -390,10 +393,11 @@ function initRegistry(projectsDir: string): void {
 
   const callbackSecret = crypto.randomBytes(32).toString('hex');
   const registry = {
-    version: 2,
+    version: SETUP_REGISTRY_VERSION,
     topicManagerAdmins: [],
     callbackSecret,
     lastDoctorAllRunAt: null,
+    autopilotEnabled: false,
     maxTopics: 100,
     topics: {},
   };

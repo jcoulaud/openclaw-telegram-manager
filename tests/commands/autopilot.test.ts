@@ -37,7 +37,7 @@ describe('autopilot', () => {
   });
 
   describe('enable', () => {
-    it('should create HEARTBEAT.md with markers', async () => {
+    it('should create HEARTBEAT.md with markers and drift-detection items', async () => {
       const result = await handleAutopilot(makeCtx(), '');
       expect(result.text).toContain('Autopilot enabled');
 
@@ -48,6 +48,11 @@ describe('autopilot', () => {
       expect(content).toContain('<!-- TM_AUTOPILOT_START -->');
       expect(content).toContain('<!-- TM_AUTOPILOT_END -->');
       expect(content).toContain('doctor --all');
+      expect(content).toContain('Balanced Autopilot');
+      expect(content).toContain('Last done (UTC)');
+      expect(content).toContain('Next actions (now)');
+      expect(content).toContain('lastPostError');
+      expect(content).toContain('HEARTBEAT_OK');
     });
 
     it('should set registry autopilotEnabled to true', async () => {

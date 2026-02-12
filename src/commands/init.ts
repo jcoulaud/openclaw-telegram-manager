@@ -147,6 +147,7 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
         lastMessageAt: new Date().toISOString(),
         lastDoctorReportAt: null,
         lastDoctorRunAt: null,
+        lastCapsuleWriteAt: null,
         snoozeUntil: null,
         ignoreChecks: [],
         consecutiveSilentDoctors: 0,

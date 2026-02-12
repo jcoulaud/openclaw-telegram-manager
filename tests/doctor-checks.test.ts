@@ -51,6 +51,7 @@ describe('doctor-checks', () => {
     lastMessageAt: null,
     lastDoctorReportAt: null,
     lastDoctorRunAt: null,
+    lastCapsuleWriteAt: null,
     snoozeUntil: null,
     ignoreChecks: [],
     consecutiveSilentDoctors: 0,
@@ -268,7 +269,7 @@ ${oldDate}
       expect(results.some(r => r.checkId === 'lastDoneStale')).toBe(false);
     });
 
-    it('should detect missing "Next 3 actions" section', () => {
+    it('should detect missing "Next actions" section', () => {
       const entry = createTestEntry();
       const status = `# Status
 
@@ -282,7 +283,7 @@ ${oldDate}
       expect(results.some(r => r.checkId === 'nextActionsMissing')).toBe(true);
     });
 
-    it('should detect empty "Next 3 actions"', () => {
+    it('should detect empty "Next actions (now)"', () => {
       const entry = createTestEntry();
       const status = `# Status
 
@@ -290,13 +291,53 @@ ${oldDate}
 
 2025-01-15T10:30:00Z
 
-## Next 3 actions
+## Next actions (now)
 
 `;
 
       const results = runStatusQualityChecks(status, entry);
 
       expect(results.some(r => r.checkId === 'nextActionsEmpty')).toBe(true);
+    });
+
+    it('should accept old "Next 3 actions" format (backward compat)', () => {
+      const entry = createTestEntry();
+      const status = `# Status
+
+## Last done (UTC)
+
+${new Date().toISOString()}
+
+## Next 3 actions
+
+1. [T-1] First task
+2. [T-2] Second task
+3. [T-3] Third task
+`;
+
+      const results = runStatusQualityChecks(status, entry);
+      expect(results.some(r => r.checkId === 'nextActionsMissing')).toBe(false);
+    });
+
+    it('should accept new "Next actions (now)" format', () => {
+      const entry = createTestEntry();
+      const status = `# Status
+
+## Last done (UTC)
+
+${new Date().toISOString()}
+
+## Next actions (now)
+
+1. [T-1] First task
+
+## Upcoming actions
+
+_See TODO.md for full backlog._
+`;
+
+      const results = runStatusQualityChecks(status, entry);
+      expect(results.some(r => r.checkId === 'nextActionsMissing')).toBe(false);
     });
 
     it('should accept [AD-HOC] entries', () => {

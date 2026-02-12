@@ -15,6 +15,7 @@ import { handleUpgrade } from './commands/upgrade.js';
 import { handleSnooze } from './commands/snooze.js';
 import { handleArchive, handleUnarchive } from './commands/archive.js';
 import { handleAutopilot } from './commands/autopilot.js';
+import { handleDailyReport } from './commands/daily-report.js';
 import { handleHelp } from './commands/help.js';
 import type { CommandContext, CommandResult } from './commands/help.js';
 import type { Logger, RpcInterface } from './lib/config-restart.js';
@@ -141,6 +142,9 @@ export function createTopicManagerTool(deps: ToolDeps): TopicManagerTool {
 
           case 'autopilot':
             return await handleAutopilot(ctx, args);
+
+          case 'daily-report':
+            return await handleDailyReport(ctx);
 
           case 'help':
             return await handleHelp(ctx);

@@ -135,6 +135,7 @@ describe('registry', () => {
         lastMessageAt: null,
         lastDoctorReportAt: null,
         lastDoctorRunAt: null,
+        lastCapsuleWriteAt: null,
         snoozeUntil: null,
         ignoreChecks: [],
         consecutiveSilentDoctors: 0,
@@ -175,6 +176,43 @@ describe('registry', () => {
 
       expect(result.version).toBe(CURRENT_REGISTRY_VERSION);
       expect(result.autopilotEnabled).toBe(false);
+    });
+
+    it('should migrate v3 registry to v4 by adding lastCapsuleWriteAt', () => {
+      const regPath = registryPath(workspaceDir);
+      const v3Registry = {
+        version: 3,
+        topicManagerAdmins: [],
+        callbackSecret: 'secret',
+        lastDoctorAllRunAt: null,
+        autopilotEnabled: false,
+        maxTopics: 100,
+        topics: {
+          '-100:1': {
+            groupId: '-100',
+            threadId: '1',
+            slug: 'alpha',
+            name: 'alpha',
+            type: 'coding',
+            status: 'active',
+            capsuleVersion: 2,
+            lastMessageAt: null,
+            lastDoctorReportAt: null,
+            lastDoctorRunAt: null,
+            snoozeUntil: null,
+            ignoreChecks: [],
+            consecutiveSilentDoctors: 0,
+            lastPostError: null,
+            extras: {},
+          },
+        },
+      };
+      fs.writeFileSync(regPath, JSON.stringify(v3Registry), { mode: 0o600 });
+
+      const result = readRegistry(workspaceDir);
+
+      expect(result.version).toBe(CURRENT_REGISTRY_VERSION);
+      expect(result.topics['-100:1']?.lastCapsuleWriteAt).toBeNull();
     });
 
     it('should migrate v1 registry entries by setting name = slug', () => {
@@ -303,6 +341,7 @@ describe('registry', () => {
         lastMessageAt: '2025-01-01T00:00:00Z',
         lastDoctorReportAt: null,
         lastDoctorRunAt: null,
+        lastCapsuleWriteAt: null,
         snoozeUntil: '2025-12-31T23:59:59Z',
         ignoreChecks: ['check1', 'check2'],
         consecutiveSilentDoctors: 2,

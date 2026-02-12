@@ -19,7 +19,7 @@ If you detect any of these conditions, invoke `topic_manager` proactively:
    then COMMANDS.md.
 2. **Before context gets large**: proactively flush current progress to
    STATUS.md using the standard file write tool (update "Last done (UTC)"
-   and "Next 3 actions"). Do NOT route this through /tm — write directly.
+   and "Next actions (now)"). Do NOT route this through /tm — write directly.
 3. **When you notice a topic has no capsule**: suggest `/tm init`.
 4. **When you discover something unexpected** (a mistake, workaround, or
    constraint): prepend a dated entry to LEARNINGS.md in the capsule.
@@ -40,4 +40,5 @@ argument to `topic_manager`. This routes inline keyboard callbacks
 ## Available sub-commands
 
 init, doctor, doctor --all, status, list, sync, rename <name>,
-upgrade, snooze <Nd>, archive, unarchive, autopilot [enable|disable|status], help
+upgrade, snooze <Nd>, archive, unarchive, autopilot [enable|disable|status],
+daily-report, help

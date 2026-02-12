@@ -57,6 +57,8 @@ All commands are typed directly in the Telegram group chat:
 | `/tm snooze <duration>` | Snooze a topic (e.g. `7d`, `30d`) |
 | `/tm archive` | Archive a topic |
 | `/tm unarchive` | Bring back an archived topic |
+| `/tm autopilot [enable\|disable\|status]` | Toggle daily health sweeps |
+| `/tm daily-report` | Generate a daily status report for the current topic |
 | `/tm help` | Show this command list in Telegram |
 
 ## What's in a capsule
@@ -64,12 +66,13 @@ All commands are typed directly in the Telegram group chat:
 Each topic gets a folder at `~/.openclaw/workspace/projects/t-<threadId>/` with these files:
 
 **Always included:**
-- `STATUS.md` — what's happening, last activity, next 3 actions
+- `STATUS.md` — what's happening, last activity, next actions and upcoming pipeline
 - `TODO.md` — task backlog
 - `COMMANDS.md` — build/deploy/test commands worth remembering
 - `LINKS.md` — URLs and endpoints
 - `CRON.md` — scheduled jobs
 - `NOTES.md` — anything else worth keeping
+- `LEARNINGS.md` — hard-won insights, mistakes, and workarounds
 - `README.md` — what this topic is about
 
 **Extra files by type:**

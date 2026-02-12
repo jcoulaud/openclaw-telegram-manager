@@ -6,6 +6,7 @@ import {
   scaffoldCapsule,
   upgradeCapsule,
   validateCapsule,
+  writeCapsuleFileIfChanged,
 } from '../src/lib/capsule.js';
 import type { TopicType } from '../src/lib/types.js';
 import { CAPSULE_VERSION, BASE_FILES, OVERLAY_FILES } from '../src/lib/types.js';
@@ -148,6 +149,20 @@ describe('capsule', () => {
       const content = fs.readFileSync(readmePath, 'utf-8');
 
       expect(content).toContain(slug);
+    });
+
+    it('should create STATUS.md with two-tier queue format', () => {
+      const slug = 'test-two-tier';
+      scaffoldCapsule(projectsBase, slug, slug, 'coding');
+
+      const capsuleDir = path.join(projectsBase, slug);
+      const statusPath = path.join(capsuleDir, 'STATUS.md');
+      const content = fs.readFileSync(statusPath, 'utf-8');
+
+      expect(content).toContain('## Next actions (now)');
+      expect(content).toContain('## Upcoming actions');
+      expect(content).toContain('See TODO.md for full backlog.');
+      expect(content).not.toContain('Next 3 actions');
     });
   });
 
@@ -301,6 +316,36 @@ describe('capsule', () => {
 
     it('should reject path traversal', () => {
       expect(() => validateCapsule(projectsBase, '../escape', 'coding')).toThrow(/Path escapes/);
+    });
+  });
+
+  describe('writeCapsuleFileIfChanged', () => {
+    it('should skip write when content is identical', () => {
+      const filePath = path.join(projectsBase, 'test-file.md');
+      fs.writeFileSync(filePath, 'Hello World');
+
+      const result = writeCapsuleFileIfChanged(filePath, 'Hello World');
+
+      expect(result).toBe(false);
+    });
+
+    it('should write when content differs', () => {
+      const filePath = path.join(projectsBase, 'test-file.md');
+      fs.writeFileSync(filePath, 'Old content');
+
+      const result = writeCapsuleFileIfChanged(filePath, 'New content');
+
+      expect(result).toBe(true);
+      expect(fs.readFileSync(filePath, 'utf-8')).toBe('New content');
+    });
+
+    it('should write when file does not exist', () => {
+      const filePath = path.join(projectsBase, 'new-file.md');
+
+      const result = writeCapsuleFileIfChanged(filePath, 'Brand new');
+
+      expect(result).toBe(true);
+      expect(fs.readFileSync(filePath, 'utf-8')).toBe('Brand new');
     });
   });
 });

@@ -164,7 +164,7 @@ export function runCapsuleChecks(
 // ── STATUS.md quality checks ───────────────────────────────────────────
 
 const LAST_DONE_RE = /^##\s*Last done\s*\(UTC\)/im;
-const NEXT_ACTIONS_RE = /^##\s*Next 3 actions/im;
+const NEXT_ACTIONS_RE = /^##\s*Next (?:3 )?actions(?: \(now\))?/im;
 const TIMESTAMP_RE = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 const TASK_ID_RE = /\[T-\d+\]/g;
 const ADHOC_RE = /\[AD-HOC\]/g;
@@ -222,11 +222,11 @@ export function runStatusQualityChecks(
     }
   }
 
-  // "Next 3 actions" section check
+  // "Next actions (now)" section check
   if (!NEXT_ACTIONS_RE.test(statusContent)) {
     if (!isIgnored(entry, 'nextActionsMissing')) {
       results.push(
-        check(Severity.ERROR, 'nextActionsMissing', 'STATUS.md missing "Next 3 actions" section', true),
+        check(Severity.ERROR, 'nextActionsMissing', 'STATUS.md missing "Next actions (now)" section', true),
       );
     }
   } else {
@@ -247,7 +247,7 @@ export function runStatusQualityChecks(
           check(
             Severity.WARN,
             'nextActionsEmpty',
-            '"Next 3 actions" has no task IDs or entries',
+            '"Next actions (now)" has no task IDs or entries',
             false,
           ),
         );
@@ -261,7 +261,7 @@ export function runStatusQualityChecks(
 // ── Next vs TODO cross-reference ───────────────────────────────────────
 
 /**
- * Check that task IDs in "Next 3 actions" exist in TODO.md.
+ * Check that task IDs in "Next actions (now)" exist in TODO.md.
  */
 export function runNextVsTodoChecks(
   statusContent: string,
@@ -295,7 +295,7 @@ export function runNextVsTodoChecks(
       check(
         Severity.WARN,
         'nextNotInTodo',
-        `${missing.length} task IDs in "Next 3 actions" not found in TODO.md: ${missing.join(', ')}`,
+        `${missing.length} task IDs in "Next actions (now)" not found in TODO.md: ${missing.join(', ')}`,
         false,
       ),
     );

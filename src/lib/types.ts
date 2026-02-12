@@ -2,8 +2,8 @@ import { Type, type Static } from '@sinclair/typebox';
 
 // ── Constants ──────────────────────────────────────────────────────────
 
-export const CURRENT_REGISTRY_VERSION = 3;
-export const CAPSULE_VERSION = 2;
+export const CURRENT_REGISTRY_VERSION = 4;
+export const CAPSULE_VERSION = 3;
 export const MAX_EXTRAS_BYTES = 10_240;
 export const MAX_POST_ERROR_LENGTH = 500;
 export const MAX_TOPICS_DEFAULT = 100;
@@ -66,6 +66,7 @@ export const TopicEntrySchema = Type.Object({
   lastMessageAt: Type.Union([Type.String(), Type.Null()]),
   lastDoctorReportAt: Type.Union([Type.String(), Type.Null()]),
   lastDoctorRunAt: Type.Union([Type.String(), Type.Null()]),
+  lastCapsuleWriteAt: Type.Union([Type.String(), Type.Null()]),
   snoozeUntil: Type.Union([Type.String(), Type.Null()]),
   ignoreChecks: Type.Array(Type.String()),
   consecutiveSilentDoctors: Type.Integer({ minimum: 0 }),

@@ -37,6 +37,7 @@ describe('doctor-all', () => {
     lastMessageAt: new Date().toISOString(),
     lastDoctorReportAt: null,
     lastDoctorRunAt: null,
+    lastCapsuleWriteAt: null,
     snoozeUntil: null,
     ignoreChecks: [],
     consecutiveSilentDoctors: 0,
@@ -67,7 +68,7 @@ describe('doctor-all', () => {
   }
 
   describe('lastDoctorReportAt', () => {
-    it('should update lastDoctorReportAt when postFn is undefined', async () => {
+    it('should NOT update lastDoctorReportAt when postFn is undefined (no fan-out)', async () => {
       const entry = makeEntry();
       const key = `${entry.groupId}:${entry.threadId}`;
       setupRegistry({ [key]: entry });
@@ -76,7 +77,9 @@ describe('doctor-all', () => {
       await handleDoctorAll(makeCtx());
 
       const reg = readRegistry(workspaceDir);
-      expect(reg.topics[key]?.lastDoctorReportAt).not.toBeNull();
+      // Without postFn, lastDoctorReportAt is not set (only lastDoctorRunAt is)
+      expect(reg.topics[key]?.lastDoctorReportAt).toBeNull();
+      expect(reg.topics[key]?.lastDoctorRunAt).not.toBeNull();
     });
   });
 

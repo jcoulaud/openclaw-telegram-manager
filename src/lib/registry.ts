@@ -45,6 +45,17 @@ const migrations: Record<string, MigrationFn> = {
     }
     return data;
   },
+  '3_to_4': (data) => {
+    const topics = data['topics'];
+    if (topics && typeof topics === 'object' && !Array.isArray(topics)) {
+      for (const entry of Object.values(topics as Record<string, Record<string, unknown>>)) {
+        if (entry['lastCapsuleWriteAt'] === undefined) {
+          entry['lastCapsuleWriteAt'] = null;
+        }
+      }
+    }
+    return data;
+  },
 };
 
 function migrateRegistry(data: Record<string, unknown>): Record<string, unknown> {

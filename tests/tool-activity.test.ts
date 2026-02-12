@@ -50,6 +50,7 @@ describe('tool activity tracking', () => {
       lastMessageAt: null,
       lastDoctorReportAt: null,
       lastDoctorRunAt: null,
+      lastCapsuleWriteAt: null,
       snoozeUntil: null,
       ignoreChecks: [],
       consecutiveSilentDoctors: 0,
@@ -131,7 +132,7 @@ describe('tool activity tracking', () => {
       await settle();
 
       const reg = readRegistry(workspaceDir);
-      expect(reg.topics['-100:1']?.capsuleVersion).toBe(2);
+      expect(reg.topics['-100:1']?.capsuleVersion).toBe(3);
     });
 
     it('should add LEARNINGS.md when upgrading from v1', async () => {
@@ -154,7 +155,7 @@ describe('tool activity tracking', () => {
 
     it('should no-op when already at current version', async () => {
       const logSpy = vi.fn();
-      setupWithTopic({ capsuleVersion: 2 });
+      setupWithTopic({ capsuleVersion: 3 });
       const tool = createTopicManagerTool(makeDeps({
         logger: { info: logSpy, warn() {}, error() {} },
       }));

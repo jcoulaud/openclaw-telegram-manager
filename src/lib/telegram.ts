@@ -12,6 +12,46 @@ const TELEGRAM_MSG_LIMIT = 4096;
 // Re-export keyboard types from canonical location
 export type { InlineKeyboardButton, InlineKeyboardMarkup } from './types.js';
 
+// ── Daily report ────────────────────────────────────────────────────────
+
+export interface DailyReportData {
+  name: string;
+  doneContent: string;
+  learningsContent: string;
+  blockersContent: string;
+  nextContent: string;
+  upcomingContent: string;
+  health: 'fresh' | 'stale' | 'blocked';
+}
+
+/**
+ * Format a daily report as HTML for Telegram posting.
+ */
+export function buildDailyReport(data: DailyReportData): string {
+  const n = htmlEscape(data.name);
+  const lines = [
+    `<b>Daily Report: ${n}</b>`,
+    '',
+    `<b>Done today</b>`,
+    htmlEscape(data.doneContent),
+    '',
+    `<b>New learnings</b>`,
+    htmlEscape(data.learningsContent),
+    '',
+    `<b>Blockers/Risks</b>`,
+    htmlEscape(data.blockersContent),
+    '',
+    `<b>Next actions (now)</b>`,
+    htmlEscape(data.nextContent),
+    '',
+    `<b>Upcoming</b>`,
+    htmlEscape(data.upcomingContent),
+    '',
+    `<b>Health:</b> ${data.health}`,
+  ];
+  return truncateMessage(lines.join('\n'));
+}
+
 // ── Rate limiting config ───────────────────────────────────────────────
 
 export interface RateLimitConfig {
@@ -187,6 +227,7 @@ export function buildHelpCard(): string {
     '/tm archive — archive topic',
     '/tm unarchive — reactivate topic',
     '/tm autopilot [enable|disable|status] — daily sweeps',
+    '/tm daily-report — generate daily status report',
     '/tm help — this message',
   ].join('\n');
 }

@@ -391,7 +391,7 @@ describe('commands/init', () => {
   });
 
   describe('handleInitTypeSelect', () => {
-    it('should show confirmation message with Confirm button for coding', async () => {
+    it('should show confirmation message with Use this name button for coding', async () => {
       ctx.messageContext = { topicTitle: 'My Project' };
 
       const result = await handleInitTypeSelect(ctx, 'coding');
@@ -399,7 +399,7 @@ describe('commands/init', () => {
       expect(result.text).toContain('My Project');
       expect(result.text).toContain('coding');
       expect(result.inlineKeyboard).toBeDefined();
-      expect(result.inlineKeyboard!.inline_keyboard[0][0].text).toBe('Confirm');
+      expect(result.inlineKeyboard!.inline_keyboard[0][0].text).toBe('Use this name');
       expect(result.pin).toBeUndefined();
 
       // Topic should NOT be in registry yet
@@ -412,7 +412,7 @@ describe('commands/init', () => {
 
       expect(result.text).toContain('research');
       expect(result.inlineKeyboard).toBeDefined();
-      expect(result.inlineKeyboard!.inline_keyboard[0][0].text).toBe('Confirm');
+      expect(result.inlineKeyboard!.inline_keyboard[0][0].text).toBe('Use this name');
 
       const registry = readRegistry(workspaceDir);
       expect(registry.topics['-100123:456']).toBeUndefined();
@@ -461,10 +461,140 @@ describe('commands/init', () => {
       expect(result.text).toContain('Topic 456');
     });
 
+    it('should include Almost there heading in confirm message', async () => {
+      const result = await handleInitTypeSelect(ctx, 'coding');
+
+      expect(result.text).toContain('Almost there');
+    });
+
     it('should include hint about /tm init <name> <type>', async () => {
       const result = await handleInitTypeSelect(ctx, 'coding');
 
       expect(result.text).toContain('/tm init');
+    });
+  });
+
+  describe('postFn direct posting', () => {
+    it('should post HTML via postFn for type picker (step 1)', async () => {
+      const postFn = vi.fn().mockResolvedValue(undefined);
+      ctx.postFn = postFn;
+      ctx.messageContext = { topicTitle: 'My Project' };
+
+      const result = await handleInitInteractive(ctx, '');
+
+      expect(postFn).toHaveBeenCalledOnce();
+      const [gId, tId, html, keyboard] = postFn.mock.calls[0];
+      expect(gId).toBe('-100123');
+      expect(tId).toBe('456');
+      expect(html).toContain('Set up a new topic workcell');
+      expect(html).toContain('Coding');
+      expect(keyboard).toBeDefined();
+      expect(keyboard.inline_keyboard).toHaveLength(2);
+
+      // CommandResult should be minimal text with no keyboard
+      expect(result.text).toContain('pick a type');
+      expect(result.inlineKeyboard).toBeUndefined();
+    });
+
+    it('should post HTML via postFn for name confirmation (step 2)', async () => {
+      const postFn = vi.fn().mockResolvedValue(undefined);
+      ctx.postFn = postFn;
+      ctx.messageContext = { topicTitle: 'My Project' };
+
+      const result = await handleInitTypeSelect(ctx, 'research');
+
+      expect(postFn).toHaveBeenCalledOnce();
+      const [gId, tId, html, keyboard] = postFn.mock.calls[0];
+      expect(gId).toBe('-100123');
+      expect(tId).toBe('456');
+      expect(html).toContain('Almost there');
+      expect(html).toContain('My Project');
+      expect(html).toContain('research');
+      expect(keyboard).toBeDefined();
+      expect(keyboard.inline_keyboard[0][0].text).toBe('Use this name');
+
+      // CommandResult should be minimal text with no keyboard
+      expect(result.text).toContain('Type selected: research');
+      expect(result.inlineKeyboard).toBeUndefined();
+    });
+
+    it('should post HTML via postFn for topic card (step 3)', async () => {
+      const postFn = vi.fn().mockResolvedValue(undefined);
+      ctx.postFn = postFn;
+      ctx.messageContext = { topicTitle: 'My Project' };
+
+      const result = await handleInit(ctx, 'my-project coding');
+
+      expect(postFn).toHaveBeenCalledOnce();
+      const [gId, tId, html] = postFn.mock.calls[0];
+      expect(gId).toBe('-100123');
+      expect(tId).toBe('456');
+      expect(html).toContain('Topic: my-project');
+      expect(html).toContain('How it works');
+      expect(html).toContain('autopilot');
+
+      // CommandResult should be minimal text with pin
+      expect(result.text).toContain('Topic "my-project" initialized as coding');
+      expect(result.text).toContain('projects/t-456/');
+      expect(result.pin).toBe(true);
+    });
+
+    it('should fall back to markdown when postFn throws', async () => {
+      const postFn = vi.fn().mockRejectedValue(new Error('network error'));
+      ctx.postFn = postFn;
+      ctx.messageContext = { topicTitle: 'My Project' };
+
+      const result = await handleInitInteractive(ctx, '');
+
+      expect(postFn).toHaveBeenCalledOnce();
+      // Falls back to markdown with inline keyboard
+      expect(result.text).toContain('Pick a topic type');
+      expect(result.inlineKeyboard).toBeDefined();
+    });
+
+    it('should fall back to markdown when postFn throws for type select', async () => {
+      const postFn = vi.fn().mockRejectedValue(new Error('network error'));
+      ctx.postFn = postFn;
+      ctx.messageContext = { topicTitle: 'My Project' };
+
+      const result = await handleInitTypeSelect(ctx, 'coding');
+
+      expect(postFn).toHaveBeenCalledOnce();
+      // Falls back to markdown with inline keyboard
+      expect(result.text).toContain('Almost there');
+      expect(result.inlineKeyboard).toBeDefined();
+    });
+
+    it('should fall back to markdown when postFn throws for init', async () => {
+      const postFn = vi.fn().mockRejectedValue(new Error('network error'));
+      ctx.postFn = postFn;
+
+      const result = await handleInit(ctx, 'test-topic coding');
+
+      expect(postFn).toHaveBeenCalledOnce();
+      // Falls back to full markdown topic card
+      expect(result.text).toContain('**Topic: test-topic**');
+      expect(result.pin).toBe(true);
+    });
+
+    it('should fall back to markdown when postFn is undefined', async () => {
+      // postFn not set (undefined) - existing behavior
+      const result = await handleInitInteractive(ctx, '');
+
+      expect(result.text).toContain('Pick a topic type');
+      expect(result.inlineKeyboard).toBeDefined();
+    });
+
+    it('should not pass keyboard to postFn for step 3 (final step)', async () => {
+      const postFn = vi.fn().mockResolvedValue(undefined);
+      ctx.postFn = postFn;
+
+      await handleInit(ctx, 'test-topic coding');
+
+      expect(postFn).toHaveBeenCalledOnce();
+      // Step 3 should not include a keyboard argument (or it should be undefined)
+      const [, , , keyboard] = postFn.mock.calls[0];
+      expect(keyboard).toBeUndefined();
     });
   });
 

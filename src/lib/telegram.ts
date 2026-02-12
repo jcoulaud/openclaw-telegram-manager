@@ -136,7 +136,7 @@ export function buildInitConfirmButton(
     custom: 'yx',
   };
   const cb = buildCallbackData(actionMap[type], groupId, threadId, secret, userId);
-  return buildInlineKeyboard([[{ text: 'Confirm', callback_data: cb }]]);
+  return buildInlineKeyboard([[{ text: 'Use this name', callback_data: cb }]]);
 }
 
 /**
@@ -162,6 +162,75 @@ export function buildTopicCard(name: string, slug: string, type: TopicType, caps
     '/tm list — all topics',
     '/tm archive — archive this topic',
     '/tm help — full command reference',
+  ].join('\n');
+}
+
+// ── Init flow HTML builders (for direct postFn posting) ─────────────
+
+/**
+ * Build HTML for init step 1: welcome + type picker.
+ * Posted directly via postFn to bypass AI reformatting.
+ */
+export function buildInitWelcomeHtml(): string {
+  return [
+    '<b>Set up a new topic workcell</b>',
+    '',
+    'A workcell gives this topic its own capsule — a set of markdown files (STATUS.md, TODO.md, etc.) that persist across resets and context compaction.',
+    '',
+    '<b>Pick a type:</b>',
+    '\u2022 <b>Coding</b> — adds ARCHITECTURE.md + DEPLOY.md',
+    '\u2022 <b>Research</b> — adds SOURCES.md + FINDINGS.md',
+    '\u2022 <b>Marketing</b> — adds CAMPAIGNS.md + METRICS.md',
+    '\u2022 <b>Custom</b> — base files only',
+  ].join('\n');
+}
+
+/**
+ * Build HTML for init step 2: name confirmation.
+ * Posted directly via postFn to bypass AI reformatting.
+ */
+export function buildInitNameConfirmHtml(name: string, type: TopicType): string {
+  const n = htmlEscape(name);
+  const t = htmlEscape(type);
+  return [
+    '<b>Almost there!</b>',
+    '',
+    `Name: <b>${n}</b>`,
+    `Type: ${t}`,
+    '',
+    'This name appears in status reports and doctor checks.',
+    '',
+    `For a custom name: <code>/tm init your-name ${t}</code>`,
+  ].join('\n');
+}
+
+/**
+ * Build HTML for init step 3: topic card after successful init.
+ * Posted directly via postFn to bypass AI reformatting.
+ */
+export function buildTopicCardHtml(name: string, slug: string, type: TopicType, capsuleVersion: number): string {
+  const n = htmlEscape(name);
+  const s = htmlEscape(slug);
+  const t = htmlEscape(type);
+  return [
+    `<b>Topic: ${n}</b>`,
+    `Type: ${t} | Version: ${capsuleVersion}`,
+    `Capsule: <code>projects/${s}/</code>`,
+    '',
+    '<b>How it works</b>',
+    'Just send your instructions in this topic. The agent',
+    'maintains STATUS.md and TODO.md automatically as it',
+    'works \u2014 nothing is lost on reset or context compaction.',
+    'Doctor checks run periodically and alert you if anything',
+    'needs attention.',
+    '',
+    '<b>Commands:</b>',
+    '/tm status \u2014 quick STATUS.md view',
+    '/tm doctor \u2014 run health checks',
+    '/tm rename &lt;name&gt; \u2014 rename this topic',
+    '/tm list \u2014 all topics',
+    '/tm archive \u2014 archive this topic',
+    '/tm help \u2014 full command reference',
   ].join('\n');
 }
 

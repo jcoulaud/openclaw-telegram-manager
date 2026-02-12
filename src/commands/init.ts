@@ -16,7 +16,14 @@ import {
   validateThreadId,
 } from '../lib/security.js';
 import { scaffoldCapsule } from '../lib/capsule.js';
-import { buildTopicCard, buildInitTypeButtons, buildInitConfirmButton } from '../lib/telegram.js';
+import {
+  buildTopicCard,
+  buildInitTypeButtons,
+  buildInitConfirmButton,
+  buildInitWelcomeHtml,
+  buildInitNameConfirmHtml,
+  buildTopicCardHtml,
+} from '../lib/telegram.js';
 import { generateInclude } from '../lib/include-generator.js';
 import { triggerRestart, getConfigWrites } from '../lib/config-restart.js';
 import { appendAudit, buildAuditEntry } from '../lib/audit.js';
@@ -194,11 +201,28 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
   const topicCard = buildTopicCard(name, finalSlug, topicType, CAPSULE_VERSION);
 
   let adminNote = '';
+  let adminNoteHtml = '';
   if (isFirstUser) {
     adminNote = '\n\nYou are the first user and have been added as a telegram-manager admin.';
+    adminNoteHtml = '\n\nYou are the first user and have been added as a telegram-manager admin.';
   }
 
   const autopilotTip = '\n\nTip: Enable daily health sweeps with /tm autopilot enable';
+  const autopilotTipHtml = '\n\nTip: Enable daily health sweeps with <code>/tm autopilot enable</code>';
+
+  // Direct Telegram posting (bypasses AI reformatting)
+  if (ctx.postFn && groupId && threadId) {
+    try {
+      const htmlCard = buildTopicCardHtml(name, finalSlug, topicType, CAPSULE_VERSION);
+      await ctx.postFn(groupId, threadId, `${htmlCard}${adminNoteHtml}${autopilotTipHtml}`);
+      return {
+        text: `Topic "${name}" initialized as ${topicType}. Capsule: projects/${finalSlug}/`,
+        pin: true,
+      };
+    } catch {
+      // Fall through to markdown fallback
+    }
+  }
 
   return {
     text: `${topicCard}${adminNote}${restartMsg}${autopilotTip}`,
@@ -258,6 +282,16 @@ async function buildTypePicker(ctx: CommandContext): Promise<CommandResult> {
 
   const keyboard = buildInitTypeButtons(groupId, threadId, registry.callbackSecret, userId);
 
+  // Direct Telegram posting (bypasses AI reformatting)
+  if (ctx.postFn) {
+    try {
+      await ctx.postFn(groupId, threadId, buildInitWelcomeHtml(), keyboard);
+      return { text: 'Topic setup started — pick a type using the buttons above.' };
+    } catch {
+      // Fall through to markdown fallback
+    }
+  }
+
   return {
     text: 'Pick a topic type:',
     inlineKeyboard: keyboard,
@@ -304,6 +338,16 @@ export async function handleInitTypeSelect(ctx: CommandContext, type: TopicType)
   const name = deriveTopicName('', messageContext, threadId);
   const keyboard = buildInitConfirmButton(groupId, threadId, registry.callbackSecret, userId, type);
 
+  // Direct Telegram posting (bypasses AI reformatting)
+  if (ctx.postFn) {
+    try {
+      await ctx.postFn(groupId, threadId, buildInitNameConfirmHtml(name, type), keyboard);
+      return { text: `Type selected: ${type}. Confirm the name or type /tm init <name> ${type}.` };
+    } catch {
+      // Fall through to markdown fallback
+    }
+  }
+
   return {
     text: buildInitConfirmMessage(name, type),
     inlineKeyboard: keyboard,
@@ -319,7 +363,11 @@ export async function handleInitNameConfirm(ctx: CommandContext, type: TopicType
 
 function buildInitConfirmMessage(name: string, type: TopicType): string {
   return [
+    '**Almost there!**',
+    '',
     `Name: **${name}** | Type: ${type}`,
+    '',
+    'This name appears in status reports and doctor checks.',
     '',
     `To use a different name: /tm init <name> ${type}`,
   ].join('\n');

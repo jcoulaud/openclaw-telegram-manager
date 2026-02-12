@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
@@ -484,7 +484,7 @@ describe('init flow integration', () => {
       expect(step2.text).toContain('Interactive Project');
       expect(step2.text).toContain('research');
       expect(step2.inlineKeyboard).toBeDefined();
-      expect(step2.inlineKeyboard!.inline_keyboard[0][0].text).toBe('Confirm');
+      expect(step2.inlineKeyboard!.inline_keyboard[0][0].text).toBe('Use this name');
       expect(step2.pin).toBeUndefined();
 
       // Topic should NOT be registered yet
@@ -601,6 +601,59 @@ describe('init flow integration', () => {
       // Step 3: confirm detects already registered
       const step3 = await handleInitNameConfirm(ctx, 'coding');
       expect(step3.text).toContain('already registered');
+    });
+
+    it('should complete full 3-step flow with postFn (all HTML messages posted)', async () => {
+      const postFn = vi.fn().mockResolvedValue(undefined);
+      const ctx: CommandContext = {
+        workspaceDir,
+        configDir,
+        userId: 'user123',
+        groupId: '-100123',
+        threadId: '456',
+        rpc: null,
+        logger: console,
+        messageContext: { topicTitle: 'PostFn Project' },
+        postFn,
+      };
+
+      // Step 1: type picker — postFn receives HTML welcome + keyboard
+      const step1 = await handleInitInteractive(ctx, '');
+      expect(postFn).toHaveBeenCalledTimes(1);
+      expect(postFn.mock.calls[0][2]).toContain('Set up a new topic workcell');
+      expect(postFn.mock.calls[0][3]).toBeDefined(); // keyboard
+      expect(step1.text).toContain('pick a type');
+      expect(step1.inlineKeyboard).toBeUndefined();
+
+      // Step 2: name confirmation — postFn receives HTML confirm + keyboard
+      const step2 = await handleInitTypeSelect(ctx, 'coding');
+      expect(postFn).toHaveBeenCalledTimes(2);
+      expect(postFn.mock.calls[1][2]).toContain('Almost there');
+      expect(postFn.mock.calls[1][2]).toContain('PostFn Project');
+      expect(postFn.mock.calls[1][3]).toBeDefined(); // keyboard
+      expect(step2.text).toContain('Type selected: coding');
+      expect(step2.inlineKeyboard).toBeUndefined();
+
+      // Step 3: confirm — postFn receives HTML topic card, no keyboard
+      const step3 = await handleInitNameConfirm(ctx, 'coding');
+      expect(postFn).toHaveBeenCalledTimes(3);
+      expect(postFn.mock.calls[2][2]).toContain('Topic: PostFn Project');
+      expect(postFn.mock.calls[2][2]).toContain('How it works');
+      expect(postFn.mock.calls[2][3]).toBeUndefined(); // no keyboard for final step
+      expect(step3.text).toContain('Topic "PostFn Project" initialized as coding');
+      expect(step3.pin).toBe(true);
+
+      // Verify topic was actually created in registry
+      const registry = readRegistry(workspaceDir);
+      const entry = registry.topics['-100123:456'];
+      expect(entry).toBeDefined();
+      expect(entry?.name).toBe('PostFn Project');
+      expect(entry?.type).toBe('coding');
+      expect(entry?.status).toBe('active');
+
+      // Verify capsule created
+      const capsuleDir = path.join(workspaceDir, 'projects', 't-456');
+      expect(fs.existsSync(capsuleDir)).toBe(true);
     });
 
     it('should handle already-registered between picker and type select', async () => {

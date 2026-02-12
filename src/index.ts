@@ -123,9 +123,9 @@ export default function register(api: {
       requireAuth: false,
       async handler(ctx) {
         const userId = ctx.senderId;
-        // ctx.channel is documented (e.g. "telegram:-100123").
+        // ctx.from contains the full group identifier (e.g. "telegram:group:-100123:topic:1").
         // Strip common prefixes to extract the numeric chat ID.
-        const groupId = ctx.channel
+        const groupId = ctx.from
           ?.replace(/^telegram:(?:group:)?/, '')
           .split(':topic:')[0]
           || undefined;

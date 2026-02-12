@@ -18,6 +18,7 @@ describe('registerCommand handler', () => {
       args: string;
       commandBody: string;
       senderId?: string;
+      from?: string;
       channel?: string;
       isAuthorizedSender?: boolean;
       messageThreadId?: string | number;
@@ -59,12 +60,12 @@ describe('registerCommand handler', () => {
     expect(registeredCommand.acceptsArgs).toBe(true);
   });
 
-  it('should map senderId → userId, channel → groupId, messageThreadId → threadId', async () => {
+  it('should map senderId → userId, from → groupId, messageThreadId → threadId', async () => {
     const result = await registeredCommand.handler({
       args: 'help',
       commandBody: '/tm help',
       senderId: '42',
-      channel: 'telegram:-100999',
+      from: 'telegram:-100999',
       messageThreadId: 123,
     });
 
@@ -73,12 +74,12 @@ describe('registerCommand handler', () => {
     expect(result.text).toBeTruthy();
   });
 
-  it('should strip telegram: prefix from channel for groupId', async () => {
+  it('should strip telegram: prefix from ctx.from for groupId', async () => {
     const result = await registeredCommand.handler({
       args: 'init',
       commandBody: '/tm init',
       senderId: 'user1',
-      channel: 'telegram:-100123',
+      from: 'telegram:-100123',
       messageThreadId: '456',
     });
 
@@ -87,12 +88,12 @@ describe('registerCommand handler', () => {
     expect(result.text).not.toContain('Missing context');
   });
 
-  it('should strip telegram:group: prefix from channel for groupId', async () => {
+  it('should strip telegram:group: prefix from ctx.from for groupId', async () => {
     const result = await registeredCommand.handler({
       args: 'init',
       commandBody: '/tm init',
       senderId: 'user1',
-      channel: 'telegram:group:-100123',
+      from: 'telegram:group:-100123',
       messageThreadId: '456',
     });
 
@@ -100,12 +101,12 @@ describe('registerCommand handler', () => {
     expect(result.text).not.toContain('Missing context');
   });
 
-  it('should strip :topic: suffix from channel for groupId', async () => {
+  it('should strip :topic: suffix from ctx.from for groupId', async () => {
     const result = await registeredCommand.handler({
       args: 'init',
       commandBody: '/tm init',
       senderId: 'user1',
-      channel: 'telegram:group:-1003731538650:topic:123',
+      from: 'telegram:group:-1003731538650:topic:123',
       messageThreadId: '456',
     });
 
@@ -113,7 +114,7 @@ describe('registerCommand handler', () => {
     expect(result.text).not.toContain('Missing context');
   });
 
-  it('should return "Missing context" when senderId/channel/threadId are absent', async () => {
+  it('should return "Missing context" when senderId/from/threadId are absent', async () => {
     const result = await registeredCommand.handler({
       args: 'init',
       commandBody: '/tm init',
@@ -127,7 +128,7 @@ describe('registerCommand handler', () => {
       args: 'help',
       commandBody: '/tm help',
       senderId: 'user1',
-      channel: 'telegram:-100123',
+      from: 'telegram:-100123',
       messageThreadId: '456',
     });
 
@@ -140,7 +141,7 @@ describe('registerCommand handler', () => {
       args: 'init',
       commandBody: '/tm init',
       senderId: 'user1',
-      channel: 'telegram:-100123',
+      from: 'telegram:-100123',
       messageThreadId: 789,
     });
 

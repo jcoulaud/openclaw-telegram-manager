@@ -6,3 +6,4 @@ dist/
 *.bak
 *.tmp
 PLAN-*.md
+.claudeignore

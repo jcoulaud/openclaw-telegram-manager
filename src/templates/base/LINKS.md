@@ -1,3 +1,5 @@
 # Links: {{name}}
 
-_URLs, paths, and service endpoints for this topic._
+## Key paths & URLs
+
+_Not set yet — add repository paths, dashboards, service URLs, or anything the agent needs after a reset._

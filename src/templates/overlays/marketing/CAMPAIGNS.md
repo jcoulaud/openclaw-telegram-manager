@@ -1,3 +1,13 @@
 # Campaigns: {{name}}
 
-_Active campaigns, target audiences, channels, timelines, and budgets._
+## Active campaigns
+
+_None yet._
+
+## Audiences & channels
+
+_None yet._
+
+## Timeline & budget
+
+_None yet._

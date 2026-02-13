@@ -1,3 +1,13 @@
 # Sources: {{name}}
 
-_Papers, articles, datasets, APIs, and other reference material._
+## Papers & articles
+
+_None yet._
+
+## Datasets & APIs
+
+_None yet._
+
+## Other references
+
+_None yet._

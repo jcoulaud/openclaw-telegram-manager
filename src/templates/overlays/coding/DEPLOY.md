@@ -1,3 +1,17 @@
 # Deployment: {{name}}
 
-_Environments, deployment steps, rollback procedures, and infra details._
+## Paths
+
+_Repository and runtime/data paths go here._
+
+## Environments
+
+_None yet._
+
+## Deploy steps
+
+_None yet._
+
+## Rollback
+
+_None yet._

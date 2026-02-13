@@ -21,7 +21,7 @@ const BASE_TEMPLATES: Record<string, (name: string) => string> = {
     `# Commands: ${name}\n\n_Build, deploy, test, and other commands for this topic. Kept here so they're not lost on reset._\n`,
 
   'LINKS.md': (name) =>
-    `# Links: ${name}\n\n_URLs, paths, and service endpoints for this topic._\n`,
+    `# Links: ${name}\n\n## Key paths & URLs\n\n_Not set yet — add repository paths, dashboards, service URLs, or anything the agent needs after a reset._\n`,
 
   'CRON.md': (name) =>
     `# Cron: ${name}\n\n_Cron job IDs and schedules for this topic._\n`,
@@ -35,22 +35,22 @@ const BASE_TEMPLATES: Record<string, (name: string) => string> = {
 
 const OVERLAY_TEMPLATES: Record<string, (name: string) => string> = {
   'ARCHITECTURE.md': (name) =>
-    `# Architecture: ${name}\n\n_Components, data flow, dependencies, and design decisions._\n`,
+    `# Architecture: ${name}\n\n## Components\n\n_None yet._\n\n## Data flow\n\n_None yet._\n\n## Key decisions\n\n_None yet._\n`,
 
   'DEPLOY.md': (name) =>
-    `# Deployment: ${name}\n\n_Environments, deployment steps, rollback procedures, and infra details._\n`,
+    `# Deployment: ${name}\n\n## Paths\n\n_Repository and runtime/data paths go here._\n\n## Environments\n\n_None yet._\n\n## Deploy steps\n\n_None yet._\n\n## Rollback\n\n_None yet._\n`,
 
   'SOURCES.md': (name) =>
-    `# Sources: ${name}\n\n_Papers, articles, datasets, APIs, and other reference material._\n`,
+    `# Sources: ${name}\n\n## Papers & articles\n\n_None yet._\n\n## Datasets & APIs\n\n_None yet._\n\n## Other references\n\n_None yet._\n`,
 
   'FINDINGS.md': (name) =>
-    `# Findings: ${name}\n\n_Conclusions, insights, data summaries, and recommendations._\n`,
+    `# Findings: ${name}\n\n## Key findings\n\n_None yet._\n\n## Evidence & data\n\n_None yet._\n\n## Recommendations\n\n_None yet._\n`,
 
   'CAMPAIGNS.md': (name) =>
-    `# Campaigns: ${name}\n\n_Active campaigns, target audiences, channels, timelines, and budgets._\n`,
+    `# Campaigns: ${name}\n\n## Active campaigns\n\n_None yet._\n\n## Audiences & channels\n\n_None yet._\n\n## Timeline & budget\n\n_None yet._\n`,
 
   'METRICS.md': (name) =>
-    `# Metrics: ${name}\n\n_KPIs, conversion rates, engagement stats, and performance data._\n`,
+    `# Metrics: ${name}\n\n## KPIs & targets\n\n_None yet._\n\n## Tracking & dashboards\n\n_None yet._\n\n## Performance data\n\n_None yet._\n`,
 };
 
 // ── File permissions ───────────────────────────────────────────────────

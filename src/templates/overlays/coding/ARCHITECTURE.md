@@ -1,3 +1,13 @@
 # Architecture: {{name}}
 
-_Components, data flow, dependencies, and design decisions._
+## Components
+
+_None yet._
+
+## Data flow
+
+_None yet._
+
+## Key decisions
+
+_None yet._

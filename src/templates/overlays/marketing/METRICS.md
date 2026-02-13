@@ -1,3 +1,13 @@
 # Metrics: {{name}}
 
-_KPIs, conversion rates, engagement stats, and performance data._
+## KPIs & targets
+
+_None yet._
+
+## Tracking & dashboards
+
+_None yet._
+
+## Performance data
+
+_None yet._

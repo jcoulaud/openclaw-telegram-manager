@@ -1,3 +1,11 @@
+## [2.5.7](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.5.6...v2.5.7) (2026-02-13)
+
+
+### Bug Fixes
+
+* fall back to first admin when autopilot runs doctor --all without user context ([f0c6bab](https://github.com/jcoulaud/openclaw-telegram-manager/commit/f0c6bab45bb1bc92dd7158997edc2e83a21316de))
+* show human-friendly name in setup/uninstall banner ([9cf7059](https://github.com/jcoulaud/openclaw-telegram-manager/commit/9cf705936d0c8479a0d9af4fffb80c1b0ced71a1))
+
 ## [2.5.6](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.5.5...v2.5.6) (2026-02-13)
 
 

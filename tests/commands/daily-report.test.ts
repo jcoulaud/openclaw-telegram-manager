@@ -177,16 +177,16 @@ describe('daily-report', () => {
   describe('computeHealth', () => {
     it('should return "fresh" for recent activity and no blockers', () => {
       const recent = new Date().toISOString();
-      expect(computeHealth(recent, '## some status', '_None._')).toBe('fresh');
+      expect(computeHealth(recent, '## some status', 'None.')).toBe('fresh');
     });
 
     it('should return "stale" for old activity', () => {
       const old = new Date(Date.now() - 4 * 24 * 3_600_000).toISOString();
-      expect(computeHealth(old, '## some status', '_None._')).toBe('stale');
+      expect(computeHealth(old, '## some status', 'None.')).toBe('stale');
     });
 
     it('should return "stale" for null lastMessageAt', () => {
-      expect(computeHealth(null, '## some status', '_None._')).toBe('stale');
+      expect(computeHealth(null, '## some status', 'None.')).toBe('stale');
     });
 
     it('should return "blocked" when blockers exist', () => {

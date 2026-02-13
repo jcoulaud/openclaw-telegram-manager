@@ -103,15 +103,15 @@ export function readFileOrNull(filePath: string): string | null {
 }
 
 export function extractDoneSection(statusContent: string | null): string {
-  if (!statusContent) return '_No status available yet._';
+  if (!statusContent) return 'No status available yet.';
   const match = statusContent.match(/^##\s*Last done\s*\(UTC\)\s*\n([\s\S]*?)(?=\n##\s|\n*$)/im);
-  if (!match) return '_No "Last done" section found._';
+  if (!match) return 'No recent activity found.';
   const text = match[1]?.trim();
-  return text || '_Empty._';
+  return text || 'Empty.';
 }
 
 export function extractTodayLearnings(learningsContent: string | null): string {
-  if (!learningsContent) return '_No learnings recorded yet._';
+  if (!learningsContent) return 'No learnings recorded yet.';
   const today = new Date().toISOString().slice(0, 10);
   const lines = learningsContent.split('\n');
   const todayLines: string[] = [];
@@ -130,32 +130,32 @@ export function extractTodayLearnings(learningsContent: string | null): string {
     }
   }
 
-  return todayLines.length > 0 ? todayLines.join('\n') : '_None today._';
+  return todayLines.length > 0 ? todayLines.join('\n') : 'None today.';
 }
 
 export function extractBlockers(todoContent: string | null): string {
-  if (!todoContent) return '_No tasks recorded yet._';
+  if (!todoContent) return 'No tasks recorded yet.';
   const lines = todoContent.split('\n');
   const blockerLines = lines.filter(
     (l) => /\[BLOCKED\]/i.test(l) || /\bblocked\b/i.test(l),
   );
-  return blockerLines.length > 0 ? blockerLines.join('\n') : '_None._';
+  return blockerLines.length > 0 ? blockerLines.join('\n') : 'None.';
 }
 
 export function extractNextActions(statusContent: string | null): string {
-  if (!statusContent) return '_No status available yet._';
+  if (!statusContent) return 'No status available yet.';
   const match = statusContent.match(/^##\s*Next (?:3 )?actions(?: \(now\))?\s*\n([\s\S]*?)(?=\n##\s|\n*$)/im);
-  if (!match) return '_No "Next actions" section found._';
+  if (!match) return 'None yet.';
   const text = match[1]?.trim();
-  return text || '_Empty._';
+  return text || 'None yet.';
 }
 
 export function extractUpcoming(statusContent: string | null): string {
-  if (!statusContent) return '_No status available yet._';
+  if (!statusContent) return 'No status available yet.';
   const match = statusContent.match(/^##\s*Upcoming actions\s*\n([\s\S]*?)(?=\n##\s|\n*$)/im);
-  if (!match) return '_No "Upcoming actions" section found._';
+  if (!match) return 'None yet.';
   const text = match[1]?.trim();
-  return text || '_Empty._';
+  return text || 'None yet.';
 }
 
 export function computeHealth(
@@ -163,7 +163,7 @@ export function computeHealth(
   statusContent: string | null,
   blockers: string,
 ): 'fresh' | 'stale' | 'blocked' {
-  if (blockers && blockers !== '_None._' && blockers !== '_No tasks recorded yet._') {
+  if (blockers && blockers !== 'None.' && blockers !== 'No tasks recorded yet.') {
     return 'blocked';
   }
 

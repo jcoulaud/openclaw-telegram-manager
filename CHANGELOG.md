@@ -1,3 +1,10 @@
+## [2.5.2](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.5.1...v2.5.2) (2026-02-13)
+
+
+### Bug Fixes
+
+* restore group config on uninstall by parsing JSON5 include file ([5fa3a15](https://github.com/jcoulaud/openclaw-telegram-manager/commit/5fa3a159f5af244bc7b8b3d14f26418bb3d636ef))
+
 ## [2.5.1](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.5.0...v2.5.1) (2026-02-13)
 
 

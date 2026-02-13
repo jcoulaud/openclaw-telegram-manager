@@ -12,7 +12,7 @@ import type { CommandContext, CommandResult } from './help.js';
 const LAST_DONE_RE = /^##\s*Last done\s*\(UTC\)\s*\n([\s\S]*?)(?=\n##\s|\n*$)/im;
 const NEXT_ACTIONS_RE = /^##\s*Next (?:3 )?actions(?: \(now\))?\s*\n([\s\S]*?)(?=\n##\s|\n*$)/im;
 const UPCOMING_RE = /^##\s*Upcoming actions\s*\n([\s\S]*?)(?=\n##\s|\n*$)/im;
-const ISO_RE = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+const ISO_RE = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?/;
 
 function extractTimestamp(content: string): string | null {
   const match = content.match(LAST_DONE_RE);

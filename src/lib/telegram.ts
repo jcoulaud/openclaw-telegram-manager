@@ -327,7 +327,7 @@ export function buildListMessage(topics: TopicEntry[]): string {
   let rendered = 0;
 
   for (const t of sorted) {
-    const activity = t.lastMessageAt ? relativeTime(t.lastMessageAt) : 'no activity yet';
+    const activity = t.lastMessageAt ? `active ${relativeTime(t.lastMessageAt)}` : 'no activity yet';
     const statusTag = t.status !== 'active' ? ` \u2014 ${t.status}` : '';
     const entry = `**${t.name}** \u00b7 ${t.type}${statusTag}\n  ${activity}`;
 

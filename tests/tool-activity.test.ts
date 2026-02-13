@@ -56,6 +56,7 @@ describe('tool activity tracking', () => {
 
       consecutiveSilentDoctors: 0,
       lastPostError: null,
+      cronJobId: null,
       extras: {},
       ...overrides,
     };

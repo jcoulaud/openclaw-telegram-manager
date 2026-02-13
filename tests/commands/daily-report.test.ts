@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { handleDailyReport, computeHealth } from '../../src/commands/daily-report.js';
+import { handleDailyReport } from '../../src/commands/daily-report.js';
 import {
   createEmptyRegistry,
   writeRegistryAtomic,
@@ -45,6 +45,7 @@ describe('daily-report', () => {
 
     consecutiveSilentDoctors: 0,
     lastPostError: null,
+    cronJobId: null,
     extras: {},
     ...overrides,
   });
@@ -119,12 +120,9 @@ describe('daily-report', () => {
 
       const result = await handleDailyReport(makeCtx());
       expect(result.text).toContain('Daily Report');
-      expect(result.text).toContain('Done today');
-      expect(result.text).toContain('New learnings');
-      expect(result.text).toContain('Blockers/Risks');
-      expect(result.text).toContain('Next actions (now)');
-      expect(result.text).toContain('Upcoming');
-      expect(result.text).toContain('Health:');
+      expect(result.text).toContain('Done');
+      expect(result.text).toContain('Next');
+      expect(result.text).toContain('Blockers');
     });
 
     it('should update lastDailyReportAt on success', async () => {
@@ -172,26 +170,52 @@ describe('daily-report', () => {
       const result = await handleDailyReport(makeCtx({ postFn }));
       expect(result.text).toContain('post failed');
     });
+
+    it('should set lastPostError on post failure', async () => {
+      const entry = makeEntry();
+      const key = `${entry.groupId}:${entry.threadId}`;
+      setupRegistry({ [key]: entry });
+      scaffoldCapsule(path.join(workspaceDir, 'projects'), entry.slug, entry.name, entry.type);
+
+      const postFn = vi.fn(async () => {
+        throw new Error('Telegram API timeout');
+      });
+
+      await handleDailyReport(makeCtx({ postFn }));
+
+      const reg = readRegistry(workspaceDir);
+      expect(reg.topics[key]?.lastPostError).toBe('Telegram API timeout');
+    });
+
+    it('should not update lastDailyReportAt on post failure', async () => {
+      const entry = makeEntry();
+      const key = `${entry.groupId}:${entry.threadId}`;
+      setupRegistry({ [key]: entry });
+      scaffoldCapsule(path.join(workspaceDir, 'projects'), entry.slug, entry.name, entry.type);
+
+      const postFn = vi.fn(async () => {
+        throw new Error('Network error');
+      });
+
+      await handleDailyReport(makeCtx({ postFn }));
+
+      const reg = readRegistry(workspaceDir);
+      expect(reg.topics[key]?.lastDailyReportAt).toBeNull();
+    });
+
+    it('should clear lastPostError on successful post', async () => {
+      const entry = makeEntry({ lastPostError: 'Previous failure' });
+      const key = `${entry.groupId}:${entry.threadId}`;
+      setupRegistry({ [key]: entry });
+      scaffoldCapsule(path.join(workspaceDir, 'projects'), entry.slug, entry.name, entry.type);
+
+      const postFn = vi.fn(async () => {});
+
+      await handleDailyReport(makeCtx({ postFn }));
+
+      const reg = readRegistry(workspaceDir);
+      expect(reg.topics[key]?.lastPostError).toBeNull();
+    });
   });
 
-  describe('computeHealth', () => {
-    it('should return "fresh" for recent activity and no blockers', () => {
-      const recent = new Date().toISOString();
-      expect(computeHealth(recent, '## some status', 'None.')).toBe('fresh');
-    });
-
-    it('should return "stale" for old activity', () => {
-      const old = new Date(Date.now() - 4 * 24 * 3_600_000).toISOString();
-      expect(computeHealth(old, '## some status', 'None.')).toBe('stale');
-    });
-
-    it('should return "stale" for null lastMessageAt', () => {
-      expect(computeHealth(null, '## some status', 'None.')).toBe('stale');
-    });
-
-    it('should return "blocked" when blockers exist', () => {
-      const recent = new Date().toISOString();
-      expect(computeHealth(recent, '## some status', '- [BLOCKED] Something is blocked')).toBe('blocked');
-    });
-  });
 });

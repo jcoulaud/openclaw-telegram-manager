@@ -17,21 +17,13 @@ export type { InlineKeyboardButton, InlineKeyboardMarkup } from './types.js';
 export interface DailyReportData {
   name: string;
   doneContent: string;
-  learningsContent: string;
   blockersContent: string;
   nextContent: string;
-  upcomingContent: string;
-  health: 'fresh' | 'stale' | 'blocked';
 }
-
-const HEALTH_LABELS: Record<string, string> = {
-  fresh: '\u2705 Active',       // green check
-  stale: '\u23f3 Inactive',     // hourglass
-  blocked: '\u26a0\ufe0f Blocked', // warning
-};
 
 /**
  * Format a daily report for Telegram posting.
+ * Three sections: Done, Next, Blockers.
  * @param format - 'html' for direct postFn posts, 'markdown' for command responses
  */
 export function buildDailyReport(data: DailyReportData, format: TextFormat = 'html'): string {
@@ -39,26 +31,17 @@ export function buildDailyReport(data: DailyReportData, format: TextFormat = 'ht
   const esc = (s: string) => isHtml ? htmlEscape(s) : s;
   const bold = (s: string) => isHtml ? `<b>${s}</b>` : `**${s}**`;
   const n = esc(data.name);
-  const healthLabel = HEALTH_LABELS[data.health] ?? data.health;
   const lines = [
     bold(`Daily Report: ${n}`),
     '',
-    bold('Done today'),
+    bold('Done'),
     esc(data.doneContent),
     '',
-    bold('New learnings'),
-    esc(data.learningsContent),
-    '',
-    bold('Blockers/Risks'),
-    esc(data.blockersContent),
-    '',
-    bold('Next actions (now)'),
+    bold('Next'),
     esc(data.nextContent),
     '',
-    bold('Upcoming'),
-    esc(data.upcomingContent),
-    '',
-    `${bold('Health:')} ${healthLabel}`,
+    bold('Blockers'),
+    esc(data.blockersContent),
   ];
   return truncateMessage(lines.join('\n'));
 }
@@ -287,7 +270,7 @@ export function buildHelpCard(): string {
     '',
     '**Basics**',
     '/tm init — set up this topic',
-    '/tm status — see current progress',
+    '/tm status — see current progress (add --expanded for more detail)',
     '/tm list — all topics',
     '/tm help — this message',
     '',

@@ -13,6 +13,7 @@ import {
   runConfigChecks,
   runIncludeDriftCheck,
   runSpamControlCheck,
+  runPostErrorCheck,
   runAllChecksForTopic,
   backupCapsuleIfHealthy,
 } from '../src/lib/doctor-checks.js';
@@ -58,6 +59,7 @@ describe('doctor-checks', () => {
 
     consecutiveSilentDoctors: 0,
     lastPostError: null,
+    cronJobId: null,
     extras: {},
     ...overrides,
   });
@@ -543,6 +545,28 @@ backup-daily-abc123 - Runs at midnight
       const results = runSpamControlCheck(entry);
 
       expect(results).toHaveLength(1);
+    });
+  });
+
+  describe('runPostErrorCheck', () => {
+    it('should pass when lastPostError is null', () => {
+      const entry = createTestEntry({ lastPostError: null });
+
+      const results = runPostErrorCheck(entry);
+
+      expect(results).toHaveLength(0);
+    });
+
+    it('should warn when lastPostError is set', () => {
+      const entry = createTestEntry({ lastPostError: 'Network timeout' });
+
+      const results = runPostErrorCheck(entry);
+
+      expect(results).toHaveLength(1);
+      expect(results[0]?.severity).toBe(Severity.WARN);
+      expect(results[0]?.checkId).toBe('lastPostFailed');
+      expect(results[0]?.message).toContain('Network timeout');
+      expect(results[0]?.remediation).toBeDefined();
     });
   });
 

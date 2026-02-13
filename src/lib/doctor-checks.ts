@@ -512,6 +512,31 @@ export function runSpamControlCheck(
   return results;
 }
 
+// ── Post error check ────────────────────────────────────────────────
+
+/**
+ * Check if the last report delivery failed for this topic.
+ */
+export function runPostErrorCheck(
+  entry: TopicEntry,
+): DoctorCheckResult[] {
+  const results: DoctorCheckResult[] = [];
+
+  if (entry.lastPostError) {
+    results.push(
+      check(
+        Severity.WARN,
+        'lastPostFailed',
+        `Last report delivery failed: ${entry.lastPostError}`,
+        false,
+        'This will be retried on the next health check cycle',
+      ),
+    );
+  }
+
+  return results;
+}
+
 // ── Convenience: run all checks for a single topic ─────────────────────
 
 /**
@@ -533,6 +558,9 @@ export function runAllChecksForTopic(
 
   // Registry checks
   results.push(...runRegistryChecks(entry, projectsBase));
+
+  // Post error check (before capsule-dependent checks)
+  results.push(...runPostErrorCheck(entry));
 
   // If path doesn't exist, skip capsule-dependent checks
   if (!fs.existsSync(capsuleDir)) return results;

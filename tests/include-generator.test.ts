@@ -46,10 +46,12 @@ describe('include-generator', () => {
           lastDoctorReportAt: null,
           lastDoctorRunAt: null,
           lastDailyReportAt: null,
+          lastCapsuleWriteAt: null,
           snoozeUntil: null,
 
           consecutiveSilentDoctors: 0,
           lastPostError: null,
+          cronJobId: null,
           extras: {},
         },
       };
@@ -75,10 +77,12 @@ describe('include-generator', () => {
           lastDoctorReportAt: null,
           lastDoctorRunAt: null,
           lastDailyReportAt: null,
+          lastCapsuleWriteAt: null,
           snoozeUntil: null,
 
           consecutiveSilentDoctors: 0,
           lastPostError: null,
+          cronJobId: null,
           extras: {},
         },
       };
@@ -117,9 +121,11 @@ describe('include-generator', () => {
           lastDoctorReportAt: null,
           lastDoctorRunAt: null,
           lastDailyReportAt: null,
+          lastCapsuleWriteAt: null,
           snoozeUntil: null,
           consecutiveSilentDoctors: 0,
           lastPostError: null,
+          cronJobId: null,
           extras: {},
         },
       };
@@ -180,6 +186,7 @@ describe('include-generator', () => {
 
         consecutiveSilentDoctors: 0,
         lastPostError: null,
+        cronJobId: null,
         extras: {},
       };
       registry.topics['-100:123'] = entry;
@@ -210,6 +217,7 @@ describe('include-generator', () => {
 
         consecutiveSilentDoctors: 0,
         lastPostError: null,
+        cronJobId: null,
         extras: {},
       };
       registry.topics['-100:123'] = entry;
@@ -238,6 +246,7 @@ describe('include-generator', () => {
 
         consecutiveSilentDoctors: 0,
         lastPostError: null,
+        cronJobId: null,
         extras: {},
       };
       registry.topics['-100:123'] = entry;
@@ -267,6 +276,7 @@ describe('include-generator', () => {
 
         consecutiveSilentDoctors: 0,
         lastPostError: null,
+        cronJobId: null,
         extras: {},
       };
 
@@ -318,6 +328,7 @@ describe('include-generator', () => {
 
         consecutiveSilentDoctors: 0,
         lastPostError: null,
+        cronJobId: null,
         extras: {},
       };
       registry.topics['-100:123'] = entry;
@@ -384,6 +395,7 @@ describe('include-generator', () => {
 
         consecutiveSilentDoctors: 0,
         lastPostError: null,
+        cronJobId: null,
         extras: {},
       };
       registry.topics['-100:1'] = entry;
@@ -414,6 +426,7 @@ describe('include-generator', () => {
 
         consecutiveSilentDoctors: 0,
         lastPostError: null,
+        cronJobId: null,
         extras: {},
       };
       registry.topics['-100:1'] = entry;
@@ -443,6 +456,7 @@ describe('include-generator', () => {
 
         consecutiveSilentDoctors: 0,
         lastPostError: null,
+        cronJobId: null,
         extras: {},
       };
 
@@ -483,6 +497,7 @@ describe('include-generator', () => {
 
         consecutiveSilentDoctors: 0,
         lastPostError: null,
+        cronJobId: null,
         extras: {},
       };
       registry.topics['-100:123'] = entry;
@@ -555,6 +570,7 @@ describe('include-generator', () => {
         snoozeUntil: '2025-12-31T23:59:59Z',
         consecutiveSilentDoctors: 0,
         lastPostError: null,
+        cronJobId: null,
         extras: {},
       };
       registry.topics['-100:123'] = entry;
@@ -636,6 +652,7 @@ describe('include-generator', () => {
 
         consecutiveSilentDoctors: 0,
         lastPostError: null,
+        cronJobId: null,
         extras: {},
       };
       registry.topics['-100:123'] = entry;

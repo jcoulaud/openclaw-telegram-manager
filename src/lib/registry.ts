@@ -70,6 +70,17 @@ const migrations: Record<string, MigrationFn> = {
     }
     return data;
   },
+  '5_to_6': (data) => {
+    const topics = data['topics'];
+    if (topics && typeof topics === 'object' && !Array.isArray(topics)) {
+      for (const entry of Object.values(topics as Record<string, Record<string, unknown>>)) {
+        if (entry['cronJobId'] === undefined) {
+          entry['cronJobId'] = null;
+        }
+      }
+    }
+    return data;
+  },
 };
 
 function migrateRegistry(data: Record<string, unknown>): Record<string, unknown> {

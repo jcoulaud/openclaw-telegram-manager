@@ -28,8 +28,9 @@ If you detect any of these conditions, invoke `topic_manager` proactively:
 
 Autopilot is enabled by default on setup and first-user init. The OpenClaw
 heartbeat triggers `doctor --all` roughly once per hour, which health-checks
-all active topics and posts a daily progress report (one per UTC day).
-No manual intervention is needed. Users can disable with `/tm autopilot disable`.
+all active topics. Daily progress reports are posted by per-topic cron jobs
+(registered on init, default 09:00 UTC). No manual intervention is needed.
+Users can disable with `/tm autopilot disable`.
 
 ## Callback routing
 

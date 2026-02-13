@@ -5,6 +5,7 @@ import { checkAuthorization } from '../lib/auth.js';
 import { topicKey } from '../lib/types.js';
 import { jailCheck, rejectSymlink } from '../lib/security.js';
 import { truncateMessage, relativeTime } from '../lib/telegram.js';
+import { readFileOrNull, extractBlockers } from './daily-report.js';
 import type { CommandContext, CommandResult } from './help.js';
 
 // ── STATUS.md section parsers ──────────────────────────────────────────
@@ -38,49 +39,72 @@ function formatSection(raw: string): string {
   return raw;
 }
 
+function hasBlockers(blockers: string): boolean {
+  return blockers !== 'None.' && blockers !== 'No tasks recorded yet.';
+}
+
 // ── Format a human-friendly status summary ─────────────────────────────
 
-function formatStatus(name: string, content: string): string {
-  const timestamp = extractTimestamp(content);
-  const nextRaw = extractSection(content, NEXT_ACTIONS_RE);
-  const upcomingRaw = extractSection(content, UPCOMING_RE);
+export interface StatusData {
+  name: string;
+  type: string;
+  statusContent: string;
+  todoContent: string | null;
+  expanded: boolean;
+}
+
+export function formatStatus(data: StatusData): string {
+  const { name, type, statusContent, todoContent, expanded } = data;
+  const timestamp = extractTimestamp(statusContent);
+  const nextRaw = extractSection(statusContent, NEXT_ACTIONS_RE);
+  const blockers = extractBlockers(todoContent);
 
   // Last done body text (everything after the timestamp)
-  const doneMatch = content.match(LAST_DONE_RE);
+  const doneMatch = statusContent.match(LAST_DONE_RE);
   let lastDoneBody = '';
   if (doneMatch) {
     const section = doneMatch[1]?.trim() ?? '';
-    // Remove the timestamp line, keep the rest
     lastDoneBody = section.replace(ISO_RE, '').trim();
   }
 
-  const lines: string[] = [
-    `**${name}**`,
-    '',
-  ];
+  const lines: string[] = [];
 
-  // Last activity
+  // Block 1: Goal (name + type)
+  lines.push(`**${name}** \u00b7 ${type}`);
+
+  // Block 2: Current status (last activity)
   if (timestamp) {
-    lines.push(`\u{1f552} **Last activity:** ${relativeTime(timestamp)}`); // 🕒
-  }
-
-  // Last done summary (if there's text beyond the timestamp)
-  if (lastDoneBody && !isPlaceholder(lastDoneBody)) {
-    lines.push(lastDoneBody);
+    lines.push(`\u{1f552} **Last activity:** ${relativeTime(timestamp)}`);
   }
 
   lines.push('');
 
-  // Next actions
-  lines.push('\ud83c\udfaf **Next actions**'); // 🎯
+  // Block 3: Done recently (only if non-empty)
+  if (lastDoneBody && !isPlaceholder(lastDoneBody)) {
+    lines.push('\u2705 **Done recently**');
+    lines.push(lastDoneBody);
+    lines.push('');
+  }
+
+  // Block 4: Next actions
+  lines.push('\ud83c\udfaf **Next actions**');
   lines.push(formatSection(nextRaw));
 
-  // Upcoming (only show if non-empty)
-  const upcomingFormatted = formatSection(upcomingRaw);
-  if (upcomingFormatted !== '_None yet._') {
+  // Block 5: Blockers (only if present)
+  if (hasBlockers(blockers)) {
     lines.push('');
-    lines.push('\ud83d\udcc5 **Upcoming**'); // 📅
-    lines.push(upcomingFormatted);
+    lines.push('\u26a0\ufe0f **Blockers**');
+    lines.push(blockers);
+  }
+
+  // Expanded: also show upcoming
+  if (expanded) {
+    const upcomingRaw = extractSection(statusContent, UPCOMING_RE);
+    if (!isPlaceholder(upcomingRaw)) {
+      lines.push('');
+      lines.push('\ud83d\udcc5 **Upcoming**');
+      lines.push(upcomingRaw);
+    }
   }
 
   return lines.join('\n');
@@ -88,7 +112,7 @@ function formatStatus(name: string, content: string): string {
 
 // ── Command handler ────────────────────────────────────────────────────
 
-export async function handleStatus(ctx: CommandContext): Promise<CommandResult> {
+export async function handleStatus(ctx: CommandContext, args: string): Promise<CommandResult> {
   const { workspaceDir, userId, groupId, threadId } = ctx;
 
   if (!userId || !groupId || !threadId) {
@@ -128,10 +152,19 @@ export async function handleStatus(ctx: CommandContext): Promise<CommandResult> 
     return { text: 'No status available yet. Run /tm doctor to diagnose.' };
   }
 
+  const expanded = args.trim() === '--expanded';
+
   try {
-    const content = fs.readFileSync(statusPath, 'utf-8');
+    const statusContent = fs.readFileSync(statusPath, 'utf-8');
+    const todoContent = readFileOrNull(path.join(capsuleDir, 'TODO.md'));
     return {
-      text: truncateMessage(formatStatus(entry.name, content)),
+      text: truncateMessage(formatStatus({
+        name: entry.name,
+        type: entry.type,
+        statusContent,
+        todoContent,
+        expanded,
+      })),
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

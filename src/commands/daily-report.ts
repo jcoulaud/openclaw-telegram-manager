@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { readRegistry, withRegistry } from '../lib/registry.js';
-import { topicKey } from '../lib/types.js';
+import { topicKey, MAX_POST_ERROR_LENGTH } from '../lib/types.js';
 import { buildDailyReport } from '../lib/telegram.js';
 import type { CommandContext, CommandResult } from './help.js';
 
@@ -43,24 +43,17 @@ export async function handleDailyReport(ctx: CommandContext): Promise<CommandRes
   // Read capsule files
   const statusContent = readFileOrNull(path.join(capsuleDir, 'STATUS.md'));
   const todoContent = readFileOrNull(path.join(capsuleDir, 'TODO.md'));
-  const learningsContent = readFileOrNull(path.join(capsuleDir, 'LEARNINGS.md'));
 
   // Extract sections
   const doneContent = extractDoneSection(statusContent);
-  const newLearnings = extractTodayLearnings(learningsContent);
   const blockers = extractBlockers(todoContent);
   const nextContent = extractNextActions(statusContent);
-  const upcomingContent = extractUpcoming(statusContent);
-  const health = computeHealth(entry.lastMessageAt, statusContent, blockers);
 
   const reportData = {
     name: entry.name,
     doneContent,
-    learningsContent: newLearnings,
     blockersContent: blockers,
     nextContent,
-    upcomingContent,
-    health,
   };
 
   // Post to topic if postFn available
@@ -72,11 +65,18 @@ export async function handleDailyReport(ctx: CommandContext): Promise<CommandRes
         const e = data.topics[key];
         if (e) {
           e.lastDailyReportAt = new Date().toISOString();
+          e.lastPostError = null;
         }
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       logger.error(`[daily-report] Post failed: ${msg}`);
+      await withRegistry(workspaceDir, (data) => {
+        const e = data.topics[key];
+        if (e) {
+          e.lastPostError = msg.slice(0, MAX_POST_ERROR_LENGTH);
+        }
+      });
       return { text: `Daily report generated but post failed: ${msg}` };
     }
   } else {
@@ -110,29 +110,6 @@ export function extractDoneSection(statusContent: string | null): string {
   return text || 'Empty.';
 }
 
-export function extractTodayLearnings(learningsContent: string | null): string {
-  if (!learningsContent) return 'No learnings recorded yet.';
-  const today = new Date().toISOString().slice(0, 10);
-  const lines = learningsContent.split('\n');
-  const todayLines: string[] = [];
-  let inTodaySection = false;
-
-  for (const line of lines) {
-    if (line.startsWith('## ') && line.includes(today)) {
-      inTodaySection = true;
-      continue;
-    }
-    if (inTodaySection && line.startsWith('## ')) {
-      break;
-    }
-    if (inTodaySection && line.trim()) {
-      todayLines.push(line);
-    }
-  }
-
-  return todayLines.length > 0 ? todayLines.join('\n') : 'None today.';
-}
-
 export function extractBlockers(todoContent: string | null): string {
   if (!todoContent) return 'No tasks recorded yet.';
   const lines = todoContent.split('\n');
@@ -150,27 +127,3 @@ export function extractNextActions(statusContent: string | null): string {
   return text || 'None yet.';
 }
 
-export function extractUpcoming(statusContent: string | null): string {
-  if (!statusContent) return 'No status available yet.';
-  const match = statusContent.match(/^##\s*Upcoming actions\s*\n([\s\S]*?)(?=\n##\s|\n*$)/im);
-  if (!match) return 'None yet.';
-  const text = match[1]?.trim();
-  return text || 'None yet.';
-}
-
-export function computeHealth(
-  lastMessageAt: string | null,
-  statusContent: string | null,
-  blockers: string,
-): 'fresh' | 'stale' | 'blocked' {
-  if (blockers && blockers !== 'None.' && blockers !== 'No tasks recorded yet.') {
-    return 'blocked';
-  }
-
-  if (!lastMessageAt) return 'stale';
-
-  const hoursSinceActivity = (Date.now() - new Date(lastMessageAt).getTime()) / 3_600_000;
-  if (hoursSinceActivity > 72) return 'stale';
-
-  return 'fresh';
-}

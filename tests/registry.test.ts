@@ -141,6 +141,7 @@ describe('registry', () => {
 
         consecutiveSilentDoctors: 0,
         lastPostError: null,
+        cronJobId: null,
         extras: {},
       };
       registry.topics['-100123:456'] = validEntry;
@@ -406,6 +407,7 @@ describe('registry', () => {
         snoozeUntil: '2025-12-31T23:59:59Z',
         consecutiveSilentDoctors: 2,
         lastPostError: 'some error',
+        cronJobId: null,
         extras: { key: 'value' },
       };
 

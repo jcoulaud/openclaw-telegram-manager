@@ -85,7 +85,7 @@ You don't need any of these — everything runs automatically. They're there if 
 
 | Command | What it does |
 |---------|-------------|
-| `/tm status` | See current progress |
+| `/tm status` | See current progress (`--expanded` for full details) |
 | `/tm doctor` | Run health checks |
 | `/tm doctor --all` | Health check all topics at once |
 | `/tm daily-report` | Post a daily summary |

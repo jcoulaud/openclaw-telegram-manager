@@ -4,6 +4,7 @@ import { topicKey } from '../lib/types.js';
 import { appendAudit, buildAuditEntry } from '../lib/audit.js';
 import { generateInclude } from '../lib/include-generator.js';
 import { triggerRestart, getConfigWrites } from '../lib/config-restart.js';
+import { removeCronJob, registerDailyReportCron } from '../lib/cron.js';
 import type { CommandContext, CommandResult } from './help.js';
 
 export async function handleArchive(ctx: CommandContext): Promise<CommandResult> {
@@ -56,6 +57,37 @@ async function handleArchiveToggle(ctx: CommandContext, archive: boolean): Promi
       }
     }
   });
+
+  // Manage cron job: remove on archive, re-register on unarchive (non-critical)
+  if (archive && entry.cronJobId) {
+    await removeCronJob(rpc, entry.cronJobId, logger);
+    await withRegistry(workspaceDir, (data) => {
+      const topic = data.topics[key];
+      if (topic) {
+        topic.cronJobId = null;
+      }
+    });
+  } else if (!archive && !entry.cronJobId) {
+    try {
+      const cronResult = await registerDailyReportCron(rpc, {
+        topicName: entry.name,
+        slug: entry.slug,
+        groupId,
+        threadId,
+      }, logger);
+      if (cronResult.jobId) {
+        await withRegistry(workspaceDir, (data) => {
+          const topic = data.topics[key];
+          if (topic) {
+            topic.cronJobId = cronResult.jobId;
+          }
+        });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error(`[archive] Cron re-registration failed: ${msg}`);
+    }
+  }
 
   // Regenerate include file so config stays in sync
   let restartMsg = '';

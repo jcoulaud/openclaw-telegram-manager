@@ -10,17 +10,11 @@ import {
   SPAM_THRESHOLD,
 } from '../lib/types.js';
 import type { TopicEntry, InlineKeyboardMarkup } from '../lib/types.js';
-import { buildDoctorReport, buildDoctorButtons, buildDailyReport, createRateLimitedPoster, truncateMessage } from '../lib/telegram.js';
+import { buildDoctorReport, buildDoctorButtons, createRateLimitedPoster, truncateMessage } from '../lib/telegram.js';
 import { runAllChecksForTopic, backupCapsuleIfHealthy } from '../lib/doctor-checks.js';
 import { includePath } from '../lib/include-generator.js';
 import {
   readFileOrNull,
-  extractDoneSection,
-  extractTodayLearnings,
-  extractBlockers,
-  extractNextActions,
-  extractUpcoming,
-  computeHealth,
 } from './daily-report.js';
 import type { CommandContext, CommandResult } from './help.js';
 
@@ -107,9 +101,6 @@ export interface DoctorAllSummaryData {
   checkedTopics: TopicOutcome[];
   skippedTopics: SkippedTopic[];
   postFailures: number;
-  dailyReportsSent: number;
-  dailyReportsSkipped: number;
-  hasPostFn: boolean;
   migrationGroups: number;
   errors: string[];
 }
@@ -121,9 +112,6 @@ export function buildDoctorAllSummary(data: DoctorAllSummaryData): string {
     checkedTopics,
     skippedTopics,
     postFailures,
-    dailyReportsSent,
-    dailyReportsSkipped,
-    hasPostFn,
     migrationGroups,
     errors,
   } = data;
@@ -186,17 +174,6 @@ export function buildDoctorAllSummary(data: DoctorAllSummaryData): string {
   if (postFailures > 0) {
     lines.push('');
     lines.push(`\u26a0\ufe0f ${postFailures} topic(s) failed to post`);
-  }
-
-  // ── Daily reports ──
-  if (hasPostFn) {
-    const parts: string[] = [];
-    if (dailyReportsSent > 0) parts.push(`${dailyReportsSent} sent`);
-    if (dailyReportsSkipped > 0) parts.push(`${dailyReportsSkipped} skipped`);
-    if (parts.length > 0) {
-      lines.push('');
-      lines.push(`Daily reports: ${parts.join(', ')}`);
-    }
   }
 
   // ── Migration warning ──
@@ -401,68 +378,7 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
     }
   }
 
-  // Daily report fan-out: generate and post daily reports for eligible topics
-  let dailyReportSuccesses = 0;
-  let dailyReportSkipped = 0;
-  const dailyReportKeys = new Set<string>();
-
-  if (ctx.postFn && reports.length > 0) {
-    const rateLimitedPost = createRateLimitedPoster(ctx.postFn);
-    const nowDate = now.toISOString().slice(0, 10);
-
-    for (const report of reports) {
-      const key = `${report.groupId}:${report.threadId}`;
-      const entry = registry.topics[key];
-      if (!entry) continue;
-
-      // Dedup: skip if already reported today
-      if (entry.lastDailyReportAt) {
-        const lastReport = new Date(entry.lastDailyReportAt);
-        const lastDate = `${lastReport.getUTCFullYear()}-${String(lastReport.getUTCMonth() + 1).padStart(2, '0')}-${String(lastReport.getUTCDate()).padStart(2, '0')}`;
-        if (lastDate === nowDate) {
-          dailyReportSkipped++;
-          continue;
-        }
-      }
-
-      // Read capsule files
-      const capsuleDir = path.join(projectsBase, entry.slug);
-      const statusContent = readFileOrNull(path.join(capsuleDir, 'STATUS.md'));
-      const todoContent = readFileOrNull(path.join(capsuleDir, 'TODO.md'));
-      const learningsContent = readFileOrNull(path.join(capsuleDir, 'LEARNINGS.md'));
-
-      // Extract sections
-      const doneContent = extractDoneSection(statusContent);
-      const newLearnings = extractTodayLearnings(learningsContent);
-      const blockers = extractBlockers(todoContent);
-      const nextContent = extractNextActions(statusContent);
-      const upcomingContent = extractUpcoming(statusContent);
-      const health = computeHealth(entry.lastMessageAt, statusContent, blockers);
-
-      const reportData = {
-        name: entry.name,
-        doneContent,
-        learningsContent: newLearnings,
-        blockersContent: blockers,
-        nextContent,
-        upcomingContent,
-        health,
-      };
-
-      try {
-        const htmlReport = buildDailyReport(reportData, 'html');
-        await rateLimitedPost(report.groupId, report.threadId, htmlReport);
-        dailyReportSuccesses++;
-        dailyReportKeys.add(key);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        logger.error(`[doctor-all] Daily report post failed for ${entry.slug}: ${msg}`);
-        // Daily report failures don't fail the overall run
-      }
-    }
-  }
-
-  // Update registry: lastDoctorAllRunAt, per-topic timestamps, and daily report timestamps
+  // Update registry: lastDoctorAllRunAt and per-topic timestamps
   await withRegistry(workspaceDir, (data) => {
     data.lastDoctorAllRunAt = now.toISOString();
 
@@ -499,13 +415,6 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
       }
     }
 
-    // Batch-update lastDailyReportAt for successful daily reports
-    for (const key of dailyReportKeys) {
-      const entry = data.topics[key];
-      if (entry) {
-        entry.lastDailyReportAt = now.toISOString();
-      }
-    }
   });
 
   // Build summary
@@ -514,9 +423,6 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
       checkedTopics,
       skippedTopics,
       postFailures,
-      dailyReportsSent: dailyReportSuccesses,
-      dailyReportsSkipped: dailyReportSkipped,
-      hasPostFn: !!ctx.postFn,
       migrationGroups: migrationGroups.length,
       errors,
     }),

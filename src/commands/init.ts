@@ -26,6 +26,7 @@ import {
 } from '../lib/telegram.js';
 import { generateInclude } from '../lib/include-generator.js';
 import { triggerRestart, getConfigWrites } from '../lib/config-restart.js';
+import { registerDailyReportCron } from '../lib/cron.js';
 import { appendAudit, buildAuditEntry } from '../lib/audit.js';
 import { MARKER_START, HEARTBEAT_BLOCK, HEARTBEAT_FILENAME } from './autopilot.js';
 import type { CommandContext, CommandResult } from './help.js';
@@ -160,6 +161,7 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
         snoozeUntil: null,
         consecutiveSilentDoctors: 0,
         lastPostError: null,
+        cronJobId: null,
         extras: {},
       };
 
@@ -220,6 +222,28 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
     const msg = err instanceof Error ? err.message : String(err);
     logger.error(`[init] Config sync failed: ${msg}`);
     restartMsg = `\nWarning: config sync failed: ${msg}`;
+  }
+
+  // Register daily report cron job (non-critical)
+  try {
+    const cronResult = await registerDailyReportCron(rpc, {
+      topicName: name,
+      slug: finalSlug,
+      groupId,
+      threadId,
+    }, logger);
+
+    if (cronResult.jobId) {
+      await withRegistry(workspaceDir, (data) => {
+        const entry = data.topics[key];
+        if (entry) {
+          entry.cronJobId = cronResult.jobId;
+        }
+      });
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error(`[init] Cron registration failed: ${msg}`);
   }
 
   // Audit log

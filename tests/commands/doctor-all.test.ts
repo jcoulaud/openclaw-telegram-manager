@@ -43,6 +43,7 @@ describe('doctor-all', () => {
     snoozeUntil: null,
     consecutiveSilentDoctors: 0,
     lastPostError: null,
+    cronJobId: null,
     extras: {},
     ...overrides,
   });
@@ -85,7 +86,7 @@ describe('doctor-all', () => {
   });
 
   describe('with postFn', () => {
-    it('should post health check and daily report to correct groupId/threadId', async () => {
+    it('should post health check to correct groupId/threadId', async () => {
       const entry = makeEntry();
       const key = `${entry.groupId}:${entry.threadId}`;
       setupRegistry({ [key]: entry });
@@ -98,15 +99,12 @@ describe('doctor-all', () => {
 
       const result = await handleDoctorAll(makeCtx({ postFn }));
 
-      // 2 posts: 1 health check + 1 daily report
-      expect(postCalls).toHaveLength(2);
+      // 1 post: health check only (daily reports handled by cron)
+      expect(postCalls).toHaveLength(1);
       expect(postCalls[0]?.groupId).toBe('-100');
       expect(postCalls[0]?.threadId).toBe('1');
-      expect(postCalls[1]?.groupId).toBe('-100');
-      expect(postCalls[1]?.threadId).toBe('1');
       expect(result.text).toContain('Test Topic');
       expect(result.text).toContain('checked');
-      expect(result.text).toContain('Daily reports: 1 sent');
     });
 
     it('should update lastDoctorReportAt on successful post', async () => {
@@ -178,90 +176,6 @@ describe('doctor-all', () => {
     });
   });
 
-  describe('daily report integration', () => {
-    it('should generate and post daily reports alongside health checks', async () => {
-      const entry = makeEntry();
-      const key = `${entry.groupId}:${entry.threadId}`;
-      setupRegistry({ [key]: entry });
-      scaffoldCapsule(path.join(workspaceDir, 'projects'), entry.slug, entry.name, entry.type);
-
-      const postFn = vi.fn(async () => {});
-      const result = await handleDoctorAll(makeCtx({ postFn }));
-
-      // Health check + daily report = 2 posts
-      expect(postFn).toHaveBeenCalledTimes(2);
-      expect(result.text).toContain('Daily reports: 1 sent');
-    });
-
-    it('should skip daily report if already reported today', async () => {
-      const entry = makeEntry({ lastDailyReportAt: new Date().toISOString() });
-      const key = `${entry.groupId}:${entry.threadId}`;
-      setupRegistry({ [key]: entry });
-      scaffoldCapsule(path.join(workspaceDir, 'projects'), entry.slug, entry.name, entry.type);
-
-      const postFn = vi.fn(async () => {});
-      const result = await handleDoctorAll(makeCtx({ postFn }));
-
-      // Only health check, no daily report
-      expect(postFn).toHaveBeenCalledTimes(1);
-      expect(result.text).toContain('1 skipped');
-      expect(result.text).not.toContain('0 sent');
-    });
-
-    it('should update lastDailyReportAt in registry after successful post', async () => {
-      const entry = makeEntry();
-      const key = `${entry.groupId}:${entry.threadId}`;
-      setupRegistry({ [key]: entry });
-      scaffoldCapsule(path.join(workspaceDir, 'projects'), entry.slug, entry.name, entry.type);
-
-      const postFn = vi.fn(async () => {});
-      await handleDoctorAll(makeCtx({ postFn }));
-
-      const reg = readRegistry(workspaceDir);
-      expect(reg.topics[key]?.lastDailyReportAt).not.toBeNull();
-    });
-
-    it('should not post daily reports when postFn is undefined', async () => {
-      const entry = makeEntry();
-      const key = `${entry.groupId}:${entry.threadId}`;
-      setupRegistry({ [key]: entry });
-      scaffoldCapsule(path.join(workspaceDir, 'projects'), entry.slug, entry.name, entry.type);
-
-      const result = await handleDoctorAll(makeCtx());
-
-      // No daily report info in summary when no postFn
-      expect(result.text).not.toContain('Daily reports');
-
-      const reg = readRegistry(workspaceDir);
-      expect(reg.topics[key]?.lastDailyReportAt).toBeNull();
-    });
-
-    it('should continue if daily report post fails', async () => {
-      const entry1 = makeEntry({ threadId: '1', slug: 't-1' });
-      const entry2 = makeEntry({ threadId: '2', slug: 't-2' });
-      const key1 = `${entry1.groupId}:${entry1.threadId}`;
-      const key2 = `${entry2.groupId}:${entry2.threadId}`;
-      setupRegistry({ [key1]: entry1, [key2]: entry2 });
-
-      const projectsBase = path.join(workspaceDir, 'projects');
-      scaffoldCapsule(projectsBase, entry1.slug, entry1.name, entry1.type);
-      scaffoldCapsule(projectsBase, entry2.slug, entry2.name, entry2.type);
-
-      let callCount = 0;
-      const postFn = vi.fn(async () => {
-        callCount++;
-        // Fail the 3rd call (first daily report post)
-        if (callCount === 3) throw new Error('Daily report failed');
-      });
-
-      const result = await handleDoctorAll(makeCtx({ postFn }));
-
-      // Health checks should still succeed — both topics show as checked
-      expect(result.text).toContain('checked');
-      // One daily report should succeed, one failed
-      expect(result.text).toContain('Daily reports: 1 sent');
-    });
-  });
 
   describe('isEligible with STATUS.md timestamp', () => {
     const now = new Date('2025-06-15T12:00:00Z');
@@ -404,9 +318,6 @@ describe('doctor-all', () => {
       checkedTopics: [],
       skippedTopics: [],
       postFailures: 0,
-      dailyReportsSent: 0,
-      dailyReportsSkipped: 0,
-      hasPostFn: false,
       migrationGroups: 0,
       errors: [],
     };
@@ -444,16 +355,12 @@ describe('doctor-all', () => {
       expect(result).toContain('🔇 Delta — inactive');
     });
 
-    it('should suppress zero-value daily reports and post failures', () => {
+    it('should suppress zero-value post failures', () => {
       const result = buildDoctorAllSummary({
         ...baseSummary,
         checkedTopics: [{ name: 'Alpha', slug: 'alpha', status: 'checked' }],
-        hasPostFn: true,
         postFailures: 0,
-        dailyReportsSent: 0,
-        dailyReportsSkipped: 0,
       });
-      expect(result).not.toContain('Daily reports');
       expect(result).not.toContain('failed to post');
     });
 
@@ -477,23 +384,11 @@ describe('doctor-all', () => {
       const result = buildDoctorAllSummary({
         ...baseSummary,
         checkedTopics: [{ name: 'Failed Topic', slug: 'failed', status: 'post-failed' }],
-        hasPostFn: true,
         postFailures: 1,
       });
       expect(result).toContain('⚠️ Failed Topic — failed to post');
       expect(result).toContain('1 topic(s) failed to post');
     });
 
-    it('should show daily reports line with only non-zero values', () => {
-      const result = buildDoctorAllSummary({
-        ...baseSummary,
-        checkedTopics: [{ name: 'Alpha', slug: 'alpha', status: 'checked' }],
-        hasPostFn: true,
-        dailyReportsSent: 2,
-        dailyReportsSkipped: 0,
-      });
-      expect(result).toContain('Daily reports: 2 sent');
-      expect(result).not.toContain('skipped');
-    });
   });
 });

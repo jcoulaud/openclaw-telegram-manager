@@ -116,7 +116,7 @@ export function createTopicManagerTool(deps: ToolDeps): TopicManagerTool {
             return await handleList(ctx);
 
           case 'status':
-            return await handleStatus(ctx);
+            return await handleStatus(ctx, args);
 
           case 'sync':
             return await handleSync(ctx);

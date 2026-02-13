@@ -50,8 +50,6 @@ describe('commands/init', () => {
       const result = await handleInit(ctx, '');
 
       expect(result.text).toContain('My Test Project');
-      expect(result.pin).toBe(true);
-
       // Check registry
       const registry = readRegistry(workspaceDir);
       expect(registry.topics['-100123:456']).toBeDefined();
@@ -346,7 +344,6 @@ describe('commands/init', () => {
       const result = await handleInitInteractive(ctx, 'my-name coding');
 
       expect(result.text).toContain('my-name');
-      expect(result.pin).toBe(true);
 
       const registry = readRegistry(workspaceDir);
       expect(registry.topics['-100123:456']?.slug).toBe('t-456');
@@ -442,7 +439,6 @@ describe('commands/init', () => {
       expect(result.text).toContain('coding');
       expect(result.inlineKeyboard).toBeDefined();
       expect(result.inlineKeyboard!.inline_keyboard[0][0].text).toBe('Use this name');
-      expect(result.pin).toBeUndefined();
 
       // Topic should NOT be in registry yet
       const registry = readRegistry(workspaceDir);
@@ -574,9 +570,7 @@ describe('commands/init', () => {
       expect(html).toContain('my-project');
       expect(html).toContain('is ready!');
 
-      // CommandResult should be minimal text with pin
       expect(result.text).toBe('');
-      expect(result.pin).toBe(true);
     });
 
     it('should fall back to markdown when postFn throws', async () => {
@@ -614,7 +608,6 @@ describe('commands/init', () => {
       expect(postFn).toHaveBeenCalledOnce();
       // Falls back to full markdown topic card
       expect(result.text).toContain('**test-topic** is ready!');
-      expect(result.pin).toBe(true);
     });
 
     it('should fall back to markdown when postFn is undefined', async () => {
@@ -645,7 +638,6 @@ describe('commands/init', () => {
       const result = await handleInitNameConfirm(ctx, 'coding');
 
       expect(result.text).toContain('My Project');
-      expect(result.pin).toBe(true);
 
       const registry = readRegistry(workspaceDir);
       expect(registry.topics['-100123:456']?.slug).toBe('t-456');

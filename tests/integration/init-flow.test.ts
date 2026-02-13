@@ -51,7 +51,6 @@ describe('init flow integration', () => {
       // Step 1: Initialize topic
       const result = await handleInit(ctx, '');
       expect(result.text).toBeDefined();
-      expect(result.pin).toBe(true);
 
       // Step 2: Verify registry entry
       const registry = readRegistry(workspaceDir);
@@ -481,7 +480,6 @@ describe('init flow integration', () => {
       expect(step2.text).toContain('research');
       expect(step2.inlineKeyboard).toBeDefined();
       expect(step2.inlineKeyboard!.inline_keyboard[0][0].text).toBe('Use this name');
-      expect(step2.pin).toBeUndefined();
 
       // Topic should NOT be registered yet
       let registry = readRegistry(workspaceDir);
@@ -490,7 +488,6 @@ describe('init flow integration', () => {
       // Step 3: call handleInitNameConfirm → topic registered
       const step3 = await handleInitNameConfirm(ctx, 'research');
       expect(step3.text).toContain('Interactive Project');
-      expect(step3.pin).toBe(true);
 
       // Verify registry
       registry = readRegistry(workspaceDir);
@@ -637,7 +634,6 @@ describe('init flow integration', () => {
       expect(postFn.mock.calls[2][2]).toContain('is ready!');
       expect(postFn.mock.calls[2][3]).toBeUndefined(); // no keyboard for final step
       expect(step3.text).toBe('');
-      expect(step3.pin).toBe(true);
 
       // Verify topic was actually created in registry
       const registry = readRegistry(workspaceDir);

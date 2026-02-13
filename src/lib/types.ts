@@ -173,7 +173,6 @@ export interface CommandContext {
 export interface CommandResult {
   text: string;
   inlineKeyboard?: InlineKeyboardMarkup;
-  pin?: boolean;
 }
 
 // ── Helper to build a topic map key ────────────────────────────────────

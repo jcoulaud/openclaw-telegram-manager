@@ -236,7 +236,7 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
     try {
       const htmlCard = buildTopicCardHtml(name, topicType);
       await ctx.postFn(groupId, threadId, htmlCard);
-      return { text: '', pin: true };
+      return { text: '' };
     } catch {
       // Fall through to markdown fallback
     }
@@ -244,7 +244,6 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
 
   return {
     text: `${topicCard}${restartMsg}`,
-    pin: true,
   };
 }
 

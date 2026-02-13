@@ -145,7 +145,7 @@ describe('autopilot', () => {
 
     it('should reject when userId missing', async () => {
       const result = await handleAutopilot(makeCtx({ userId: undefined }), 'enable');
-      expect(result.text).toContain('Missing context');
+      expect(result.text).toContain('Something went wrong');
     });
   });
 

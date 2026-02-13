@@ -19,7 +19,7 @@ async function handleArchiveToggle(ctx: CommandContext, archive: boolean): Promi
   const command = archive ? 'archive' : 'unarchive';
 
   if (!userId || !groupId || !threadId) {
-    return { text: 'Missing context: userId, groupId, or threadId not available.' };
+    return { text: 'Something went wrong — this command must be run inside a Telegram forum topic.' };
   }
 
   const registry = readRegistry(workspaceDir);
@@ -66,7 +66,7 @@ async function handleArchiveToggle(ctx: CommandContext, archive: boolean): Promi
       generateInclude(workspaceDir, updatedRegistry, configDir);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      restartMsg = `\nWarning: include generation failed: ${msg}`;
+      restartMsg = `\nWarning: config sync failed: ${msg}`;
     }
     const result = await triggerRestart(rpc, logger);
     if (!result.success && result.fallbackMessage) {

@@ -30,7 +30,7 @@ export async function handleAutopilot(ctx: CommandContext, args: string): Promis
   const { workspaceDir, userId } = ctx;
 
   if (!userId) {
-    return { text: 'Missing context: userId not available.' };
+    return { text: 'Something went wrong — could not identify your user account.' };
   }
 
   const registry = readRegistry(workspaceDir);

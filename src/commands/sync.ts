@@ -8,7 +8,7 @@ export async function handleSync(ctx: CommandContext): Promise<CommandResult> {
   const { workspaceDir, configDir, userId, rpc, logger } = ctx;
 
   if (!userId) {
-    return { text: 'Missing context: userId not available.' };
+    return { text: 'Something went wrong — could not identify your user account.' };
   }
 
   const registry = readRegistry(workspaceDir);

@@ -142,7 +142,7 @@ export function runCapsuleChecks(
       check(
         Severity.INFO,
         'capsuleVersionBehind',
-        `Capsule version ${entry.capsuleVersion} is behind current ${CAPSULE_VERSION}. Will auto-upgrade on next command.`,
+        `Topic files are outdated (v${entry.capsuleVersion} → v${CAPSULE_VERSION}). Will auto-upgrade on next command.`,
         false,
       ),
     );

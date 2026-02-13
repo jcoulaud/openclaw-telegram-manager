@@ -11,7 +11,7 @@ export async function handleSnooze(ctx: CommandContext, args: string): Promise<C
   const { workspaceDir, userId, groupId, threadId } = ctx;
 
   if (!userId || !groupId || !threadId) {
-    return { text: 'Missing context: userId, groupId, or threadId not available.' };
+    return { text: 'Something went wrong — this command must be run inside a Telegram forum topic.' };
   }
 
   // Parse duration

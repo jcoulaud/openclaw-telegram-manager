@@ -7,7 +7,7 @@ export async function handleList(ctx: CommandContext): Promise<CommandResult> {
   const { workspaceDir, userId } = ctx;
 
   if (!userId) {
-    return { text: 'Missing context: userId not available.' };
+    return { text: 'Something went wrong — could not identify your user account.' };
   }
 
   const registry = readRegistry(workspaceDir);

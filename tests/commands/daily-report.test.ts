@@ -73,12 +73,12 @@ describe('daily-report', () => {
   describe('context validation', () => {
     it('should reject when groupId is missing', async () => {
       const result = await handleDailyReport(makeCtx({ groupId: undefined }));
-      expect(result.text).toContain('Missing context');
+      expect(result.text).toContain('Something went wrong');
     });
 
     it('should reject when threadId is missing', async () => {
       const result = await handleDailyReport(makeCtx({ threadId: undefined }));
-      expect(result.text).toContain('Missing context');
+      expect(result.text).toContain('Something went wrong');
     });
 
     it('should reject when topic not registered', async () => {

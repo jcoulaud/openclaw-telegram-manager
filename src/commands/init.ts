@@ -59,7 +59,7 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
   const { workspaceDir, configDir, userId, groupId, threadId, rpc, logger, messageContext } = ctx;
 
   if (!userId || !groupId || !threadId) {
-    return { text: 'Missing context: groupId, threadId, or userId not available. Run this command inside a Telegram forum topic.' };
+    return { text: 'Something went wrong — this command must be run inside a Telegram forum topic.' };
   }
 
   // Validate IDs
@@ -266,7 +266,7 @@ async function buildTypePicker(ctx: CommandContext): Promise<CommandResult> {
   const { workspaceDir, userId, groupId, threadId } = ctx;
 
   if (!userId || !groupId || !threadId) {
-    return { text: 'Missing context: groupId, threadId, or userId not available. Run this command inside a Telegram forum topic.' };
+    return { text: 'Something went wrong — this command must be run inside a Telegram forum topic.' };
   }
 
   if (!validateGroupId(groupId)) {
@@ -321,7 +321,7 @@ export async function handleInitTypeSelect(ctx: CommandContext, type: TopicType)
   const { workspaceDir, userId, groupId, threadId, messageContext } = ctx;
 
   if (!userId || !groupId || !threadId) {
-    return { text: 'Missing context: groupId, threadId, or userId not available. Run this command inside a Telegram forum topic.' };
+    return { text: 'Something went wrong — this command must be run inside a Telegram forum topic.' };
   }
 
   if (!validateGroupId(groupId)) {

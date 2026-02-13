@@ -92,7 +92,7 @@ export async function handleStatus(ctx: CommandContext): Promise<CommandResult> 
   const { workspaceDir, userId, groupId, threadId } = ctx;
 
   if (!userId || !groupId || !threadId) {
-    return { text: 'Missing context: userId, groupId, or threadId not available.' };
+    return { text: 'Something went wrong — this command must be run inside a Telegram forum topic.' };
   }
 
   const registry = readRegistry(workspaceDir);

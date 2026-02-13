@@ -83,9 +83,9 @@ describe('registerCommand handler', () => {
       messageThreadId: '456',
     });
 
-    // With valid context extracted, init should NOT show "Missing context"
+    // With valid context extracted, init should NOT show an error
     expect(result.text).toBeDefined();
-    expect(result.text).not.toContain('Missing context');
+    expect(result.text).not.toContain('Something went wrong');
   });
 
   it('should strip telegram:group: prefix from ctx.from for groupId', async () => {
@@ -98,7 +98,7 @@ describe('registerCommand handler', () => {
     });
 
     expect(result.text).toBeDefined();
-    expect(result.text).not.toContain('Missing context');
+    expect(result.text).not.toContain('Something went wrong');
   });
 
   it('should strip :topic: suffix from ctx.from for groupId', async () => {
@@ -111,16 +111,16 @@ describe('registerCommand handler', () => {
     });
 
     expect(result.text).toBeDefined();
-    expect(result.text).not.toContain('Missing context');
+    expect(result.text).not.toContain('Something went wrong');
   });
 
-  it('should return "Missing context" when senderId/from/threadId are absent', async () => {
+  it('should return error when senderId/from/threadId are absent', async () => {
     const result = await registeredCommand.handler({
       args: 'init',
       commandBody: '/tm init',
     });
 
-    expect(result.text).toContain('Missing context');
+    expect(result.text).toContain('Something went wrong');
   });
 
   it('should map inlineKeyboard to channelData.telegram.buttons as raw 2D array', async () => {
@@ -184,7 +184,7 @@ describe('registerCommand handler', () => {
 
     // Numeric threadId should work just like string
     expect(result.text).toBeDefined();
-    expect(result.text).not.toContain('Missing context');
+    expect(result.text).not.toContain('Something went wrong');
   });
 
   it('should not call registerCommand when api lacks it', () => {

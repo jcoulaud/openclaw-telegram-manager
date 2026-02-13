@@ -187,7 +187,7 @@ describe('commands/init', () => {
 
       const result = await handleInit(ctx, 'test');
 
-      expect(result.text).toContain('Missing context');
+      expect(result.text).toContain('Something went wrong');
     });
 
     it('should reject invalid groupId format', async () => {
@@ -392,7 +392,7 @@ describe('commands/init', () => {
 
       const result = await handleInitInteractive(ctx, '');
 
-      expect(result.text).toContain('Missing context');
+      expect(result.text).toContain('Something went wrong');
     });
 
     it('should reject already registered topic in interactive mode', async () => {

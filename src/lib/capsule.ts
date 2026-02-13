@@ -141,7 +141,7 @@ export function upgradeCapsule(
   }
 
   if (rejectSymlink(capsuleDir)) {
-    throw new Error(`Topic directory is a symlink: ${capsuleDir}`);
+    throw new Error('Topic directory is a symlink — this is not allowed for security reasons.');
   }
 
   const addedFiles: string[] = [];

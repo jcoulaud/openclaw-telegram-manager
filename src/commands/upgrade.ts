@@ -9,7 +9,7 @@ export async function handleUpgrade(ctx: CommandContext): Promise<CommandResult>
   const { workspaceDir, userId, groupId, threadId } = ctx;
 
   if (!userId || !groupId || !threadId) {
-    return { text: 'Missing context: userId, groupId, or threadId not available.' };
+    return { text: 'Something went wrong — this command must be run inside a Telegram forum topic.' };
   }
 
   const registry = readRegistry(workspaceDir);
@@ -50,11 +50,12 @@ export async function handleUpgrade(ctx: CommandContext): Promise<CommandResult>
     }
   });
 
-  const addedList = result.addedFiles.length > 0
-    ? `\nAdded files: ${result.addedFiles.join(', ')}`
-    : '\nNo new files added.';
+  const addedCount = result.addedFiles.length;
+  const addedNote = addedCount > 0
+    ? `\n${addedCount} new file${addedCount === 1 ? '' : 's'} added.`
+    : '';
 
   return {
-    text: `Topic **${entry.name}** upgraded.${addedList}`,
+    text: `Topic **${entry.name}** upgraded to the latest version.${addedNote}`,
   };
 }

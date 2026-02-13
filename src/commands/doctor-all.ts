@@ -37,7 +37,7 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
   const { workspaceDir, configDir, userId, logger } = ctx;
 
   if (!userId) {
-    return { text: 'Missing context: userId not available.' };
+    return { text: 'Something went wrong — could not identify your user account.' };
   }
 
   const registry = readRegistry(workspaceDir);

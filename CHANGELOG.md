@@ -1,3 +1,11 @@
+## [2.5.4](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.5.3...v2.5.4) (2026-02-13)
+
+
+### Bug Fixes
+
+* deduplicate AI-reworded memoryFlush instructions on reinstall ([932798d](https://github.com/jcoulaud/openclaw-telegram-manager/commit/932798dffe5e3ed5de6f18815fe040166085b2a3))
+* match full ISO timestamps in status and label relative times in list ([c85db08](https://github.com/jcoulaud/openclaw-telegram-manager/commit/c85db089db178fb0a5fc7d633751e3fe7dc57ed0))
+
 ## [2.5.3](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.5.2...v2.5.3) (2026-02-13)
 
 

@@ -34,13 +34,17 @@ interface TopicReport {
 }
 
 export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResult> {
-  const { workspaceDir, configDir, userId, logger } = ctx;
+  const { workspaceDir, configDir, logger } = ctx;
 
+  const registry = readRegistry(workspaceDir);
+
+  // When the autopilot calls doctor --all there is no Telegram user context,
+  // so userId is undefined. Fall back to the first registered admin — the
+  // autopilot acts on behalf of whoever set it up.
+  const userId = ctx.userId ?? registry.topicManagerAdmins[0];
   if (!userId) {
     return { text: 'Something went wrong — could not identify your user account.' };
   }
-
-  const registry = readRegistry(workspaceDir);
 
   // Auth check (admin tier)
   const auth = checkAuthorization(userId, 'doctor-all', registry);

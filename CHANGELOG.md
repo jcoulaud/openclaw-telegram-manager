@@ -1,3 +1,10 @@
+## [2.6.2](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.6.1...v2.6.2) (2026-02-13)
+
+
+### Bug Fixes
+
+* move entry-point to end of setup.ts to fix bundled variable ordering ([e3172a4](https://github.com/jcoulaud/openclaw-telegram-manager/commit/e3172a4e2b8a7ad62dea8a9864eafee6514e86e7))
+
 ## [2.6.1](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.6.0...v2.6.1) (2026-02-13)
 
 

@@ -50,7 +50,7 @@
     "vitest": "^4.0.18"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.build.json && esbuild src/index.ts --bundle --platform=node --target=node18 --format=esm --outfile=dist/plugin.js",
+    "build": "tsc --project tsconfig.build.json && esbuild src/index.ts --bundle --platform=node --target=node18 --format=esm --outfile=dist/plugin.js && esbuild src/setup.ts --bundle --platform=node --target=node18 --format=esm --outfile=dist/setup.js",
     "prepublishOnly": "npm run build",
     "test": "vitest run",
     "lint": "tsc --noEmit",

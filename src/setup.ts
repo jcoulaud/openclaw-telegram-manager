@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import * as crypto from 'node:crypto';
 import { execSync } from 'node:child_process';
 import * as readline from 'node:readline';
+import JSON5 from 'json5';
 
 // ── Constants ──────────────────────────────────────────────────────────
 
@@ -522,15 +523,30 @@ function unpatchConfig(configDir: string): void {
     const channels = config['channels'] as Record<string, unknown> | undefined;
     const telegram = channels?.['telegram'] as Record<string, unknown> | undefined;
     if (telegram) {
-      const includePath = path.join(configDir, INCLUDE_FILENAME);
+      const includeFilePath = path.join(configDir, INCLUDE_FILENAME);
       let restoredGroups: Record<string, unknown> | null = null;
-      if (fs.existsSync(includePath)) {
+      if (fs.existsSync(includeFilePath)) {
         try {
-          const raw = fs.readFileSync(includePath, 'utf-8');
-          const jsonBody = raw.replace(/^\s*\/\/.*$/gm, '').trim();
-          const parsed = JSON.parse(jsonBody) as Record<string, unknown>;
-          if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
-            restoredGroups = parsed;
+          const raw = fs.readFileSync(includeFilePath, 'utf-8');
+          const parsed = JSON5.parse(raw) as Record<string, unknown>;
+          // Strip topic-level config (topics, systemPrompt, etc.) — only keep
+          // group-level settings like requireMention
+          const cleaned: Record<string, unknown> = {};
+          for (const [groupId, groupVal] of Object.entries(parsed)) {
+            if (groupVal && typeof groupVal === 'object') {
+              const groupSettings: Record<string, unknown> = {};
+              for (const [key, val] of Object.entries(groupVal as Record<string, unknown>)) {
+                if (key !== 'topics') {
+                  groupSettings[key] = val;
+                }
+              }
+              if (Object.keys(groupSettings).length > 0) {
+                cleaned[groupId] = groupSettings;
+              }
+            }
+          }
+          if (Object.keys(cleaned).length > 0) {
+            restoredGroups = cleaned;
           }
         } catch { /* fall through – delete key if we can't parse */ }
       }

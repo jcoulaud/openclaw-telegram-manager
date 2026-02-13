@@ -29,7 +29,7 @@ export async function handleUpgrade(ctx: CommandContext): Promise<CommandResult>
 
   if (entry.capsuleVersion >= CAPSULE_VERSION) {
     return {
-      text: `Topic **${entry.name}** is already at capsule version ${CAPSULE_VERSION}. No upgrade needed.`,
+      text: `Topic **${entry.name}** is already up to date. No upgrade needed.`,
     };
   }
 
@@ -55,6 +55,6 @@ export async function handleUpgrade(ctx: CommandContext): Promise<CommandResult>
     : '\nNo new files added.';
 
   return {
-    text: `Topic **${entry.name}** upgraded from v${entry.capsuleVersion} to v${result.newVersion}.${addedList}`,
+    text: `Topic **${entry.name}** upgraded.${addedList}`,
   };
 }

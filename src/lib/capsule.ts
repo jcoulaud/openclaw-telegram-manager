@@ -12,7 +12,7 @@ const BASE_TEMPLATES: Record<string, (name: string) => string> = {
     `# ${name}\n\n_Describe what this topic is about._\n`,
 
   'STATUS.md': (name) =>
-    `# Status: ${name}\n\n> This file is maintained by the agent — just send messages in the chat.\n\n## Last done (UTC)\n\n${new Date().toISOString()}\n\n_Waiting for first instructions._\n\n## Next actions (now)\n\n1. _e.g. Set up project scaffolding_\n\n## Upcoming actions\n\n_See TODO.md for full backlog._\n`,
+    `# Status: ${name}\n\n## Last done (UTC)\n\n${new Date().toISOString()}\n\nTopic created. Waiting for first instructions.\n\n## Next actions (now)\n\n_None yet._\n\n## Upcoming actions\n\n_None yet._\n`,
 
   'TODO.md': (name) =>
     `# TODO: ${name}\n\n## Backlog\n\n- [T-1] _e.g. Set up project scaffolding_\n- [T-2] _Waiting for next task_\n- [T-3] _Waiting for next task_\n\n## Completed\n\n_None yet._\n`,
@@ -82,7 +82,7 @@ export function scaffoldCapsule(
 
   // Symlink check on parent
   if (rejectSymlink(projectsBase)) {
-    throw new Error(`Projects base is a symlink: ${projectsBase}`);
+    throw new Error('Detected an unsafe file system configuration (symlink)');
   }
 
   // Atomic directory creation (exclusive)
@@ -141,7 +141,7 @@ export function upgradeCapsule(
   }
 
   if (rejectSymlink(capsuleDir)) {
-    throw new Error(`Capsule directory is a symlink: ${capsuleDir}`);
+    throw new Error(`Topic directory is a symlink: ${capsuleDir}`);
   }
 
   const addedFiles: string[] = [];

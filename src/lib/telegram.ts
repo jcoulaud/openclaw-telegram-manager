@@ -24,30 +24,41 @@ export interface DailyReportData {
   health: 'fresh' | 'stale' | 'blocked';
 }
 
+const HEALTH_LABELS: Record<string, string> = {
+  fresh: '\u2705 Active',       // green check
+  stale: '\u23f3 Inactive',     // hourglass
+  blocked: '\u26a0\ufe0f Blocked', // warning
+};
+
 /**
- * Format a daily report as HTML for Telegram posting.
+ * Format a daily report for Telegram posting.
+ * @param format - 'html' for direct postFn posts, 'markdown' for command responses
  */
-export function buildDailyReport(data: DailyReportData): string {
-  const n = htmlEscape(data.name);
+export function buildDailyReport(data: DailyReportData, format: TextFormat = 'html'): string {
+  const isHtml = format === 'html';
+  const esc = (s: string) => isHtml ? htmlEscape(s) : s;
+  const bold = (s: string) => isHtml ? `<b>${s}</b>` : `**${s}**`;
+  const n = esc(data.name);
+  const healthLabel = HEALTH_LABELS[data.health] ?? data.health;
   const lines = [
-    `<b>Daily Report: ${n}</b>`,
+    bold(`Daily Report: ${n}`),
     '',
-    `<b>Done today</b>`,
-    htmlEscape(data.doneContent),
+    bold('Done today'),
+    esc(data.doneContent),
     '',
-    `<b>New learnings</b>`,
-    htmlEscape(data.learningsContent),
+    bold('New learnings'),
+    esc(data.learningsContent),
     '',
-    `<b>Blockers/Risks</b>`,
-    htmlEscape(data.blockersContent),
+    bold('Blockers/Risks'),
+    esc(data.blockersContent),
     '',
-    `<b>Next actions (now)</b>`,
-    htmlEscape(data.nextContent),
+    bold('Next actions (now)'),
+    esc(data.nextContent),
     '',
-    `<b>Upcoming</b>`,
-    htmlEscape(data.upcomingContent),
+    bold('Upcoming'),
+    esc(data.upcomingContent),
     '',
-    `<b>Health:</b> ${data.health}`,
+    `${bold('Health:')} ${healthLabel}`,
   ];
   return truncateMessage(lines.join('\n'));
 }
@@ -85,13 +96,9 @@ export function buildDoctorButtons(
   const cb = (action: string) => buildCallbackData(action, groupId, threadId, secret, userId);
   return buildInlineKeyboard([
     [
-      { text: 'Fix', callback_data: cb('fix') },
       { text: 'Snooze 7d', callback_data: cb('snooze7d') },
       { text: 'Snooze 30d', callback_data: cb('snooze30d') },
-    ],
-    [
-      { text: 'Archive', callback_data: cb('archive') },
-      { text: 'Ignore check', callback_data: cb('ignore') },
+      { text: 'Archive topic', callback_data: cb('archive') },
     ],
   ]);
 }
@@ -142,23 +149,19 @@ export function buildInitConfirmButton(
 /**
  * Build Markdown Topic Card displayed after init.
  */
-export function buildTopicCard(name: string, slug: string, type: TopicType, capsuleVersion: number): string {
+export function buildTopicCard(name: string, slug: string, type: TopicType): string {
   return [
     `**Topic: ${name}**`,
-    `Type: ${type} | Version: ${capsuleVersion}`,
-    `Capsule: projects/${slug}/`,
+    `**Type:** ${type}`,
+    `**Stored in:** projects/${slug}/`,
     '',
     '**How it works**',
-    'Just send your instructions in this topic. The agent',
-    'maintains STATUS.md and TODO.md automatically as it',
-    'works — nothing is lost on reset or context compaction.',
-    'Doctor checks run periodically and alert you if anything',
-    'needs attention.',
+    'Talk to the AI in this topic like you normally would — describe what you need, ask questions, or give instructions. Progress, TODOs, and decisions are tracked automatically so nothing is lost between sessions.',
     '',
-    '**Commands:**',
-    '/tm status — quick STATUS.md view',
+    '**Available commands:**',
+    '/tm status — see current progress',
     '/tm doctor — run health checks',
-    '/tm rename <name> — rename this topic',
+    '/tm rename new-name — rename this topic',
     '/tm list — all topics',
     '/tm archive — archive this topic',
     '/tm help — full command reference',
@@ -175,7 +178,7 @@ export function buildInitWelcomeHtml(): string {
   return [
     '<b>Set up a new topic workcell</b>',
     '',
-    'A workcell gives this topic its own capsule — a set of markdown files (STATUS.md, TODO.md, etc.) that persist across resets and context compaction.',
+    'A workcell gives this topic a persistent memory — The AI writes status, TODOs, and notes to disk so context survives between sessions.',
     '',
     '<b>Pick a type:</b>',
     '\u2022 <b>Coding</b> — adds ARCHITECTURE.md + DEPLOY.md',
@@ -198,7 +201,7 @@ export function buildInitNameConfirmHtml(name: string, type: TopicType): string 
     `Name: <b>${n}</b>`,
     `Type: ${t}`,
     '',
-    'This name appears in status reports and doctor checks.',
+    'You\'ll see this name in reports and health checks.',
     '',
     `For a custom name: <code>/tm init your-name ${t}</code>`,
   ].join('\n');
@@ -208,30 +211,35 @@ export function buildInitNameConfirmHtml(name: string, type: TopicType): string 
  * Build HTML for init step 3: topic card after successful init.
  * Posted directly via postFn to bypass AI reformatting.
  */
-export function buildTopicCardHtml(name: string, slug: string, type: TopicType, capsuleVersion: number): string {
+export function buildTopicCardHtml(name: string, slug: string, type: TopicType): string {
   const n = htmlEscape(name);
   const s = htmlEscape(slug);
   const t = htmlEscape(type);
   return [
     `<b>Topic: ${n}</b>`,
-    `Type: ${t} | Version: ${capsuleVersion}`,
-    `Capsule: <code>projects/${s}/</code>`,
+    `<b>Type:</b> ${t}`,
+    `<b>Stored in:</b> <code>projects/${s}/</code>`,
     '',
     '<b>How it works</b>',
-    'Just send your instructions in this topic. The agent',
-    'maintains STATUS.md and TODO.md automatically as it',
-    'works \u2014 nothing is lost on reset or context compaction.',
-    'Doctor checks run periodically and alert you if anything',
-    'needs attention.',
+    'Talk to the AI in this topic like you normally would \u2014 describe what you need, ask questions, or give instructions. Progress, TODOs, and decisions are tracked automatically so nothing is lost between sessions.',
     '',
-    '<b>Commands:</b>',
-    '/tm status \u2014 quick STATUS.md view',
+    '<b>Available commands:</b>',
+    '/tm status \u2014 see current progress',
     '/tm doctor \u2014 run health checks',
-    '/tm rename &lt;name&gt; \u2014 rename this topic',
+    '/tm rename new-name \u2014 rename this topic',
     '/tm list \u2014 all topics',
     '/tm archive \u2014 archive this topic',
     '/tm help \u2014 full command reference',
   ].join('\n');
+}
+
+/**
+ * Wrap /tm commands in code formatting (backticks for markdown, <code> for HTML).
+ */
+function formatCommands(text: string, isHtml: boolean): string {
+  return text.replace(/\/tm\s\S+(?:\s\S+)*/g, (match) =>
+    isHtml ? `<code>${htmlEscape(match)}</code>` : `\`${match}\``,
+  );
 }
 
 /**
@@ -242,28 +250,30 @@ export function buildDoctorReport(name: string, results: DoctorCheckResult[], fo
   const isHtml = format === 'html';
   const n = isHtml ? htmlEscape(name) : name;
   const bold = (s: string) => isHtml ? `<b>${s}</b>` : `**${s}**`;
-  const code = (s: string) => isHtml ? `<code>${s}</code>` : `\`${s}\``;
-  const lines: string[] = [bold(`Doctor: ${n}`), ''];
+  const lines: string[] = [bold(`Health check: ${n}`), ''];
 
-  if (results.length === 0) {
-    lines.push('All checks passed.');
+  // Filter out INFO-level results — only show warnings and errors
+  const significant = results.filter(r => r.severity !== Severity.INFO);
+
+  if (significant.length === 0) {
+    lines.push('All good \u2014 no issues found.');
     return lines.join('\n');
   }
 
-  for (const r of results) {
+  for (let i = 0; i < significant.length; i++) {
+    const r = significant[i]!;
     const icon = severityIcon(r.severity);
     const msg = isHtml ? htmlEscape(r.message) : r.message;
-    const checkId = isHtml ? htmlEscape(r.checkId) : r.checkId;
-    const fix = r.fixable ? ' [fixable]' : '';
-    lines.push(`${icon} ${code(checkId)}: ${msg}${fix}`);
+    lines.push(`${icon} ${msg}`);
     if (r.remediation) {
-      const rem = isHtml ? htmlEscape(r.remediation) : r.remediation;
-      lines.push(`   \u2192 ${rem}`);
+      const rem = formatCommands(r.remediation, isHtml);
+      lines.push(`  \u2192 ${rem}`);
+    }
+    // Blank line between items
+    if (i < significant.length - 1) {
+      lines.push('');
     }
   }
-
-  lines.push('');
-  lines.push('Reply /tm doctor to re-check, or use the buttons below.');
 
   return truncateMessage(lines.join('\n'));
 }
@@ -288,20 +298,26 @@ export function buildHelpCard(): string {
   return [
     '**Topic Manager Commands**',
     '',
-    '/tm init — register this topic',
-    '/tm status — quick STATUS.md view',
-    '/tm doctor — run health checks',
-    '/tm doctor --all — check all topics',
-    '/tm rename <name> — rename this topic',
+    '**Basics**',
+    '/tm init — set up this topic',
+    '/tm status — see current progress',
     '/tm list — all topics',
-    '/tm sync — re-apply config',
-    '/tm upgrade — update capsule template',
-    '/tm snooze <Nd> — snooze doctor (7d, 30d, etc.)',
-    '/tm archive — archive topic',
-    '/tm unarchive — reactivate topic',
-    '/tm autopilot [enable|disable|status] — daily sweeps',
-    '/tm daily-report — generate daily status report',
     '/tm help — this message',
+    '',
+    '**Health & reports**',
+    '/tm doctor — run health checks',
+    '/tm doctor --all — check all topics at once',
+    '/tm daily-report — post a daily summary',
+    '/tm autopilot enable — automatic daily health checks',
+    '/tm autopilot disable — turn off automatic checks',
+    '',
+    '**Manage topics**',
+    '/tm rename new-name — rename this topic',
+    '/tm snooze 7d — pause health checks (e.g. 7d, 30d)',
+    '/tm archive — archive this topic',
+    '/tm unarchive — bring back an archived topic',
+    '/tm sync — fix config if out of sync',
+    '/tm upgrade — update topic files to latest version',
   ].join('\n');
 }
 
@@ -311,7 +327,7 @@ export function buildHelpCard(): string {
  */
 export function buildListMessage(topics: TopicEntry[]): string {
   if (topics.length === 0) {
-    return '**Topic Registry** (0 topics)\n\nNo topics registered.';
+    return '**Your topics**\n\nNo topics yet. Type /tm init in any topic to get started.';
   }
 
   const sorted = [...topics].sort((a, b) => {
@@ -319,15 +335,14 @@ export function buildListMessage(topics: TopicEntry[]): string {
     return (order[a.status] ?? 3) - (order[b.status] ?? 3);
   });
 
-  const lines: string[] = [`**Topic Registry** (${topics.length} topics)`, ''];
+  const count = topics.length;
+  const lines: string[] = [`**Your topics** (${count})`, ''];
   let rendered = 0;
 
   for (const t of sorted) {
-    const entry = [
-      `**${t.name}** [${t.type}] ${t.status}`,
-      `  Last active: ${t.lastMessageAt ? relativeTime(t.lastMessageAt) : 'never'}`,
-      `  Thread: #${t.threadId}`,
-    ].join('\n');
+    const activity = t.lastMessageAt ? relativeTime(t.lastMessageAt) : 'no activity yet';
+    const statusTag = t.status !== 'active' ? ` \u2014 ${t.status}` : '';
+    const entry = `**${t.name}** \u00b7 ${t.type}${statusTag}\n  ${activity}`;
 
     // Check if adding this entry would exceed limit
     const tentative = [...lines, entry, ''].join('\n');
@@ -348,7 +363,7 @@ export function buildListMessage(topics: TopicEntry[]): string {
 /**
  * Convert an ISO timestamp to a relative time string.
  */
-function relativeTime(iso: string): string {
+export function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60_000);
   if (mins < 1) return 'just now';

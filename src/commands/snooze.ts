@@ -17,7 +17,7 @@ export async function handleSnooze(ctx: CommandContext, args: string): Promise<C
   // Parse duration
   const trimmed = args.trim();
   if (!trimmed) {
-    return { text: 'Usage: /tm snooze <Nd> (e.g., 7d, 30d)' };
+    return { text: 'How long to snooze? Example: /tm snooze 7d' };
   }
 
   const match = DURATION_RE.exec(trimmed);
@@ -62,6 +62,6 @@ export async function handleSnooze(ctx: CommandContext, args: string): Promise<C
   );
 
   return {
-    text: `Topic **${entry.name}** snoozed for ${days} days (until ${snoozeUntil}).`,
+    text: `Topic **${entry.name}** snoozed for ${days} days. Health checks will resume automatically after that.`,
   };
 }

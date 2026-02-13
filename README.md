@@ -6,13 +6,13 @@
 [![npm version](https://img.shields.io/npm/v/openclaw-telegram-manager)](https://www.npmjs.com/package/openclaw-telegram-manager)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An [OpenClaw](https://openclaw.ai) plugin that gives each Telegram topic its own persistent workspace — status, todos, commands, links, notes — so nothing gets lost when the agent resets or context gets compacted.
+An [OpenClaw](https://openclaw.ai) plugin that gives each Telegram topic its own persistent memory — status, todos, commands, links, notes — so nothing gets lost when the agent resets or context gets compacted.
 
 ## The problem
 
 When OpenClaw manages a Telegram group with topics, each topic is basically a separate project. But after a reset or context compaction, the agent forgets everything: what it was working on, what's left to do, what commands matter.
 
-This plugin fixes that. Each topic gets a folder of markdown files (a "capsule") that the agent reads on startup. It picks up right where it left off.
+This plugin fixes that. Each topic gets its own persistent memory — a folder of files that the agent reads on startup. It picks up right where it left off.
 
 ## Prerequisites
 
@@ -34,8 +34,8 @@ Once that's done, head to your Telegram group:
 1. Open any topic
 2. Type `/tm init` in the chat
 3. Pick a topic type (Coding, Research, Marketing, or Custom)
-4. The plugin creates a capsule (a folder of markdown files — see below) and confirms in chat
-5. From now on, the agent reads the capsule on every session start — no context lost
+4. The plugin creates the topic's persistent memory and confirms in chat
+5. From now on, the agent reads these files on every session start — no context lost
 
 You can also skip the interactive flow: `/tm init my-project coding` (the first argument is the display name, second is the type)
 
@@ -47,26 +47,26 @@ All commands are typed directly in the Telegram group chat:
 |---------|-------------|
 | `/tm init` | Interactive setup — pick a topic type |
 | `/tm init [name] [type]` | One-step setup. Types: `coding`, `research`, `marketing`, `custom` |
-| `/tm status` | Show the current STATUS.md |
+| `/tm status` | Show a formatted status summary |
 | `/tm list` | List all topics, grouped by status |
 | `/tm doctor` | Run health checks on the current topic |
 | `/tm doctor --all` | Health check all active topics at once |
-| `/tm sync` | Regenerate the include file from the registry |
+| `/tm sync` | Fix config if topics are out of sync |
 | `/tm rename <new-name>` | Rename a topic's display name |
-| `/tm upgrade` | Upgrade the capsule to the latest template version |
+| `/tm upgrade` | Upgrade topic files to the latest template version |
 | `/tm snooze <duration>` | Snooze a topic (e.g. `7d`, `30d`) |
 | `/tm archive` | Archive a topic |
 | `/tm unarchive` | Bring back an archived topic |
-| `/tm autopilot [enable\|disable\|status]` | Toggle daily health sweeps |
+| `/tm autopilot [enable\|disable\|status]` | Toggle automatic daily health checks |
 | `/tm daily-report` | Generate a daily status report for the current topic |
 | `/tm help` | Show this command list in Telegram |
 
-## What's in a capsule
+## What's stored per topic
 
 Each topic gets a folder at `~/.openclaw/workspace/projects/t-<threadId>/` with these files:
 
 **Always included:**
-- `STATUS.md` — what's happening, last activity, next actions and upcoming pipeline
+- `STATUS.md` — last activity, next actions, and upcoming work
 - `TODO.md` — task backlog
 - `COMMANDS.md` — build/deploy/test commands worth remembering
 - `LINKS.md` — URLs and endpoints
@@ -79,7 +79,7 @@ Each topic gets a folder at `~/.openclaw/workspace/projects/t-<threadId>/` with 
 - `coding` adds `ARCHITECTURE.md` and `DEPLOY.md`
 - `research` adds `SOURCES.md` and `FINDINGS.md`
 - `marketing` adds `CAMPAIGNS.md` and `METRICS.md`
-- `custom` adds nothing — bring your own
+- `custom` — base files only
 
 ## Permissions
 
@@ -105,7 +105,7 @@ See [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
 npx openclaw-telegram-manager uninstall
 ```
 
-This removes the plugin extension files, the `$include` reference from `openclaw.json`, and the generated include file, then restarts the gateway. You will be asked whether to delete workspace data (registry, topic capsules). To skip the prompt and force deletion, pass `--purge-data`:
+This removes the plugin extension files, the `$include` reference from `openclaw.json`, and the generated include file, then restarts the gateway. You will be asked whether to delete workspace data (registry, topic files). To skip the prompt and force deletion, pass `--purge-data`:
 
 ```bash
 npx openclaw-telegram-manager uninstall --purge-data
@@ -123,8 +123,8 @@ src/
   tool.ts           — routes /tm sub-commands
   setup.ts          — the setup CLI
   commands/         — one file per command
-  lib/              — core logic (registry, capsules, security, auth, etc.)
-  templates/        — markdown templates for new capsules
+  lib/              — core logic (registry, topics, security, auth, etc.)
+  templates/        — markdown templates for new topics
 dist/
   plugin.js         — bundled plugin (built by esbuild, all deps included)
 skills/

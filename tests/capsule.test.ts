@@ -161,7 +161,6 @@ describe('capsule', () => {
 
       expect(content).toContain('## Next actions (now)');
       expect(content).toContain('## Upcoming actions');
-      expect(content).toContain('See TODO.md for full backlog.');
       expect(content).not.toContain('Next 3 actions');
     });
   });

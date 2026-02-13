@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { readRegistry, withRegistry } from '../lib/registry.js';
 import { checkAuthorization } from '../lib/auth.js';
+import { relativeTime } from '../lib/telegram.js';
 import type { CommandContext, CommandResult } from './help.js';
 
 // ── Marker constants ────────────────────────────────────────────────
@@ -87,7 +88,7 @@ async function handleEnable(ctx: CommandContext): Promise<CommandResult> {
   });
 
   return {
-    text: '**Autopilot enabled.**\nDaily health sweeps will run via the OpenClaw heartbeat.',
+    text: '**Autopilot enabled.**\nHealth checks will run automatically every day.',
   };
 }
 
@@ -101,7 +102,7 @@ async function handleDisable(ctx: CommandContext): Promise<CommandResult> {
     await withRegistry(workspaceDir, (data) => {
       data.autopilotEnabled = false;
     });
-    return { text: 'Autopilot is not enabled (no HEARTBEAT.md found).' };
+    return { text: 'Autopilot is already disabled.' };
   }
 
   let content = fs.readFileSync(heartbeatPath, 'utf-8');
@@ -110,7 +111,7 @@ async function handleDisable(ctx: CommandContext): Promise<CommandResult> {
     await withRegistry(workspaceDir, (data) => {
       data.autopilotEnabled = false;
     });
-    return { text: 'Autopilot is not enabled (no marker found in HEARTBEAT.md).' };
+    return { text: 'Autopilot is already disabled.' };
   }
 
   // Remove everything between markers (inclusive)
@@ -134,7 +135,7 @@ async function handleDisable(ctx: CommandContext): Promise<CommandResult> {
   });
 
   return {
-    text: '**Autopilot disabled.**\nDaily sweeps will no longer run automatically.',
+    text: '**Autopilot disabled.**\nAutomatic health checks are now off.',
   };
 }
 
@@ -145,11 +146,13 @@ async function handleStatus(ctx: CommandContext): Promise<CommandResult> {
   const registry = readRegistry(workspaceDir);
 
   const enabled = registry.autopilotEnabled;
-  const lastRun = registry.lastDoctorAllRunAt ?? 'never';
+  const lastRun = registry.lastDoctorAllRunAt
+    ? relativeTime(registry.lastDoctorAllRunAt)
+    : 'never';
 
   const lines = [
     `**Autopilot:** ${enabled ? 'enabled' : 'disabled'}`,
-    `**Last doctor-all run:** ${lastRun}`,
+    `**Last health check run:** ${lastRun}`,
   ];
 
   return {

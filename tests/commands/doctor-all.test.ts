@@ -37,9 +37,9 @@ describe('doctor-all', () => {
     lastMessageAt: new Date().toISOString(),
     lastDoctorReportAt: null,
     lastDoctorRunAt: null,
+    lastDailyReportAt: null,
     lastCapsuleWriteAt: null,
     snoozeUntil: null,
-    ignoreChecks: [],
     consecutiveSilentDoctors: 0,
     lastPostError: null,
     extras: {},
@@ -126,8 +126,8 @@ describe('doctor-all', () => {
 
       const result = await handleDoctorAll(makeCtx());
 
-      expect(result.text).toContain('Doctor All Summary');
-      expect(result.text).toContain('Processed: 1');
+      expect(result.text).toContain('Health Check Summary');
+      expect(result.text).toContain('Checked: 1');
       expect(result.text).not.toContain('Posted:');
     });
   });

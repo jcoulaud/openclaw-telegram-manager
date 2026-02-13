@@ -1,17 +1,15 @@
 # Status: {{name}}
 
-> This file is maintained by the agent — just send messages in the chat.
-
 ## Last done (UTC)
 
 {{timestamp}}
 
-_Waiting for first instructions._
+Topic created. Waiting for first instructions.
 
 ## Next actions (now)
 
-1. _e.g. Set up project scaffolding_
+_None yet._
 
 ## Upcoming actions
 
-_See TODO.md for full backlog._
+_None yet._

@@ -110,7 +110,7 @@ describe('autopilot', () => {
 
     it('should handle disable when not enabled', async () => {
       const result = await handleAutopilot(makeCtx(), 'disable');
-      expect(result.text).toContain('not enabled');
+      expect(result.text).toContain('already disabled');
     });
 
     it('should handle disable when HEARTBEAT.md has no markers', async () => {
@@ -118,7 +118,7 @@ describe('autopilot', () => {
       fs.writeFileSync(heartbeatPath, '## Other content\n');
 
       const result = await handleAutopilot(makeCtx(), 'disable');
-      expect(result.text).toContain('not enabled');
+      expect(result.text).toContain('already disabled');
     });
   });
 

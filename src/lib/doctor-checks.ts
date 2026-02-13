@@ -11,12 +11,6 @@ import type { TopicEntry, DoctorCheckResult, Registry } from './types.js';
 import { jailCheck } from './security.js';
 import { computeRegistryHash, extractRegistryHash } from './include-generator.js';
 
-// ── Helper: check if a checkId should be ignored ───────────────────────
-
-function isIgnored(entry: TopicEntry, checkId: string): boolean {
-  return entry.ignoreChecks.includes(checkId);
-}
-
 function check(
   severity: DoctorCheckResult['severity'],
   checkId: string,
@@ -44,7 +38,7 @@ export function runRegistryChecks(
   // Check path exists
   if (!fs.existsSync(capsuleDir)) {
     results.push(
-      check(Severity.ERROR, 'pathMissing', `Capsule path does not exist: projects/${entry.slug}/`, false, 'Run /tm init to create the capsule, or remove the registry entry'),
+      check(Severity.ERROR, 'pathMissing', `Project folder is missing (projects/${entry.slug}/)`, false, 'Run /tm init to recreate it'),
     );
     return results; // No point checking further if path doesn't exist
   }
@@ -54,12 +48,12 @@ export function runRegistryChecks(
     const stat = fs.statSync(capsuleDir);
     if (!stat.isDirectory()) {
       results.push(
-        check(Severity.ERROR, 'pathNotDir', `projects/${entry.slug} exists but is not a directory`, false),
+        check(Severity.ERROR, 'pathNotDir', 'Topic path exists but is not a folder', false),
       );
     }
   } catch {
     results.push(
-      check(Severity.ERROR, 'pathStatFailed', `Cannot stat projects/${entry.slug}/`, false),
+      check(Severity.ERROR, 'pathStatFailed', 'Cannot verify topic folder on disk', false),
     );
   }
 
@@ -94,7 +88,7 @@ export function runOrphanCheck(
         check(
           Severity.WARN,
           'orphanFolder',
-          `Folder projects/${dirent.name}/ has no registry entry. Register with /tm init or delete.`,
+          `Unregistered folder found: ${dirent.name}`,
           false,
         ),
       );
@@ -121,44 +115,37 @@ export function runCapsuleChecks(
   // STATUS.md is critical
   if (!fs.existsSync(path.join(capsuleDir, 'STATUS.md'))) {
     results.push(
-      check(Severity.ERROR, 'statusMissing', 'STATUS.md is missing from capsule', true, 'Run /tm upgrade to recreate STATUS.md, or restore from .tm-backup/STATUS.md if available'),
+      check(Severity.ERROR, 'statusMissing', 'Status file is missing', true, 'Run /tm upgrade to recreate it'),
     );
   }
 
   // TODO.md is important
   if (!fs.existsSync(path.join(capsuleDir, 'TODO.md'))) {
-    if (!isIgnored(entry, 'todoMissing')) {
-      results.push(
-        check(Severity.WARN, 'todoMissing', 'TODO.md is missing from capsule', true, 'Run /tm upgrade to recreate TODO.md'),
-      );
-    }
+    results.push(
+      check(Severity.WARN, 'todoMissing', 'TODO file is missing', true, 'Run /tm upgrade to recreate it'),
+    );
   }
 
   // Overlay files are optional but worth noting
   const overlays = OVERLAY_FILES[entry.type] ?? [];
   for (const file of overlays) {
     if (!fs.existsSync(path.join(capsuleDir, file))) {
-      const checkId = `overlayMissing:${file}`;
-      if (!isIgnored(entry, checkId)) {
-        results.push(
-          check(Severity.INFO, checkId, `Optional overlay ${file} missing for type "${entry.type}"`, true),
-        );
-      }
+      results.push(
+        check(Severity.INFO, `overlayMissing:${file}`, `Optional overlay ${file} missing for type "${entry.type}"`, true),
+      );
     }
   }
 
   // Capsule version behind
   if (entry.capsuleVersion < CAPSULE_VERSION) {
-    if (!isIgnored(entry, 'capsuleVersionBehind')) {
-      results.push(
-        check(
-          Severity.INFO,
-          'capsuleVersionBehind',
-          `Capsule version ${entry.capsuleVersion} is behind current ${CAPSULE_VERSION}. Will auto-upgrade on next command.`,
-          false,
-        ),
-      );
-    }
+    results.push(
+      check(
+        Severity.INFO,
+        'capsuleVersionBehind',
+        `Capsule version ${entry.capsuleVersion} is behind current ${CAPSULE_VERSION}. Will auto-upgrade on next command.`,
+        false,
+      ),
+    );
   }
 
   return results;
@@ -183,11 +170,9 @@ export function runStatusQualityChecks(
 
   // "Last done (UTC)" section check
   if (!LAST_DONE_RE.test(statusContent)) {
-    if (!isIgnored(entry, 'lastDoneMissing')) {
-      results.push(
-        check(Severity.ERROR, 'lastDoneMissing', 'STATUS.md missing "Last done (UTC)" section', true, 'Add "## Last done (UTC)" section with a timestamp to STATUS.md, or restore from .tm-backup/STATUS.md if available'),
-      );
-    }
+    results.push(
+      check(Severity.ERROR, 'lastDoneMissing', 'Status file is missing the last activity section', true, 'The AI will fix this on next interaction'),
+    );
   } else {
     // Check for timestamp in the section
     const lastDoneIndex = statusContent.search(LAST_DONE_RE);
@@ -198,11 +183,9 @@ export function runStatusQualityChecks(
       : sectionAfter;
 
     if (!TIMESTAMP_RE.test(lastDoneSection)) {
-      if (!isIgnored(entry, 'lastDoneNoTimestamp')) {
-        results.push(
-          check(Severity.ERROR, 'lastDoneNoTimestamp', 'STATUS.md "Last done" section has no timestamp', true, 'Add a YYYY-MM-DDTHH:MM timestamp under "Last done (UTC)" in STATUS.md, or restore from .tm-backup/STATUS.md if available'),
-        );
-      }
+      results.push(
+        check(Severity.ERROR, 'lastDoneNoTimestamp', 'Last activity has no timestamp', true, 'The AI will fix this on next interaction'),
+      );
     } else if (entry.status === 'active') {
       // Check timestamp age (default: 3 days)
       const tsMatch = lastDoneSection.match(TIMESTAMP_RE);
@@ -210,17 +193,15 @@ export function runStatusQualityChecks(
         const ts = new Date(tsMatch[0]);
         const ageDays = (Date.now() - ts.getTime()) / (1000 * 60 * 60 * 24);
         if (ageDays > 3) {
-          if (!isIgnored(entry, 'lastDoneStale')) {
-            results.push(
-              check(
-                Severity.WARN,
-                'lastDoneStale',
-                `STATUS.md "Last done" timestamp is ${Math.floor(ageDays)} days old`,
-                false,
-                'Update the "Last done (UTC)" timestamp in STATUS.md or /tm snooze 7d',
-              ),
-            );
-          }
+          results.push(
+            check(
+              Severity.WARN,
+              'lastDoneStale',
+              `No activity for ${Math.floor(ageDays)} days`,
+              false,
+              'Send a message to resume, or /tm snooze 7d to silence',
+            ),
+          );
         }
       }
     }
@@ -228,11 +209,9 @@ export function runStatusQualityChecks(
 
   // "Next actions (now)" section check
   if (!NEXT_ACTIONS_RE.test(statusContent)) {
-    if (!isIgnored(entry, 'nextActionsMissing')) {
-      results.push(
-        check(Severity.ERROR, 'nextActionsMissing', 'STATUS.md missing "Next actions (now)" section', true, 'Add "## Next actions (now)" section with task IDs to STATUS.md'),
-      );
-    }
+    results.push(
+      check(Severity.ERROR, 'nextActionsMissing', 'Status file is missing the next actions section', true, 'The AI will fix this on next interaction'),
+    );
   } else {
     // Check that next actions contain task IDs
     const nextActionsIndex = statusContent.search(NEXT_ACTIONS_RE);
@@ -246,17 +225,15 @@ export function runStatusQualityChecks(
     const adhocs = nextActionsSection.match(ADHOC_RE) ?? [];
 
     if (taskIds.length === 0 && adhocs.length === 0) {
-      if (!isIgnored(entry, 'nextActionsEmpty')) {
-        results.push(
-          check(
-            Severity.WARN,
-            'nextActionsEmpty',
-            '"Next actions (now)" has no task IDs or entries',
-            false,
-            'Add task IDs like [T-1] under "Next actions (now)" in STATUS.md',
-          ),
-        );
-      }
+      results.push(
+        check(
+          Severity.WARN,
+          'nextActionsEmpty',
+          'No next actions defined yet',
+          false,
+          'Send a message with your next task to get started',
+        ),
+      );
     }
   }
 
@@ -300,9 +277,9 @@ export function runNextVsTodoChecks(
       check(
         Severity.WARN,
         'nextNotInTodo',
-        `${missing.length} task IDs in "Next actions (now)" not found in TODO.md: ${missing.join(', ')}`,
+        `${missing.length} tasks referenced in next actions don't exist in the TODO list: ${missing.join(', ')}`,
         false,
-        'Add missing task IDs to TODO.md or remove stale ones from STATUS.md',
+        'The AI will clean these up on next interaction',
       ),
     );
   }
@@ -325,11 +302,9 @@ export function runCommandsLinksChecks(
   if (entry.type === 'coding') {
     const commandsContent = capsuleFiles.get('COMMANDS.md');
     if (commandsContent !== undefined && isEffectivelyEmpty(commandsContent)) {
-      if (!isIgnored(entry, 'commandsEmpty')) {
-        results.push(
-          check(Severity.INFO, 'commandsEmpty', 'COMMANDS.md is empty for a coding topic', false, 'Add build/test/deploy commands to COMMANDS.md'),
-        );
-      }
+      results.push(
+        check(Severity.INFO, 'commandsEmpty', 'COMMANDS.md is empty for a coding topic', false, 'Add build/test/deploy commands to COMMANDS.md'),
+      );
     }
   }
 
@@ -337,11 +312,9 @@ export function runCommandsLinksChecks(
   if (entry.type === 'coding' || entry.type === 'research') {
     const linksContent = capsuleFiles.get('LINKS.md');
     if (linksContent !== undefined && isEffectivelyEmpty(linksContent)) {
-      if (!isIgnored(entry, 'linksEmpty')) {
-        results.push(
-          check(Severity.INFO, 'linksEmpty', 'LINKS.md is empty for a coding/research topic', false, 'Add URLs and endpoints to LINKS.md'),
-        );
-      }
+      results.push(
+        check(Severity.INFO, 'linksEmpty', 'LINKS.md is empty for a coding/research topic', false, 'Add URLs and endpoints to LINKS.md'),
+      );
     }
   }
 
@@ -383,7 +356,7 @@ export function runCronChecks(
 
   if (!hasJobIds) {
     results.push(
-      check(Severity.WARN, 'cronNoJobIds', 'CRON.md lists jobs but has no recognizable job IDs', false),
+      check(Severity.WARN, 'cronNoJobIds', 'Scheduled jobs are listed but have no recognizable job IDs', false),
     );
     return results;
   }
@@ -403,7 +376,7 @@ export function runCronChecks(
             check(
               Severity.WARN,
               'cronJobNotFound',
-              `Job ID "${match[0]}" from CRON.md not found in cron/jobs.json`,
+              `Scheduled job "${match[0]}" not found in the jobs registry`,
               false,
             ),
           );
@@ -439,11 +412,9 @@ export function runConfigChecks(
 
   const groupConfig = includeObj[entry.groupId] as Record<string, unknown> | undefined;
   if (!groupConfig) {
-    if (!isIgnored(entry, 'configGroupMissing')) {
-      results.push(
-        check(Severity.WARN, 'configGroupMissing', `Group ${entry.groupId} missing from generated include`, false, 'Run /tm sync to add group to generated include'),
-      );
-    }
+    results.push(
+      check(Severity.WARN, 'configGroupMissing', 'Config is out of sync', false, 'Run /tm sync to fix'),
+    );
     return results;
   }
 
@@ -451,30 +422,24 @@ export function runConfigChecks(
   const topicConfig = topics?.[entry.threadId] as Record<string, unknown> | undefined;
 
   if (!topicConfig) {
-    if (!isIgnored(entry, 'configTopicMissing')) {
-      results.push(
-        check(Severity.WARN, 'configTopicMissing', `Topic config missing for thread ${entry.threadId}`, false, 'Run /tm sync to add topic config to generated include'),
-      );
-    }
+    results.push(
+      check(Severity.WARN, 'configTopicMissing', 'Topic not found in system config', false, 'Run /tm sync to fix'),
+    );
     return results;
   }
 
   // Check systemPrompt exists
   if (!topicConfig['systemPrompt']) {
-    if (!isIgnored(entry, 'configNoSystemPrompt')) {
-      results.push(
-        check(Severity.WARN, 'configNoSystemPrompt', 'Per-topic systemPrompt is missing in generated include', false, 'Run /tm sync to regenerate systemPrompt in config'),
-      );
-    }
+    results.push(
+      check(Severity.WARN, 'configNoSystemPrompt', 'AI instructions are missing for this topic', false, 'Run /tm sync to fix'),
+    );
   }
 
   // Check skills exist
   if (!topicConfig['skills'] || !Array.isArray(topicConfig['skills'])) {
-    if (!isIgnored(entry, 'configNoSkills')) {
-      results.push(
-        check(Severity.WARN, 'configNoSkills', 'Per-topic skills list is missing in generated include', false, 'Run /tm sync to regenerate skills list in config'),
-      );
-    }
+    results.push(
+      check(Severity.WARN, 'configNoSkills', 'Command list is missing for this topic', false, 'Run /tm sync to fix'),
+    );
   }
 
   return results;
@@ -497,9 +462,9 @@ export function runIncludeDriftCheck(
       check(
         Severity.WARN,
         'includeDrift',
-        'Generated include file has no registry-hash comment. Run /tm sync.',
+        'Config is out of sync with your topics',
         false,
-        'Run /tm sync to regenerate the config include',
+        'Run /tm sync to fix',
       ),
     );
     return results;
@@ -512,9 +477,9 @@ export function runIncludeDriftCheck(
       check(
         Severity.WARN,
         'includeDrift',
-        'Generated include is out of sync with registry. Run /tm sync.',
+        'Config is out of sync with your topics',
         false,
-        'Run /tm sync to regenerate the config include',
+        'Run /tm sync to fix',
       ),
     );
   }
@@ -537,9 +502,9 @@ export function runSpamControlCheck(
       check(
         Severity.INFO,
         'spamControl',
-        `${entry.consecutiveSilentDoctors} consecutive doctor reports with no user interaction. Auto-snoozing for 30 days.`,
+        `No activity for a while \u2014 auto-snoozing for 30 days`,
         true,
-        'Interact with the topic or /tm snooze 30d to silence reports',
+        'Send a message to resume',
       ),
     );
   }
@@ -585,7 +550,7 @@ export function runAllChecksForTopic(
 
     // Next vs TODO checks
     const todoContent = capsuleFiles.get('TODO.md');
-    if (todoContent && !isIgnored(entry, 'nextNotInTodo')) {
+    if (todoContent) {
       results.push(...runNextVsTodoChecks(statusContent, todoContent));
     }
   }

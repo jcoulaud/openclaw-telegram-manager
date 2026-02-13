@@ -35,12 +35,12 @@ export async function handleDoctor(ctx: CommandContext): Promise<CommandResult> 
 
   // Path safety
   if (!jailCheck(projectsBase, entry.slug)) {
-    return { text: 'Path safety check failed.' };
+    return { text: 'Something went wrong — path validation failed.' };
   }
 
   const capsuleDir = path.join(projectsBase, entry.slug);
   if (rejectSymlink(capsuleDir)) {
-    return { text: 'Capsule directory is a symlink. Aborting for security.' };
+    return { text: 'Something went wrong — detected an unsafe file system configuration.' };
   }
 
   // Read include content for config checks (optional)
@@ -78,15 +78,6 @@ export async function handleDoctor(ctx: CommandContext): Promise<CommandResult> 
     userId,
   );
 
-  // Append text command equivalents
-  const textCommands = [
-    '',
-    'Or use text commands:',
-    '/tm snooze 7d',
-    '/tm snooze 30d',
-    '/tm archive',
-  ].join('\n');
-
   // Update lastDoctorReportAt
   await withRegistry(workspaceDir, (data) => {
     const topic = data.topics[key];
@@ -96,7 +87,7 @@ export async function handleDoctor(ctx: CommandContext): Promise<CommandResult> 
   });
 
   return {
-    text: reportText + textCommands,
+    text: reportText,
     inlineKeyboard: keyboard,
   };
 }

@@ -1,7 +1,6 @@
 import { readRegistry, withRegistry } from '../lib/registry.js';
 import { checkAuthorization } from '../lib/auth.js';
 import { topicKey, MAX_NAME_LENGTH } from '../lib/types.js';
-import { buildTopicCard } from '../lib/telegram.js';
 import { generateInclude } from '../lib/include-generator.js';
 import { triggerRestart, getConfigWrites } from '../lib/config-restart.js';
 import { appendAudit, buildAuditEntry } from '../lib/audit.js';
@@ -16,7 +15,7 @@ export async function handleRename(ctx: CommandContext, newName: string): Promis
 
   const trimmedName = newName.trim();
   if (!trimmedName) {
-    return { text: 'Usage: /tm rename <new-name>' };
+    return { text: 'What should the new name be? Example: /tm rename my-project' };
   }
 
   if (trimmedName.length > MAX_NAME_LENGTH) {
@@ -73,9 +72,7 @@ export async function handleRename(ctx: CommandContext, newName: string): Promis
     buildAuditEntry(userId, 'rename', entry.slug, `Renamed from "${oldName}" to "${trimmedName}"`),
   );
 
-  const topicCard = buildTopicCard(trimmedName, entry.slug, entry.type, entry.capsuleVersion);
-
   return {
-    text: `Topic renamed from **${oldName}** to **${trimmedName}**.\n\n${topicCard}${restartMsg}`,
+    text: `Topic renamed from **${oldName}** to **${trimmedName}**.${restartMsg}`,
   };
 }

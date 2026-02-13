@@ -50,9 +50,10 @@ describe('tool activity tracking', () => {
       lastMessageAt: null,
       lastDoctorReportAt: null,
       lastDoctorRunAt: null,
+      lastDailyReportAt: null,
       lastCapsuleWriteAt: null,
       snoozeUntil: null,
-      ignoreChecks: [],
+
       consecutiveSilentDoctors: 0,
       lastPostError: null,
       extras: {},

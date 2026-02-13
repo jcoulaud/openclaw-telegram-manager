@@ -110,9 +110,6 @@ describe('commands/init', () => {
     it('should add first user as admin', async () => {
       const result = await handleInit(ctx, 'first-topic');
 
-      expect(result.text).toContain('first user');
-      expect(result.text).toContain('admin');
-
       const registry = readRegistry(workspaceDir);
       expect(registry.topicManagerAdmins).toContain('user123');
     });
@@ -152,7 +149,7 @@ describe('commands/init', () => {
 
       const result = await handleInit(ctx, 'test');
 
-      expect(result.text).toContain('Invalid groupId');
+      expect(result.text).toContain('doesn\'t look like a valid forum topic');
     });
 
     it('should reject invalid threadId format', async () => {
@@ -160,7 +157,7 @@ describe('commands/init', () => {
 
       const result = await handleInit(ctx, 'test');
 
-      expect(result.text).toContain('Invalid threadId');
+      expect(result.text).toContain('doesn\'t look like a valid forum topic');
     });
 
     it('should reject already registered topic', async () => {
@@ -237,7 +234,7 @@ describe('commands/init', () => {
 
       const result = await handleInit(ctx, 'test');
 
-      expect(result.text).toContain('symlink');
+      expect(result.text).toContain('unsafe file system configuration');
     });
   });
 
@@ -293,7 +290,6 @@ describe('commands/init', () => {
       expect(entry?.status).toBe('active');
       expect(entry?.capsuleVersion).toBeGreaterThan(0);
       expect(entry?.lastMessageAt).toBeDefined();
-      expect(entry?.ignoreChecks).toEqual([]);
       expect(entry?.consecutiveSilentDoctors).toBe(0);
       expect(entry?.extras).toEqual({});
     });
@@ -531,11 +527,9 @@ describe('commands/init', () => {
       expect(tId).toBe('456');
       expect(html).toContain('Topic: my-project');
       expect(html).toContain('How it works');
-      expect(html).toContain('autopilot');
 
       // CommandResult should be minimal text with pin
-      expect(result.text).toContain('Topic "my-project" initialized as coding');
-      expect(result.text).toContain('projects/t-456/');
+      expect(result.text).toBe('');
       expect(result.pin).toBe(true);
     });
 

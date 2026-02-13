@@ -31,7 +31,7 @@ export async function handleSync(ctx: CommandContext): Promise<CommandResult> {
   const restartResult = await triggerRestart(rpc, logger);
 
   const topicCount = Object.keys(registry.topics).length;
-  let text = `Include regenerated from ${topicCount} topic(s). Config synced.`;
+  let text = `Config synced for ${topicCount} topic(s).`;
 
   if (!restartResult.success && restartResult.fallbackMessage) {
     text += '\n' + restartResult.fallbackMessage;

@@ -196,9 +196,6 @@ describe('init flow integration', () => {
 
       const result = await handleInit(ctx, 'first-topic');
 
-      expect(result.text).toContain('first user');
-      expect(result.text).toContain('admin');
-
       const registry = readRegistry(workspaceDir);
       expect(registry.topicManagerAdmins).toContain('first-user');
     });
@@ -414,7 +411,6 @@ describe('init flow integration', () => {
       };
 
       const initResult = await handleInit(adminCtx, '');
-      expect(initResult.text).toContain('first user');
 
       // 2. Verify admin was added
       let registry = readRegistry(workspaceDir);
@@ -640,7 +636,7 @@ describe('init flow integration', () => {
       expect(postFn.mock.calls[2][2]).toContain('Topic: PostFn Project');
       expect(postFn.mock.calls[2][2]).toContain('How it works');
       expect(postFn.mock.calls[2][3]).toBeUndefined(); // no keyboard for final step
-      expect(step3.text).toContain('Topic "PostFn Project" initialized as coding');
+      expect(step3.text).toBe('');
       expect(step3.pin).toBe(true);
 
       // Verify topic was actually created in registry

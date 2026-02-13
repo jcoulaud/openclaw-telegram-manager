@@ -307,9 +307,6 @@ async function handleCallback(data: string, ctx: CommandContext): Promise<Comman
   }
 
   switch (action) {
-    case 'fix':
-      return handleCallbackFix(cbCtx);
-
     case 'snooze7d':
       return handleSnooze(cbCtx, '7d');
 
@@ -319,30 +316,7 @@ async function handleCallback(data: string, ctx: CommandContext): Promise<Comman
     case 'archive':
       return handleArchive(cbCtx);
 
-    case 'ignore': {
-      // Add the most recent failing check to ignoreChecks
-      // For simplicity, we acknowledge the action; the user should specify which check
-      return {
-        text: `To ignore a specific check, use: /tm snooze or contact an admin. The "Ignore" action requires specifying a check ID.`,
-      };
-    }
-
     default:
       return { text: `Unknown callback action: ${action}` };
   }
-}
-
-async function handleCallbackFix(ctx: CommandContext): Promise<CommandResult> {
-  // "Fix" re-runs doctor, which auto-fixes fixable issues
-  // For now, doctor itself identifies fixable issues
-  const { userId, workspaceDir } = ctx;
-
-  if (userId) {
-    appendAudit(
-      workspaceDir,
-      buildAuditEntry(userId, 'doctor fix', 'callback', 'Fix callback triggered'),
-    );
-  }
-
-  return handleDoctor(ctx);
 }

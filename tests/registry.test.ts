@@ -135,9 +135,10 @@ describe('registry', () => {
         lastMessageAt: null,
         lastDoctorReportAt: null,
         lastDoctorRunAt: null,
+        lastDailyReportAt: null,
         lastCapsuleWriteAt: null,
         snoozeUntil: null,
-        ignoreChecks: [],
+
         consecutiveSilentDoctors: 0,
         lastPostError: null,
         extras: {},
@@ -178,7 +179,7 @@ describe('registry', () => {
       expect(result.autopilotEnabled).toBe(false);
     });
 
-    it('should migrate v3 registry to v4 by adding lastCapsuleWriteAt', () => {
+    it('should migrate v3 registry to v4 by adding lastCapsuleWriteAt and lastDailyReportAt', () => {
       const regPath = registryPath(workspaceDir);
       const v3Registry = {
         version: 3,
@@ -200,7 +201,6 @@ describe('registry', () => {
             lastDoctorReportAt: null,
             lastDoctorRunAt: null,
             snoozeUntil: null,
-            ignoreChecks: [],
             consecutiveSilentDoctors: 0,
             lastPostError: null,
             extras: {},
@@ -213,6 +213,7 @@ describe('registry', () => {
 
       expect(result.version).toBe(CURRENT_REGISTRY_VERSION);
       expect(result.topics['-100:1']?.lastCapsuleWriteAt).toBeNull();
+      expect(result.topics['-100:1']?.lastDailyReportAt).toBeNull();
     });
 
     it('should migrate v1 registry entries by setting name = slug', () => {
@@ -235,8 +236,9 @@ describe('registry', () => {
             lastMessageAt: null,
             lastDoctorReportAt: null,
             lastDoctorRunAt: null,
+            lastDailyReportAt: null,
             snoozeUntil: null,
-            ignoreChecks: [],
+    
             consecutiveSilentDoctors: 0,
             lastPostError: null,
             extras: {},
@@ -251,8 +253,9 @@ describe('registry', () => {
             lastMessageAt: null,
             lastDoctorReportAt: null,
             lastDoctorRunAt: null,
+            lastDailyReportAt: null,
             snoozeUntil: null,
-            ignoreChecks: [],
+    
             consecutiveSilentDoctors: 0,
             lastPostError: null,
             extras: {},
@@ -341,9 +344,9 @@ describe('registry', () => {
         lastMessageAt: '2025-01-01T00:00:00Z',
         lastDoctorReportAt: null,
         lastDoctorRunAt: null,
+        lastDailyReportAt: null,
         lastCapsuleWriteAt: null,
         snoozeUntil: '2025-12-31T23:59:59Z',
-        ignoreChecks: ['check1', 'check2'],
         consecutiveSilentDoctors: 2,
         lastPostError: 'some error',
         extras: { key: 'value' },

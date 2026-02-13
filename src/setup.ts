@@ -17,11 +17,11 @@ const INCLUDE_FILENAME = 'telegram-manager.generated.groups.json5';
 const REGISTRY_FILENAME = 'topics.json';
 const PLUGIN_FILES = ['openclaw.plugin.json', 'dist/plugin.js', 'skills', 'package.json'];
 const REQUIRED_PLUGIN_FILES = ['openclaw.plugin.json', 'dist/plugin.js'];
-const MEMORY_FLUSH_MARKER = 'topic capsule';
+const MEMORY_FLUSH_MARKER = 'topic folder';
 // Keep in sync with CURRENT_REGISTRY_VERSION in src/lib/types.ts
 const SETUP_REGISTRY_VERSION = 4;
 const MEMORY_FLUSH_INSTRUCTION =
-  'If you are working on a Telegram topic capsule (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted.';
+  'If you are working on a Telegram topic folder (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted.';
 
 // ── Colors (zero dependencies, respects NO_COLOR / non-TTY) ──────────
 
@@ -166,7 +166,7 @@ async function runSetup(): Promise<void> {
   console.log(`  ${c.dim}Next steps:${c.reset}`);
   console.log(`  ${c.dim}1.${c.reset} Open any Telegram forum topic`);
   console.log(`  ${c.dim}2.${c.reset} Type ${c.cyan}/tm init${c.reset}`);
-  console.log(`  ${c.dim}3.${c.reset} The topic will be registered and a capsule created`);
+  console.log(`  ${c.dim}3.${c.reset} The topic will be set up with persistent memory`);
   console.log('');
 }
 

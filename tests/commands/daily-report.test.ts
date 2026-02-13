@@ -39,9 +39,10 @@ describe('daily-report', () => {
     lastMessageAt: new Date().toISOString(),
     lastDoctorReportAt: null,
     lastDoctorRunAt: null,
+    lastDailyReportAt: null,
     lastCapsuleWriteAt: null,
     snoozeUntil: null,
-    ignoreChecks: [],
+
     consecutiveSilentDoctors: 0,
     lastPostError: null,
     extras: {},
@@ -89,7 +90,7 @@ describe('daily-report', () => {
 
   describe('dedup', () => {
     it('should skip if already reported today', async () => {
-      const entry = makeEntry({ lastDoctorReportAt: new Date().toISOString() });
+      const entry = makeEntry({ lastDailyReportAt: new Date().toISOString() });
       const key = `${entry.groupId}:${entry.threadId}`;
       setupRegistry({ [key]: entry });
 
@@ -99,7 +100,7 @@ describe('daily-report', () => {
 
     it('should allow report if last report was yesterday', async () => {
       const yesterday = new Date(Date.now() - 25 * 3_600_000);
-      const entry = makeEntry({ lastDoctorReportAt: yesterday.toISOString() });
+      const entry = makeEntry({ lastDailyReportAt: yesterday.toISOString() });
       const key = `${entry.groupId}:${entry.threadId}`;
       setupRegistry({ [key]: entry });
       scaffoldCapsule(path.join(workspaceDir, 'projects'), entry.slug, entry.name, entry.type);
@@ -126,7 +127,7 @@ describe('daily-report', () => {
       expect(result.text).toContain('Health:');
     });
 
-    it('should update lastDoctorReportAt on success', async () => {
+    it('should update lastDailyReportAt on success', async () => {
       const entry = makeEntry();
       const key = `${entry.groupId}:${entry.threadId}`;
       setupRegistry({ [key]: entry });
@@ -135,7 +136,7 @@ describe('daily-report', () => {
       await handleDailyReport(makeCtx());
 
       const reg = readRegistry(workspaceDir);
-      expect(reg.topics[key]?.lastDoctorReportAt).not.toBeNull();
+      expect(reg.topics[key]?.lastDailyReportAt).not.toBeNull();
     });
   });
 

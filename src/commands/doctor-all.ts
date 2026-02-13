@@ -46,7 +46,7 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
     if (elapsed < DOCTOR_ALL_COOLDOWN_MS) {
       const remainingMin = Math.ceil((DOCTOR_ALL_COOLDOWN_MS - elapsed) / 60_000);
       return {
-        text: `Doctor-all was run ${Math.floor(elapsed / 60_000)} minutes ago. Try again in ${remainingMin} minute(s).`,
+        text: `Health checks were run ${Math.floor(elapsed / 60_000)} minutes ago. Try again in ${remainingMin} minute(s).`,
       };
     }
   }
@@ -225,11 +225,11 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
 
   // Build summary
   const lines: string[] = [
-    `**Doctor All Summary**`,
+    `**Health Check Summary**`,
     '',
-    `Processed: ${processed}`,
-    `Skipped (ineligible): ${skipped}`,
-    `Total: ${allEntries.length}`,
+    `Checked: ${processed}`,
+    `Skipped: ${skipped}`,
+    `Total topics: ${allEntries.length}`,
   ];
 
   if (ctx.postFn) {
@@ -249,10 +249,7 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
 
   if (migrationGroups.length > 0) {
     lines.push('');
-    lines.push('**Possible group migrations detected:**');
-    for (const gid of migrationGroups) {
-      lines.push(`- Group ${gid}: all topics failed. Check for group migration.`);
-    }
+    lines.push(`**Warning:** ${migrationGroups.length} group(s) had all topics fail. The group may have been migrated or deleted.`);
   }
 
   return {

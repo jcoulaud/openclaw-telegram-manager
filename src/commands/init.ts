@@ -63,11 +63,11 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
 
   // Validate IDs
   if (!validateGroupId(groupId)) {
-    return { text: 'Invalid groupId format.' };
+    return { text: 'Something went wrong — this doesn\'t look like a valid forum topic.' };
   }
 
   if (!validateThreadId(threadId)) {
-    return { text: 'Invalid threadId format.' };
+    return { text: 'Something went wrong — this doesn\'t look like a valid forum topic.' };
   }
 
   const registry = readRegistry(workspaceDir);
@@ -117,23 +117,23 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
 
   // Path jail check
   if (!jailCheck(projectsBase, finalSlug)) {
-    return { text: 'Path safety check failed. Slug may escape the projects directory.' };
+    return { text: 'Setup failed — internal path validation error. Please try again.' };
   }
 
   // Symlink check on projects base
   if (rejectSymlink(projectsBase)) {
-    return { text: 'Projects base is a symlink. Aborting for security.' };
+    return { text: 'Setup failed — detected an unsafe file system configuration.' };
   }
 
   // Disk collision safety net
   if (fs.existsSync(path.join(projectsBase, finalSlug))) {
-    return { text: `Directory projects/${finalSlug}/ already exists on disk.` };
+    return { text: 'A folder for this topic already exists. Run /tm doctor to investigate.' };
   }
 
   // Symlink check on target path
   const targetPath = path.join(projectsBase, finalSlug);
   if (rejectSymlink(targetPath)) {
-    return { text: 'Target path is a symlink. Aborting for security.' };
+    return { text: 'Setup failed — detected an unsafe file system configuration.' };
   }
 
   // Scaffold capsule and write registry entry atomically under lock
@@ -154,9 +154,9 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
         lastMessageAt: new Date().toISOString(),
         lastDoctorReportAt: null,
         lastDoctorRunAt: null,
+        lastDailyReportAt: null,
         lastCapsuleWriteAt: null,
         snoozeUntil: null,
-        ignoreChecks: [],
         consecutiveSilentDoctors: 0,
         lastPostError: null,
         extras: {},
@@ -187,7 +187,7 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      restartMsg = `\nWarning: include generation failed: ${msg}`;
+      restartMsg = `\nWarning: config sync failed: ${msg}`;
     }
   }
 
@@ -198,34 +198,21 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
   );
 
   // Build topic card
-  const topicCard = buildTopicCard(name, finalSlug, topicType, CAPSULE_VERSION);
-
-  let adminNote = '';
-  let adminNoteHtml = '';
-  if (isFirstUser) {
-    adminNote = '\n\nYou are the first user and have been added as a telegram-manager admin.';
-    adminNoteHtml = '\n\nYou are the first user and have been added as a telegram-manager admin.';
-  }
-
-  const autopilotTip = '\n\nTip: Enable daily health sweeps with /tm autopilot enable';
-  const autopilotTipHtml = '\n\nTip: Enable daily health sweeps with <code>/tm autopilot enable</code>';
+  const topicCard = buildTopicCard(name, finalSlug, topicType);
 
   // Direct Telegram posting (bypasses AI reformatting)
   if (ctx.postFn && groupId && threadId) {
     try {
-      const htmlCard = buildTopicCardHtml(name, finalSlug, topicType, CAPSULE_VERSION);
-      await ctx.postFn(groupId, threadId, `${htmlCard}${adminNoteHtml}${autopilotTipHtml}`);
-      return {
-        text: `Topic "${name}" initialized as ${topicType}. Capsule: projects/${finalSlug}/`,
-        pin: true,
-      };
+      const htmlCard = buildTopicCardHtml(name, finalSlug, topicType);
+      await ctx.postFn(groupId, threadId, htmlCard);
+      return { text: '', pin: true };
     } catch {
       // Fall through to markdown fallback
     }
   }
 
   return {
-    text: `${topicCard}${adminNote}${restartMsg}${autopilotTip}`,
+    text: `${topicCard}${restartMsg}`,
     pin: true,
   };
 }
@@ -255,10 +242,10 @@ async function buildTypePicker(ctx: CommandContext): Promise<CommandResult> {
   }
 
   if (!validateGroupId(groupId)) {
-    return { text: 'Invalid groupId format.' };
+    return { text: 'Something went wrong — this doesn\'t look like a valid forum topic.' };
   }
   if (!validateThreadId(threadId)) {
-    return { text: 'Invalid threadId format.' };
+    return { text: 'Something went wrong — this doesn\'t look like a valid forum topic.' };
   }
 
   const registry = readRegistry(workspaceDir);
@@ -310,10 +297,10 @@ export async function handleInitTypeSelect(ctx: CommandContext, type: TopicType)
   }
 
   if (!validateGroupId(groupId)) {
-    return { text: 'Invalid groupId format.' };
+    return { text: 'Something went wrong — this doesn\'t look like a valid forum topic.' };
   }
   if (!validateThreadId(threadId)) {
-    return { text: 'Invalid threadId format.' };
+    return { text: 'Something went wrong — this doesn\'t look like a valid forum topic.' };
   }
 
   const registry = readRegistry(workspaceDir);
@@ -342,7 +329,7 @@ export async function handleInitTypeSelect(ctx: CommandContext, type: TopicType)
   if (ctx.postFn) {
     try {
       await ctx.postFn(groupId, threadId, buildInitNameConfirmHtml(name, type), keyboard);
-      return { text: `Type selected: ${type}. Confirm the name or type /tm init <name> ${type}.` };
+      return { text: `Type selected: ${type}. Confirm the name or type /tm init your-name ${type}.` };
     } catch {
       // Fall through to markdown fallback
     }
@@ -365,10 +352,11 @@ function buildInitConfirmMessage(name: string, type: TopicType): string {
   return [
     '**Almost there!**',
     '',
-    `Name: **${name}** | Type: ${type}`,
+    `Name: **${name}**`,
+    `Type: ${type}`,
     '',
-    'This name appears in status reports and doctor checks.',
+    'You\'ll see this name in reports and health checks.',
     '',
-    `To use a different name: /tm init <name> ${type}`,
+    `For a custom name: \`/tm init your-name ${type}\``,
   ].join('\n');
 }

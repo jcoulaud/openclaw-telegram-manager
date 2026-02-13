@@ -1,6 +1,6 @@
 ---
 name: tm
-description: Manage Telegram topic capsules — call topic_manager after reset/compaction to rehydrate, and before long conversations to flush state
+description: Manage Telegram topic persistent memory — call topic_manager after reset/compaction to rehydrate, and before long conversations to flush state
 user-invocable: false
 ---
 
@@ -14,15 +14,15 @@ This skill exists only to provide proactive model context.
 If you detect any of these conditions, invoke `topic_manager` proactively:
 
 1. **After /reset, /new, or context compaction**: call `topic_manager` with
-   command "status" to re-read the capsule and rehydrate context.
+   command "status" to re-read the topic files and rehydrate context.
    Rehydration order: STATUS.md, TODO.md, LEARNINGS.md (last 20 entries),
    then COMMANDS.md.
 2. **Before context gets large**: proactively flush current progress to
    STATUS.md using the standard file write tool (update "Last done (UTC)"
    and "Next actions (now)"). Do NOT route this through /tm — write directly.
-3. **When you notice a topic has no capsule**: suggest `/tm init`.
+3. **When you notice a topic has no persistent memory**: suggest `/tm init`.
 4. **When you discover something unexpected** (a mistake, workaround, or
-   constraint): prepend a dated entry to LEARNINGS.md in the capsule.
+   constraint): prepend a dated entry to LEARNINGS.md in the topic folder.
 
 ## Autopilot context
 

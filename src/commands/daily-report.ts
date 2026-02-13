@@ -21,8 +21,8 @@ export async function handleDailyReport(ctx: CommandContext): Promise<CommandRes
   }
 
   // Dedup: skip if already reported today
-  if (entry.lastDoctorReportAt) {
-    const lastReport = new Date(entry.lastDoctorReportAt);
+  if (entry.lastDailyReportAt) {
+    const lastReport = new Date(entry.lastDailyReportAt);
     const now = new Date();
     if (
       lastReport.getUTCFullYear() === now.getUTCFullYear() &&
@@ -37,7 +37,7 @@ export async function handleDailyReport(ctx: CommandContext): Promise<CommandRes
   const capsuleDir = path.join(projectsBase, entry.slug);
 
   if (!fs.existsSync(capsuleDir)) {
-    return { text: `Capsule directory not found: projects/${entry.slug}/` };
+    return { text: 'Topic files not found. Run /tm init to set up this topic.' };
   }
 
   // Read capsule files
@@ -53,7 +53,7 @@ export async function handleDailyReport(ctx: CommandContext): Promise<CommandRes
   const upcomingContent = extractUpcoming(statusContent);
   const health = computeHealth(entry.lastMessageAt, statusContent, blockers);
 
-  const reportText = buildDailyReport({
+  const reportData = {
     name: entry.name,
     doneContent,
     learningsContent: newLearnings,
@@ -61,16 +61,17 @@ export async function handleDailyReport(ctx: CommandContext): Promise<CommandRes
     nextContent,
     upcomingContent,
     health,
-  });
+  };
 
   // Post to topic if postFn available
   if (ctx.postFn) {
     try {
-      await ctx.postFn(groupId, threadId, reportText);
+      const htmlReport = buildDailyReport(reportData, 'html');
+      await ctx.postFn(groupId, threadId, htmlReport);
       await withRegistry(workspaceDir, (data) => {
         const e = data.topics[key];
         if (e) {
-          e.lastDoctorReportAt = new Date().toISOString();
+          e.lastDailyReportAt = new Date().toISOString();
         }
       });
     } catch (err) {
@@ -79,16 +80,16 @@ export async function handleDailyReport(ctx: CommandContext): Promise<CommandRes
       return { text: `Daily report generated but post failed: ${msg}` };
     }
   } else {
-    // Update lastDoctorReportAt even without posting
+    // Update lastDailyReportAt even without posting
     await withRegistry(workspaceDir, (data) => {
       const e = data.topics[key];
       if (e) {
-        e.lastDoctorReportAt = new Date().toISOString();
+        e.lastDailyReportAt = new Date().toISOString();
       }
     });
   }
 
-  return { text: reportText };
+  return { text: buildDailyReport(reportData, 'markdown') };
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────

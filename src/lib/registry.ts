@@ -52,6 +52,9 @@ const migrations: Record<string, MigrationFn> = {
         if (entry['lastCapsuleWriteAt'] === undefined) {
           entry['lastCapsuleWriteAt'] = null;
         }
+        if (entry['lastDailyReportAt'] === undefined) {
+          entry['lastDailyReportAt'] = null;
+        }
       }
     }
     return data;

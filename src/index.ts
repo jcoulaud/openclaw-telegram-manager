@@ -128,7 +128,7 @@ export default function register(api: {
   api.registerTool({
     name: 'topic_manager',
     description:
-      'Manage Telegram forum topics as deterministic workcells. Sub-commands: init, doctor, list, status, sync, rename, upgrade, snooze, archive, unarchive, autopilot, help.',
+      'Manage Telegram forum topics with persistent memory. Sub-commands: init, doctor, list, status, sync, rename, upgrade, snooze, archive, unarchive, autopilot, help.',
     parameters: Type.Object({
       command: Type.String({
         description:
@@ -164,7 +164,7 @@ export default function register(api: {
     api.registerCommand({
       name: 'tm',
       description:
-        'Manage Telegram forum topics as deterministic workcells. Sub-commands: init, doctor, list, status, sync, rename, upgrade, snooze, archive, unarchive, autopilot, help.',
+        'Manage Telegram forum topics with persistent memory. Sub-commands: init, doctor, list, status, sync, rename, upgrade, snooze, archive, unarchive, autopilot, help.',
       acceptsArgs: true,
       requireAuth: false,
       async handler(ctx) {

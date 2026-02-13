@@ -528,7 +528,7 @@ describe('commands/init', () => {
       const [gId, tId, html, keyboard] = postFn.mock.calls[0];
       expect(gId).toBe('-100123');
       expect(tId).toBe('456');
-      expect(html).toContain('Set up a new topic workcell');
+      expect(html).toContain('Set up this topic');
       expect(html).toContain('Coding');
       expect(keyboard).toBeDefined();
       expect(keyboard.inline_keyboard).toHaveLength(2);

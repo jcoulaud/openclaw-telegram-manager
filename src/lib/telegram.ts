@@ -176,15 +176,15 @@ export function buildTopicCard(name: string, slug: string, type: TopicType): str
  */
 export function buildInitWelcomeHtml(): string {
   return [
-    '<b>Set up a new topic workcell</b>',
+    '<b>Set up this topic</b>',
     '',
-    'A workcell gives this topic a persistent memory — The AI writes status, TODOs, and notes to disk so context survives between sessions.',
+    'This gives the topic a persistent memory \u2014 the AI writes status, TODOs, and notes to disk so nothing is lost between sessions.',
     '',
     '<b>Pick a type:</b>',
-    '\u2022 <b>Coding</b> — adds ARCHITECTURE.md + DEPLOY.md',
-    '\u2022 <b>Research</b> — adds SOURCES.md + FINDINGS.md',
-    '\u2022 <b>Marketing</b> — adds CAMPAIGNS.md + METRICS.md',
-    '\u2022 <b>Custom</b> — base files only',
+    '\u2022 <b>Coding</b> \u2014 adds architecture and deploy files',
+    '\u2022 <b>Research</b> \u2014 adds sources and findings files',
+    '\u2022 <b>Marketing</b> \u2014 adds campaigns and metrics files',
+    '\u2022 <b>Custom</b> \u2014 base files only',
   ].join('\n');
 }
 

@@ -616,7 +616,7 @@ describe('init flow integration', () => {
       // Step 1: type picker — postFn receives HTML welcome + keyboard
       const step1 = await handleInitInteractive(ctx, '');
       expect(postFn).toHaveBeenCalledTimes(1);
-      expect(postFn.mock.calls[0][2]).toContain('Set up a new topic workcell');
+      expect(postFn.mock.calls[0][2]).toContain('Set up this topic');
       expect(postFn.mock.calls[0][3]).toBeDefined(); // keyboard
       expect(step1.text).toContain('pick a type');
       expect(step1.inlineKeyboard).toBeUndefined();

@@ -19,8 +19,8 @@ Don't open a public issue. Instead, use [GitHub's private vulnerability reportin
 
 ## How things are protected
 
-- **Path jail** — capsule paths are resolved to absolute and checked against the workspace root.
-- **Symlink rejection** — symlinks in capsule paths are blocked.
+- **Path jail** — topic paths are resolved to absolute and checked against the workspace root.
+- **Symlink rejection** — symlinks in topic paths are blocked.
 - **HMAC signatures** — inline keyboard callbacks are signed with a per-registry secret.
 - **HTML escaping** — user data in direct Telegram API posts (fan-out doctor reports) is HTML-escaped. Command responses use Markdown, which the gateway's text pipeline auto-converts safely.
 - **Schema validation** — registry entries are validated on every read. Invalid entries get quarantined instead of crashing.

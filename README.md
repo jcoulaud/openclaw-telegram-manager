@@ -14,6 +14,11 @@ When OpenClaw manages a Telegram group with topics, each topic is basically a se
 
 This plugin fixes that. Each topic gets a folder of persistent files that the AI reads automatically on startup. It picks up right where it left off.
 
+## Prerequisites
+
+- [OpenClaw](https://openclaw.ai) `>=2026.1.0` installed and running
+- A Telegram group with [topics enabled](https://telegram.org/blog/tms-in-groups-collectible-usernames#topics-in-groups) and managed by OpenClaw
+
 ## Install
 
 ```bash
@@ -22,41 +27,58 @@ npx openclaw-telegram-manager setup
 
 That's it. The setup script installs the plugin, patches your config, creates the workspace, and restarts the OpenClaw gateway. It's idempotent — running it twice won't break anything.
 
-**Security warnings during install:** OpenClaw's automatic scanner may flag `child_process` and `process.env` usage. These are expected — the setup script calls `openclaw --version`, `openclaw plugins install`, and `openclaw gateway restart`, and reads `process.env` for config directory detection. No data is sent externally.
+<details>
+<summary>Security warnings during install</summary>
+
+OpenClaw's automatic scanner may flag `child_process` and `process.env` usage. These are expected — the setup script calls `openclaw --version`, `openclaw plugins install`, and `openclaw gateway restart`, and reads `process.env` for config directory detection. No data is sent externally.
+
+</details>
 
 ## How it works
 
-1. **One-time setup per topic:** Open a Telegram topic and type `/tm init`. Pick a type (Coding, Research, Marketing, or Custom). Done.
+1. **One-time setup per topic**
+   Open a Telegram topic and type `/tm init`. Pick a type (Coding, Research, Marketing, or Custom). Done.
 
-2. **Everything else is automatic.** The AI reads and updates the topic's files on its own — tracking progress, TODOs, decisions, and learnings. When context gets compacted or the AI resets, it re-reads these files and continues where it left off.
+2. **Everything else is automatic**
+   The AI reads and updates the topic's files on its own — tracking progress, TODOs, decisions, and learnings. When context gets compacted or the AI resets, it re-reads these files and continues where it left off.
 
-3. **Health checks run in the background.** Enable autopilot (`/tm autopilot enable`) and the plugin checks all your topics daily, posting a report only when something needs attention.
+3. **Health checks run in the background**
+   Enable autopilot (`/tm autopilot enable`) and the plugin checks all your topics daily, posting a report only when something needs attention.
 
 You can also skip the interactive flow: `/tm init my-project coding`
 
 ## What gets tracked
 
-Each topic gets its own folder with files that the AI maintains automatically:
+Each topic gets its own folder with files the AI maintains automatically:
 
 | File | Purpose |
 |------|---------|
-| `STATUS.md` | Last activity, next actions, and upcoming work |
+| `STATUS.md` | Last activity, next actions, upcoming work |
 | `TODO.md` | Task list |
-| `LEARNINGS.md` | Insights, mistakes, and workarounds the AI discovered |
-| `COMMANDS.md` | Build/deploy/test commands worth remembering |
+| `LEARNINGS.md` | Insights, mistakes, workarounds |
+| `COMMANDS.md` | Build/deploy/test commands |
 | `LINKS.md` | URLs and endpoints |
 | `CRON.md` | Scheduled jobs |
 | `NOTES.md` | Anything else worth keeping |
 | `README.md` | What this topic is about |
 
-Depending on the topic type, extra files are added:
+<details>
+<summary>Extra files by topic type</summary>
+
 - **Coding** adds `ARCHITECTURE.md` and `DEPLOY.md`
 - **Research** adds `SOURCES.md` and `FINDINGS.md`
 - **Marketing** adds `CAMPAIGNS.md` and `METRICS.md`
 
-## Optional management commands
+</details>
 
-You don't need to use any of these for the plugin to work — everything runs automatically. But they're available if you want to check on things or make changes:
+## Optional commands
+
+You don't need any of these — everything runs automatically. They're there if you want to check on things or make changes.
+
+<details>
+<summary>View all commands</summary>
+
+**Check on things**
 
 | Command | What it does |
 |---------|-------------|
@@ -65,20 +87,26 @@ You don't need to use any of these for the plugin to work — everything runs au
 | `/tm doctor --all` | Health check all topics at once |
 | `/tm daily-report` | Post a daily summary |
 | `/tm list` | List all topics |
+
+**Make changes**
+
+| Command | What it does |
+|---------|-------------|
 | `/tm rename <new-name>` | Rename a topic |
 | `/tm snooze <duration>` | Pause health checks (e.g. `7d`, `30d`) |
 | `/tm archive` | Archive a topic |
 | `/tm unarchive` | Bring back an archived topic |
 | `/tm upgrade` | Update topic files to the latest version |
 | `/tm sync` | Fix config if something is out of sync |
+
+**Autopilot**
+
+| Command | What it does |
+|---------|-------------|
 | `/tm autopilot enable` | Turn on automatic daily health checks |
 | `/tm autopilot disable` | Turn off automatic health checks |
-| `/tm help` | Show command list in Telegram |
 
-## Prerequisites
-
-- [OpenClaw](https://openclaw.ai) `>=2026.1.0` installed and running
-- A Telegram group with [topics enabled](https://telegram.org/blog/tms-in-groups-collectible-usernames#topics-in-groups) and managed by OpenClaw
+</details>
 
 ## Permissions
 
@@ -114,23 +142,26 @@ npx openclaw-telegram-manager uninstall --purge-data
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-### Project layout
+<details>
+<summary>Project layout</summary>
 
 ```
 src/
-  index.ts          — plugin entry point (source)
+  index.ts          — plugin entry point
   tool.ts           — routes /tm sub-commands
   setup.ts          — the setup CLI
   commands/         — one file per command
-  lib/              — core logic (registry, topics, security, auth, etc.)
+  lib/              — core logic (registry, security, auth, etc.)
   templates/        — markdown templates for new topics
 dist/
-  plugin.js         — bundled plugin (built by esbuild, all deps included)
+  plugin.js         — bundled plugin (esbuild, all deps included)
 skills/
-  tm/SKILL.md       — model-only proactive behavior hints (not user-invocable)
+  tm/SKILL.md       — AI behavior hints (not user-invocable)
 ```
 
-`npm run build` compiles TypeScript then bundles `src/index.ts` into `dist/plugin.js` with all dependencies. The setup script copies only the bundle — no `node_modules` needed at runtime.
+`npm run build` compiles TypeScript then bundles into `dist/plugin.js`. The setup script copies only the bundle — no `node_modules` needed at runtime.
+
+</details>
 
 ## License
 

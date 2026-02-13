@@ -174,8 +174,10 @@ async function runSetup(): Promise<void> {
   patchMemoryFlush(configDir);
 
   startSpinner('Preparing workspace…');
-  const projectsDir = path.join(configDir, 'workspace', 'projects');
+  const workspaceDir = path.join(configDir, 'workspace');
+  const projectsDir = path.join(workspaceDir, 'projects');
   ensureDir(projectsDir);
+  ensureGitignore(workspaceDir);
   initRegistry(projectsDir);
   createEmptyInclude(configDir, existingGroups);
   ok('Workspace ready');
@@ -460,6 +462,37 @@ function createEmptyInclude(configDir: string, seedGroups?: Record<string, unkno
   ].join('\n');
 
   fs.writeFileSync(includePath, content, { mode: 0o600 });
+}
+
+const GITIGNORE_ENTRIES = [
+  'projects/topics.json',
+  'projects/audit.jsonl',
+  'projects/*/.tm-backup/',
+];
+
+function ensureGitignore(workspaceDir: string): void {
+  const gitignorePath = path.join(workspaceDir, '.gitignore');
+
+  let content = '';
+  try {
+    if (fs.existsSync(gitignorePath)) {
+      content = fs.readFileSync(gitignorePath, 'utf-8');
+    }
+  } catch {
+    // File doesn't exist yet — that's fine
+  }
+
+  const lines = content.split('\n');
+  const missing = GITIGNORE_ENTRIES.filter(
+    entry => !lines.some(line => line.trim() === entry),
+  );
+
+  if (missing.length === 0) return;
+
+  const block = '\n# telegram-manager (operational files)\n' + missing.join('\n') + '\n';
+  const newContent = content ? content.trimEnd() + '\n' + block : block.trimStart();
+
+  fs.writeFileSync(gitignorePath, newContent);
 }
 
 function writeHeartbeat(configDir: string): void {

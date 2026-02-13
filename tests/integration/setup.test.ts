@@ -55,6 +55,93 @@ describe('setup integration', () => {
     });
   });
 
+  describe('gitignore', () => {
+    const GITIGNORE_ENTRIES = [
+      'projects/topics.json',
+      'projects/audit.jsonl',
+      'projects/*/.tm-backup/',
+    ];
+
+    function ensureGitignore(workspaceDir: string): void {
+      const gitignorePath = path.join(workspaceDir, '.gitignore');
+
+      let content = '';
+      try {
+        if (fs.existsSync(gitignorePath)) {
+          content = fs.readFileSync(gitignorePath, 'utf-8');
+        }
+      } catch { /* empty */ }
+
+      const lines = content.split('\n');
+      const missing = GITIGNORE_ENTRIES.filter(
+        entry => !lines.some(line => line.trim() === entry),
+      );
+
+      if (missing.length === 0) return;
+
+      const block = '\n# telegram-manager (operational files)\n' + missing.join('\n') + '\n';
+      const newContent = content ? content.trimEnd() + '\n' + block : block.trimStart();
+
+      fs.writeFileSync(gitignorePath, newContent);
+    }
+
+    it('should create .gitignore with operational file entries', () => {
+      const workspaceDir = path.join(configDir, 'workspace');
+      fs.mkdirSync(workspaceDir, { recursive: true });
+
+      ensureGitignore(workspaceDir);
+
+      const content = fs.readFileSync(path.join(workspaceDir, '.gitignore'), 'utf-8');
+      expect(content).toContain('projects/topics.json');
+      expect(content).toContain('projects/audit.jsonl');
+      expect(content).toContain('projects/*/.tm-backup/');
+      expect(content).toContain('# telegram-manager');
+    });
+
+    it('should append to existing .gitignore without clobbering', () => {
+      const workspaceDir = path.join(configDir, 'workspace');
+      fs.mkdirSync(workspaceDir, { recursive: true });
+
+      fs.writeFileSync(path.join(workspaceDir, '.gitignore'), '*.log\n.env\n');
+
+      ensureGitignore(workspaceDir);
+
+      const result = fs.readFileSync(path.join(workspaceDir, '.gitignore'), 'utf-8');
+      expect(result).toContain('*.log');
+      expect(result).toContain('.env');
+      expect(result).toContain('projects/topics.json');
+    });
+
+    it('should be idempotent', () => {
+      const workspaceDir = path.join(configDir, 'workspace');
+      fs.mkdirSync(workspaceDir, { recursive: true });
+
+      ensureGitignore(workspaceDir);
+      ensureGitignore(workspaceDir);
+
+      const result = fs.readFileSync(path.join(workspaceDir, '.gitignore'), 'utf-8');
+      expect(result.split('projects/topics.json').length - 1).toBe(1);
+      expect(result.split('projects/audit.jsonl').length - 1).toBe(1);
+    });
+
+    it('should only add missing entries when some already exist', () => {
+      const workspaceDir = path.join(configDir, 'workspace');
+      fs.mkdirSync(workspaceDir, { recursive: true });
+
+      // Pre-populate with one of the entries
+      fs.writeFileSync(path.join(workspaceDir, '.gitignore'), 'projects/topics.json\n');
+
+      ensureGitignore(workspaceDir);
+
+      const result = fs.readFileSync(path.join(workspaceDir, '.gitignore'), 'utf-8');
+      // Original entry untouched
+      expect(result.split('projects/topics.json').length - 1).toBe(1);
+      // Missing entries added
+      expect(result).toContain('projects/audit.jsonl');
+      expect(result).toContain('projects/*/.tm-backup/');
+    });
+  });
+
   describe('registry initialization', () => {
     it('should create topics.json with correct structure', () => {
       const projectsDir = path.join(configDir, 'workspace', 'projects');

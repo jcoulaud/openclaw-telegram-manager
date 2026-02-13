@@ -65,6 +65,8 @@ Depending on the topic type, extra files are added:
 - **Research** adds `SOURCES.md` and `FINDINGS.md`
 - **Marketing** adds `CAMPAIGNS.md` and `METRICS.md`
 
+These files are committed to your workspace git repo so they persist and have history. Operational files (the internal registry and audit log) are automatically added to `.gitignore` during setup.
+
 ## Optional commands
 
 You don't need any of these — everything runs automatically. They're there if you want to check on things or make changes.

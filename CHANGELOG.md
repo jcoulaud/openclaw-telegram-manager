@@ -1,3 +1,10 @@
+## [2.5.6](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.5.5...v2.5.6) (2026-02-13)
+
+
+### Bug Fixes
+
+* always regenerate include file after init/rename/archive ([f0e016a](https://github.com/jcoulaud/openclaw-telegram-manager/commit/f0e016ae6b6c21b4317342aeffbda7fd1b564c39))
+
 ## [2.5.5](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.5.4...v2.5.5) (2026-02-13)
 
 

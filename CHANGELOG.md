@@ -1,3 +1,10 @@
+## [2.5.5](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.5.4...v2.5.5) (2026-02-13)
+
+
+### Bug Fixes
+
+* make bare /tm default to help instead of showing a plain error ([e077e11](https://github.com/jcoulaud/openclaw-telegram-manager/commit/e077e11182a6a582b11b89b5962c3364963230a5))
+
 ## [2.5.4](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.5.3...v2.5.4) (2026-02-13)
 
 

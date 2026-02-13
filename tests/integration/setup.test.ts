@@ -630,6 +630,7 @@ describe('setup integration', () => {
 
   describe('patchMemoryFlush', () => {
     const FLUSH_TAG = '[tm]';
+    const FLUSH_FINGERPRINTS = [FLUSH_TAG, 'STATUS.md'];
     const MEMORY_FLUSH_INSTRUCTION =
       `If you are working on a Telegram topic folder (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted. ${FLUSH_TAG}`;
 
@@ -651,7 +652,7 @@ describe('setup integration', () => {
 
       const cleaned = raw
         .split('\n')
-        .filter((line: string) => !line.includes(FLUSH_TAG))
+        .filter((line: string) => !FLUSH_FINGERPRINTS.some(fp => line.includes(fp)))
         .join('\n')
         .trim();
 
@@ -719,10 +720,55 @@ describe('setup integration', () => {
       expect(prompt).toBe(MEMORY_FLUSH_INSTRUCTION);
       expect(prompt).not.toContain('Old wording');
     });
+
+    it('should replace AI-reworded instruction that dropped the tag', () => {
+      const configPath = path.join(configDir, 'openclaw.json');
+      const aiReworded = 'Before context compaction, update STATUS.md with the latest progress and next steps for the topic.';
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      config.agents = {
+        defaults: {
+          compaction: {
+            memoryFlush: { prompt: aiReworded },
+          },
+        },
+      };
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+
+      patchMemoryFlush(configDir);
+
+      const updated = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      const prompt = updated.agents.defaults.compaction.memoryFlush.prompt as string;
+      expect(prompt).toBe(MEMORY_FLUSH_INSTRUCTION);
+      expect(prompt).not.toContain('latest progress');
+    });
+
+    it('should preserve unrelated lines when stripping AI-reworded instruction', () => {
+      const configPath = path.join(configDir, 'openclaw.json');
+      const customLine = 'Always summarize key decisions.';
+      const aiReworded = 'Update STATUS.md with current progress before compaction.';
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      config.agents = {
+        defaults: {
+          compaction: {
+            memoryFlush: { prompt: customLine + '\n' + aiReworded },
+          },
+        },
+      };
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+
+      patchMemoryFlush(configDir);
+
+      const updated = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      const prompt = updated.agents.defaults.compaction.memoryFlush.prompt as string;
+      expect(prompt).toContain(customLine);
+      expect(prompt).toContain(FLUSH_TAG);
+      expect(prompt).not.toContain('current progress');
+    });
   });
 
   describe('unpatchMemoryFlush', () => {
     const FLUSH_TAG = '[tm]';
+    const FLUSH_FINGERPRINTS = [FLUSH_TAG, 'STATUS.md'];
     const MEMORY_FLUSH_INSTRUCTION =
       `If you are working on a Telegram topic folder (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted. ${FLUSH_TAG}`;
 
@@ -732,7 +778,7 @@ describe('setup integration', () => {
 
       let content: string;
       try { content = fs.readFileSync(configPath, 'utf-8'); } catch { return; }
-      if (!content.includes(FLUSH_TAG)) return;
+      if (!FLUSH_FINGERPRINTS.some(fp => content.includes(fp))) return;
 
       let config: Record<string, unknown>;
       try { config = JSON.parse(content); } catch { return; }
@@ -746,7 +792,7 @@ describe('setup integration', () => {
       const prompt = memoryFlush['prompt'] as string;
       const cleaned = prompt
         .split('\n')
-        .filter(line => !line.includes(FLUSH_TAG))
+        .filter(line => !FLUSH_FINGERPRINTS.some(fp => line.includes(fp)))
         .join('\n')
         .trim();
 
@@ -807,7 +853,7 @@ describe('setup integration', () => {
       expect(restored.agents.defaults.compaction.memoryFlush.prompt).toBe(customPrompt);
     });
 
-    it('should be a no-op when tag is not present', () => {
+    it('should be a no-op when no fingerprints are present', () => {
       const configPath = path.join(configDir, 'openclaw.json');
       const config = {
         version: '2026.1.0',
@@ -826,6 +872,28 @@ describe('setup integration', () => {
 
       const restored = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       expect(restored.agents.defaults.compaction.memoryFlush.prompt).toBe('Some other prompt.');
+    });
+
+    it('should remove AI-reworded instruction that dropped the tag', () => {
+      const configPath = path.join(configDir, 'openclaw.json');
+      const aiReworded = 'Before context compaction, update STATUS.md with the latest progress.';
+      const config = {
+        version: '2026.1.0',
+        channels: {},
+        agents: {
+          defaults: {
+            compaction: {
+              memoryFlush: { prompt: aiReworded },
+            },
+          },
+        },
+      };
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+
+      unpatchMemoryFlush(configDir);
+
+      const restored = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(restored.agents).toBeUndefined();
     });
   });
 

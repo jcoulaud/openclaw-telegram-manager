@@ -21,6 +21,9 @@ const REQUIRED_PLUGIN_FILES = ['openclaw.plugin.json', 'dist/plugin.js'];
 // Stable tag embedded in the instruction — never changes, even if wording does.
 // Used to identify and replace our line idempotently.
 const FLUSH_TAG = '[tm]';
+// Content fingerprints unique to our instruction. The AI may reword the line
+// and drop the tag, so we also match on keywords that only appear in our instruction.
+const FLUSH_FINGERPRINTS = [FLUSH_TAG, 'STATUS.md'];
 // Keep in sync with CURRENT_REGISTRY_VERSION in src/lib/types.ts
 const SETUP_REGISTRY_VERSION = 4;
 const MEMORY_FLUSH_INSTRUCTION =
@@ -645,10 +648,12 @@ function patchMemoryFlush(configDir: string): void {
     return;
   }
 
-  // Strip any previous version of our instruction (identified by tag)
+  // Strip any previous version of our instruction (identified by tag or content fingerprints).
+  // The AI may reword our instruction and drop the [tm] tag, so we also match on
+  // unique keywords to avoid near-duplicates after uninstall/reinstall cycles.
   const cleaned = raw
     .split('\n')
-    .filter(line => !line.includes(FLUSH_TAG))
+    .filter(line => !FLUSH_FINGERPRINTS.some(fp => line.includes(fp)))
     .join('\n')
     .trim();
 
@@ -672,7 +677,7 @@ function unpatchMemoryFlush(configDir: string): void {
     return;
   }
 
-  if (!content.includes(FLUSH_TAG)) return;
+  if (!FLUSH_FINGERPRINTS.some(fp => content.includes(fp))) return;
 
   let config: Record<string, unknown>;
   try {
@@ -691,7 +696,7 @@ function unpatchMemoryFlush(configDir: string): void {
   const prompt = memoryFlush['prompt'] as string;
   const cleaned = prompt
     .split('\n')
-    .filter(line => !line.includes(FLUSH_TAG))
+    .filter(line => !FLUSH_FINGERPRINTS.some(fp => line.includes(fp)))
     .join('\n')
     .trim();
 

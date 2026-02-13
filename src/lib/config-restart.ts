@@ -51,8 +51,7 @@ export async function triggerRestart(
   if (!rpc) {
     return {
       success: false,
-      fallbackMessage:
-        'Config updated. Run `openclaw gateway restart` or send SIGUSR1 to apply.',
+      fallbackMessage: 'Restart the gateway to apply changes.',
     };
   }
 
@@ -109,8 +108,7 @@ export async function triggerRestart(
 
       return {
         success: false,
-        fallbackMessage:
-          'Config updated. Run `openclaw gateway restart` or send SIGUSR1 to apply.',
+        fallbackMessage: 'Restart the gateway to apply changes.',
       };
     }
   }
@@ -118,8 +116,7 @@ export async function triggerRestart(
   // Should not reach here, but just in case
   return {
     success: false,
-    fallbackMessage:
-      'Config updated. Run `openclaw gateway restart` or send SIGUSR1 to apply.',
+    fallbackMessage: 'Restart the gateway to apply changes.',
   };
 }
 

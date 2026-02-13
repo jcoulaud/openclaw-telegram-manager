@@ -1,7 +1,7 @@
 import { readRegistry } from '../lib/registry.js';
 import { checkAuthorization } from '../lib/auth.js';
 import { generateInclude } from '../lib/include-generator.js';
-import { triggerRestart } from '../lib/config-restart.js';
+import { triggerRestart, getConfigWrites } from '../lib/config-restart.js';
 import type { CommandContext, CommandResult } from './help.js';
 
 export async function handleSync(ctx: CommandContext): Promise<CommandResult> {
@@ -28,16 +28,16 @@ export async function handleSync(ctx: CommandContext): Promise<CommandResult> {
     };
   }
 
-  const restartResult = await triggerRestart(rpc, logger);
-
   const topicCount = Object.keys(registry.topics).length;
-  let text = `Config synced for ${topicCount} topic(s).`;
 
-  if (!restartResult.success && restartResult.fallbackMessage) {
-    text += '\n' + restartResult.fallbackMessage;
+  // Only trigger restart if configWrites is enabled
+  const configWritesEnabled = await getConfigWrites(rpc);
+  if (configWritesEnabled) {
+    const restartResult = await triggerRestart(rpc, logger);
+    if (restartResult.success) {
+      return { text: `All synced — config updated for ${topicCount} topic(s) and changes are live.` };
+    }
   }
 
-  return {
-    text,
-  };
+  return { text: `Config synced for ${topicCount} topic(s). Restart the gateway to apply changes.` };
 }

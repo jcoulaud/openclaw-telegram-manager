@@ -120,14 +120,14 @@ export function buildInitTypeButtons(
     ],
     [
       { text: 'Marketing', callback_data: cb('im') },
-      { text: 'Custom', callback_data: cb('ix') },
+      { text: 'General', callback_data: cb('ig') },
     ],
   ]);
 }
 
 /**
  * Build inline keyboard with a single [Confirm] button for init name confirmation.
- * Action codes: yc=coding, yr=research, ym=marketing, yx=custom.
+ * Action codes: yc=coding, yr=research, ym=marketing, yg=general.
  */
 export function buildInitConfirmButton(
   groupId: string,
@@ -140,7 +140,7 @@ export function buildInitConfirmButton(
     coding: 'yc',
     research: 'yr',
     marketing: 'ym',
-    custom: 'yx',
+    general: 'yg',
   };
   const cb = buildCallbackData(actionMap[type], groupId, threadId, secret, userId);
   return buildInlineKeyboard([[{ text: 'Use this name', callback_data: cb }]]);
@@ -178,7 +178,7 @@ export function buildInitWelcomeHtml(): string {
     '\u2022 <b>Coding</b> \u2014 tracks architecture decisions and deployment steps',
     '\u2022 <b>Research</b> \u2014 tracks sources and key findings',
     '\u2022 <b>Marketing</b> \u2014 tracks campaigns and metrics',
-    '\u2022 <b>Custom</b> \u2014 general-purpose tracking',
+    '\u2022 <b>General</b> \u2014 general-purpose tracking',
     '',
     '<i>The AI may take a few seconds to respond \u2014 no need to tap twice.</i>',
   ].join('\n');

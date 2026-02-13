@@ -19,7 +19,7 @@ export const TopicType = {
   Coding: 'coding',
   Research: 'research',
   Marketing: 'marketing',
-  Custom: 'custom',
+  General: 'general',
 } as const;
 
 export type TopicType = (typeof TopicType)[keyof typeof TopicType];
@@ -46,7 +46,7 @@ export const TopicTypeSchema = Type.Union([
   Type.Literal('coding'),
   Type.Literal('research'),
   Type.Literal('marketing'),
-  Type.Literal('custom'),
+  Type.Literal('general'),
 ]);
 
 export const TopicStatusSchema = Type.Union([
@@ -104,7 +104,7 @@ export const OVERLAY_FILES: Record<TopicType, string[]> = {
   coding: ['ARCHITECTURE.md', 'DEPLOY.md'],
   research: ['SOURCES.md', 'FINDINGS.md'],
   marketing: ['CAMPAIGNS.md', 'METRICS.md'],
-  custom: [],
+  general: [],
 };
 
 export const BASE_FILES = [

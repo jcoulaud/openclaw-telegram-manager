@@ -268,18 +268,18 @@ async function handleCallback(data: string, ctx: CommandContext): Promise<Comman
   const { action, userId: cbUserId } = parsed;
 
   // Init callbacks: topic doesn't exist in registry yet
-  const initTypeMap: Record<string, 'coding' | 'research' | 'marketing' | 'custom'> = {
+  const initTypeMap: Record<string, 'coding' | 'research' | 'marketing' | 'general'> = {
     ic: 'coding',
     ir: 'research',
     im: 'marketing',
-    ix: 'custom',
+    ig: 'general',
   };
 
-  const initConfirmMap: Record<string, 'coding' | 'research' | 'marketing' | 'custom'> = {
+  const initConfirmMap: Record<string, 'coding' | 'research' | 'marketing' | 'general'> = {
     yc: 'coding',
     yr: 'research',
     ym: 'marketing',
-    yx: 'custom',
+    yg: 'general',
   };
 
   // Build a context with callback-derived values so downstream handlers work

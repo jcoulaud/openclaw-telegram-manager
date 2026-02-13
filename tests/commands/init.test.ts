@@ -304,11 +304,11 @@ describe('commands/init', () => {
       expect(registry.topics['-100123:456']?.type).toBe('marketing');
     });
 
-    it('should accept custom type', async () => {
-      await handleInit(ctx, 'test custom');
+    it('should accept general type', async () => {
+      await handleInit(ctx, 'test general');
 
       const registry = readRegistry(workspaceDir);
-      expect(registry.topics['-100123:456']?.type).toBe('custom');
+      expect(registry.topics['-100123:456']?.type).toBe('general');
     });
 
     it('should ignore invalid type and default to coding', async () => {
@@ -365,7 +365,7 @@ describe('commands/init', () => {
       expect(rows[0][0].text).toBe('Coding');
       expect(rows[0][1].text).toBe('Research');
       expect(rows[1][0].text).toBe('Marketing');
-      expect(rows[1][1].text).toBe('Custom');
+      expect(rows[1][1].text).toBe('General');
     });
 
     it('should return type picker when no title', async () => {
@@ -381,7 +381,7 @@ describe('commands/init', () => {
       expect(rows[0][0].text).toBe('Coding');
       expect(rows[0][1].text).toBe('Research');
       expect(rows[1][0].text).toBe('Marketing');
-      expect(rows[1][1].text).toBe('Custom');
+      expect(rows[1][1].text).toBe('General');
     });
 
     it('should reject missing context in interactive mode', async () => {
@@ -466,10 +466,10 @@ describe('commands/init', () => {
       expect(registry.topics['-100123:456']).toBeUndefined();
     });
 
-    it('should show confirmation for custom type', async () => {
-      const result = await handleInitTypeSelect(ctx, 'custom');
+    it('should show confirmation for general type', async () => {
+      const result = await handleInitTypeSelect(ctx, 'general');
 
-      expect(result.text).toContain('custom');
+      expect(result.text).toContain('general');
       expect(result.inlineKeyboard).toBeDefined();
 
       const registry = readRegistry(workspaceDir);
@@ -660,12 +660,12 @@ describe('commands/init', () => {
       expect(registry.topics['-100123:456']?.type).toBe('marketing');
     });
 
-    it('should complete init with custom type', async () => {
-      const result = await handleInitNameConfirm(ctx, 'custom');
+    it('should complete init with general type', async () => {
+      const result = await handleInitNameConfirm(ctx, 'general');
 
       const registry = readRegistry(workspaceDir);
       expect(registry.topics['-100123:456']?.slug).toBe('t-456');
-      expect(registry.topics['-100123:456']?.type).toBe('custom');
+      expect(registry.topics['-100123:456']?.type).toBe('general');
     });
 
     it('should create capsule directory', async () => {

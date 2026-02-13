@@ -300,7 +300,7 @@ describe('capsule', () => {
     });
 
     it('should handle different topic types', () => {
-      const types: TopicType[] = ['coding', 'research', 'marketing', 'custom'];
+      const types: TopicType[] = ['coding', 'research', 'marketing', 'general'];
 
       for (const type of types) {
         const slug = `test-${type}`;

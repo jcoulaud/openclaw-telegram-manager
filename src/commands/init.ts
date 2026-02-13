@@ -30,7 +30,7 @@ import { appendAudit, buildAuditEntry } from '../lib/audit.js';
 import { MARKER_START, HEARTBEAT_BLOCK, HEARTBEAT_FILENAME } from './autopilot.js';
 import type { CommandContext, CommandResult } from './help.js';
 
-const VALID_TYPES: ReadonlySet<string> = new Set<TopicType>(['coding', 'research', 'marketing', 'custom']);
+const VALID_TYPES: ReadonlySet<string> = new Set<TopicType>(['coding', 'research', 'marketing', 'general']);
 
 function deriveTopicName(
   nameArg: string,
@@ -316,7 +316,7 @@ async function buildTypePicker(ctx: CommandContext): Promise<CommandResult> {
 }
 
 /**
- * Callback handler for type buttons (`ic`/`ir`/`im`/`ix`): show name confirmation.
+ * Callback handler for type buttons (`ic`/`ir`/`im`/`ig`): show name confirmation.
  * Re-validates context/auth/max-topics before showing.
  */
 export async function handleInitTypeSelect(ctx: CommandContext, type: TopicType): Promise<CommandResult> {
@@ -372,7 +372,7 @@ export async function handleInitTypeSelect(ctx: CommandContext, type: TopicType)
 }
 
 /**
- * Callback handler for confirm buttons (`yc`/`yr`/`ym`/`yx`): complete init with chosen type.
+ * Callback handler for confirm buttons (`yc`/`yr`/`ym`/`yg`): complete init with chosen type.
  */
 export async function handleInitNameConfirm(ctx: CommandContext, type: TopicType): Promise<CommandResult> {
   return handleInit(ctx, type);

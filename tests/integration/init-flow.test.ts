@@ -472,7 +472,7 @@ describe('init flow integration', () => {
       expect(rows[0][0].text).toBe('Coding');
       expect(rows[0][1].text).toBe('Research');
       expect(rows[1][0].text).toBe('Marketing');
-      expect(rows[1][1].text).toBe('Custom');
+      expect(rows[1][1].text).toBe('General');
 
       // Step 2: call handleInitTypeSelect → name confirmation
       const step2 = await handleInitTypeSelect(ctx, 'research');

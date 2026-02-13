@@ -35,7 +35,7 @@ OpenClaw's automatic scanner may flag `child_process` and `process.env` usage. T
 ## How it works
 
 1. **One-time setup per topic**
-   Open a Telegram topic and type `/tm init`. Pick a type (Coding, Research, Marketing, or Custom). Done.
+   Open a Telegram topic and type `/tm init`. Pick a type (Coding, Research, Marketing, or General). Done.
 
 2. **Everything else is automatic**
    The AI reads and updates the topic's files on its own — tracking progress, TODOs, decisions, and learnings. When context gets compacted or the AI resets, it re-reads these files and continues where it left off.

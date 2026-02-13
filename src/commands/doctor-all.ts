@@ -89,8 +89,11 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
   const groupPostResults = new Map<string, { total: number; failed: number }>();
 
   for (const [_key, entry] of allEntries) {
-    // Eligibility gating
-    if (!isEligible(entry, now)) {
+    // Eligibility gating — consider STATUS.md timestamp alongside lastMessageAt
+    const capsuleDir = path.join(projectsBase, entry.slug);
+    const statusForEligibility = readFileOrNull(path.join(capsuleDir, 'STATUS.md'));
+    const statusTs = statusForEligibility ? extractStatusTimestamp(statusForEligibility) : null;
+    if (!isEligible(entry, now, statusTs)) {
       skipped++;
       continue;
     }
@@ -267,7 +270,10 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
     data.lastDoctorAllRunAt = now.toISOString();
 
     for (const [_key, entry] of Object.entries(data.topics)) {
-      if (!isEligible(entry, now)) continue;
+      const dir = path.join(projectsBase, entry.slug);
+      const statusFile = readFileOrNull(path.join(dir, 'STATUS.md'));
+      const ts = statusFile ? extractStatusTimestamp(statusFile) : null;
+      if (!isEligible(entry, now, ts)) continue;
 
       // Update consecutiveSilentDoctors (compare against old lastDoctorRunAt before overwriting)
       if (entry.lastMessageAt) {
@@ -340,7 +346,27 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
   };
 }
 
-function isEligible(entry: TopicEntry, now: Date): boolean {
+const STATUS_TIMESTAMP_RE = /^##\s*Last done\s*\(UTC\)/im;
+const ISO_TIMESTAMP_RE = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+
+export function extractStatusTimestamp(content: string): string | null {
+  if (!STATUS_TIMESTAMP_RE.test(content)) return null;
+  const idx = content.search(STATUS_TIMESTAMP_RE);
+  const sectionAfter = content.slice(idx);
+  const nextSection = sectionAfter.indexOf('\n## ', 1);
+  const section = nextSection > 0 ? sectionAfter.slice(0, nextSection) : sectionAfter;
+  const match = section.match(ISO_TIMESTAMP_RE);
+  return match ? match[0] : null;
+}
+
+function mostRecent(a: string | null | undefined, b: string | null | undefined): string | null {
+  if (!a && !b) return null;
+  if (!a) return b!;
+  if (!b) return a;
+  return a > b ? a : b;
+}
+
+export function isEligible(entry: TopicEntry, now: Date, statusTimestamp?: string | null): boolean {
   // Skip archived
   if (entry.status === 'archived') return false;
 
@@ -348,10 +374,11 @@ function isEligible(entry: TopicEntry, now: Date): boolean {
   if (entry.snoozeUntil && new Date(entry.snoozeUntil).getTime() > now.getTime()) return false;
 
   // Skip inactive (no activity for INACTIVE_AFTER_DAYS)
-  if (entry.lastMessageAt) {
-    const lastActive = new Date(entry.lastMessageAt).getTime();
+  const lastActive = mostRecent(entry.lastMessageAt, statusTimestamp);
+  if (lastActive) {
+    const lastActiveMs = new Date(lastActive).getTime();
     const inactiveMs = INACTIVE_AFTER_DAYS * 24 * 60 * 60 * 1000;
-    if (now.getTime() - lastActive > inactiveMs) return false;
+    if (now.getTime() - lastActiveMs > inactiveMs) return false;
   }
 
   // Skip if reported in last 24 hours

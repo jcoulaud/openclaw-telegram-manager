@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { handleDoctorAll } from '../../src/commands/doctor-all.js';
+import { handleDoctorAll, isEligible, extractStatusTimestamp } from '../../src/commands/doctor-all.js';
 import {
   createEmptyRegistry,
   writeRegistryAtomic,
@@ -256,6 +256,92 @@ describe('doctor-all', () => {
       expect(result.text).toContain('Posted: 2');
       // One daily report should succeed, one failed
       expect(result.text).toContain('Daily reports: 1 sent');
+    });
+  });
+
+  describe('isEligible with STATUS.md timestamp', () => {
+    const now = new Date('2025-06-15T12:00:00Z');
+    const eightDaysAgo = new Date('2025-06-07T12:00:00Z').toISOString();
+    const twoDaysAgo = new Date('2025-06-13T12:00:00Z').toISOString();
+
+    it('should be eligible when lastMessageAt is stale but STATUS.md timestamp is fresh', () => {
+      const entry = makeEntry({ lastMessageAt: eightDaysAgo });
+      expect(isEligible(entry, now, twoDaysAgo)).toBe(true);
+    });
+
+    it('should be ineligible when lastMessageAt is stale and no STATUS.md timestamp', () => {
+      const entry = makeEntry({ lastMessageAt: eightDaysAgo });
+      expect(isEligible(entry, now, null)).toBe(false);
+    });
+
+    it('should be ineligible when both lastMessageAt and STATUS.md timestamp are stale', () => {
+      const entry = makeEntry({ lastMessageAt: eightDaysAgo });
+      expect(isEligible(entry, now, eightDaysAgo)).toBe(false);
+    });
+
+    it('should still skip archived topics regardless of STATUS.md timestamp', () => {
+      const entry = makeEntry({ status: 'archived', lastMessageAt: twoDaysAgo });
+      expect(isEligible(entry, now, twoDaysAgo)).toBe(false);
+    });
+
+    it('should still skip snoozed topics regardless of STATUS.md timestamp', () => {
+      const entry = makeEntry({
+        status: 'snoozed',
+        lastMessageAt: twoDaysAgo,
+        snoozeUntil: new Date('2025-07-01T00:00:00Z').toISOString(),
+      });
+      expect(isEligible(entry, now, twoDaysAgo)).toBe(false);
+    });
+  });
+
+  describe('extractStatusTimestamp', () => {
+    it('should extract ISO timestamp from STATUS.md content', () => {
+      const content = '# Status: Test\n\n## Last done (UTC)\n\n2025-06-13T10:30:00Z\n\nDid something.\n\n## Next actions (now)\n\n_None._';
+      expect(extractStatusTimestamp(content)).toBe('2025-06-13T10:30');
+    });
+
+    it('should return null when no Last done section exists', () => {
+      expect(extractStatusTimestamp('# Status: Test\n\nNo sections here')).toBeNull();
+    });
+
+    it('should return null when Last done section has no timestamp', () => {
+      const content = '# Status: Test\n\n## Last done (UTC)\n\nNo timestamp here.\n\n## Next actions (now)\n';
+      expect(extractStatusTimestamp(content)).toBeNull();
+    });
+  });
+
+  describe('integration: STATUS.md-aware eligibility in doctor-all', () => {
+    it('should process topic with stale lastMessageAt but fresh STATUS.md', async () => {
+      const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
+      const entry = makeEntry({ lastMessageAt: eightDaysAgo });
+      const key = `${entry.groupId}:${entry.threadId}`;
+      setupRegistry({ [key]: entry });
+      scaffoldCapsule(path.join(workspaceDir, 'projects'), entry.slug, entry.name, entry.type);
+
+      // Write a fresh STATUS.md timestamp
+      const statusPath = path.join(workspaceDir, 'projects', entry.slug, 'STATUS.md');
+      const freshTs = new Date().toISOString();
+      fs.writeFileSync(statusPath, `# Status: Test\n\n## Last done (UTC)\n\n${freshTs}\n\nDid something.\n\n## Next actions (now)\n\n_None._`);
+
+      const result = await handleDoctorAll(makeCtx());
+      expect(result.text).toContain('Checked: 1');
+      expect(result.text).toContain('Skipped: 0');
+    });
+
+    it('should skip topic with stale lastMessageAt and no fresh STATUS.md', async () => {
+      const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
+      const entry = makeEntry({ lastMessageAt: eightDaysAgo });
+      const key = `${entry.groupId}:${entry.threadId}`;
+      setupRegistry({ [key]: entry });
+      scaffoldCapsule(path.join(workspaceDir, 'projects'), entry.slug, entry.name, entry.type);
+
+      // Write a stale STATUS.md timestamp
+      const statusPath = path.join(workspaceDir, 'projects', entry.slug, 'STATUS.md');
+      fs.writeFileSync(statusPath, `# Status: Test\n\n## Last done (UTC)\n\n${eightDaysAgo}\n\nDid something.\n\n## Next actions (now)\n\n_None._`);
+
+      const result = await handleDoctorAll(makeCtx());
+      expect(result.text).toContain('Checked: 0');
+      expect(result.text).toContain('Skipped: 1');
     });
   });
 });

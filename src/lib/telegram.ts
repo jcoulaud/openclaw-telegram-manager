@@ -149,22 +149,13 @@ export function buildInitConfirmButton(
 /**
  * Build Markdown Topic Card displayed after init.
  */
-export function buildTopicCard(name: string, slug: string, type: TopicType): string {
+export function buildTopicCard(name: string, type: TopicType): string {
   return [
-    `**Topic: ${name}**`,
-    `**Type:** ${type}`,
-    `**Stored in:** projects/${slug}/`,
+    `**${name}** is ready!`,
     '',
-    '**How it works**',
-    'Talk to the AI in this topic like you normally would — describe what you need, ask questions, or give instructions. Progress, TODOs, and decisions are tracked automatically so nothing is lost between sessions.',
+    `Type: ${type}`,
     '',
-    '**Available commands:**',
-    '/tm status — see current progress',
-    '/tm doctor — run health checks',
-    '/tm rename new-name — rename this topic',
-    '/tm list — all topics',
-    '/tm archive — archive this topic',
-    '/tm help — full command reference',
+    'Just talk to the AI normally — everything is tracked automatically. Type /tm help if you ever need it.',
   ].join('\n');
 }
 
@@ -178,13 +169,13 @@ export function buildInitWelcomeHtml(): string {
   return [
     '<b>Set up this topic</b>',
     '',
-    'This gives the topic a persistent memory \u2014 the AI writes status, TODOs, and notes to disk so nothing is lost between sessions.',
+    'The AI will remember everything across sessions \u2014 progress, decisions, TODOs, and notes are saved automatically.',
     '',
     '<b>Pick a type:</b>',
-    '\u2022 <b>Coding</b> \u2014 adds architecture and deploy files',
-    '\u2022 <b>Research</b> \u2014 adds sources and findings files',
-    '\u2022 <b>Marketing</b> \u2014 adds campaigns and metrics files',
-    '\u2022 <b>Custom</b> \u2014 base files only',
+    '\u2022 <b>Coding</b> \u2014 tracks architecture decisions and deployment steps',
+    '\u2022 <b>Research</b> \u2014 tracks sources and key findings',
+    '\u2022 <b>Marketing</b> \u2014 tracks campaigns and metrics',
+    '\u2022 <b>Custom</b> \u2014 general-purpose tracking',
   ].join('\n');
 }
 
@@ -211,25 +202,15 @@ export function buildInitNameConfirmHtml(name: string, type: TopicType): string 
  * Build HTML for init step 3: topic card after successful init.
  * Posted directly via postFn to bypass AI reformatting.
  */
-export function buildTopicCardHtml(name: string, slug: string, type: TopicType): string {
+export function buildTopicCardHtml(name: string, type: TopicType): string {
   const n = htmlEscape(name);
-  const s = htmlEscape(slug);
   const t = htmlEscape(type);
   return [
-    `<b>Topic: ${n}</b>`,
-    `<b>Type:</b> ${t}`,
-    `<b>Stored in:</b> <code>projects/${s}/</code>`,
+    `<b>\u2705 ${n}</b> is ready!`,
     '',
-    '<b>How it works</b>',
-    'Talk to the AI in this topic like you normally would \u2014 describe what you need, ask questions, or give instructions. Progress, TODOs, and decisions are tracked automatically so nothing is lost between sessions.',
+    `Type: ${t}`,
     '',
-    '<b>Available commands:</b>',
-    '/tm status \u2014 see current progress',
-    '/tm doctor \u2014 run health checks',
-    '/tm rename new-name \u2014 rename this topic',
-    '/tm list \u2014 all topics',
-    '/tm archive \u2014 archive this topic',
-    '/tm help \u2014 full command reference',
+    'Just talk to the AI normally \u2014 everything is tracked automatically. Type /tm help if you ever need it.',
   ].join('\n');
 }
 

@@ -571,8 +571,8 @@ describe('commands/init', () => {
       const [gId, tId, html] = postFn.mock.calls[0];
       expect(gId).toBe('-100123');
       expect(tId).toBe('456');
-      expect(html).toContain('Topic: my-project');
-      expect(html).toContain('How it works');
+      expect(html).toContain('my-project');
+      expect(html).toContain('is ready!');
 
       // CommandResult should be minimal text with pin
       expect(result.text).toBe('');
@@ -613,7 +613,7 @@ describe('commands/init', () => {
 
       expect(postFn).toHaveBeenCalledOnce();
       // Falls back to full markdown topic card
-      expect(result.text).toContain('**Topic: test-topic**');
+      expect(result.text).toContain('**test-topic** is ready!');
       expect(result.pin).toBe(true);
     });
 

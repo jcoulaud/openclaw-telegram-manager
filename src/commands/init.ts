@@ -226,12 +226,12 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
   );
 
   // Build topic card
-  const topicCard = buildTopicCard(name, finalSlug, topicType);
+  const topicCard = buildTopicCard(name, topicType);
 
   // Direct Telegram posting (bypasses AI reformatting)
   if (ctx.postFn && groupId && threadId) {
     try {
-      const htmlCard = buildTopicCardHtml(name, finalSlug, topicType);
+      const htmlCard = buildTopicCardHtml(name, topicType);
       await ctx.postFn(groupId, threadId, htmlCard);
       return { text: '', pin: true };
     } catch {

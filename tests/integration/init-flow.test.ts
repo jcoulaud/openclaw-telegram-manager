@@ -633,8 +633,8 @@ describe('init flow integration', () => {
       // Step 3: confirm — postFn receives HTML topic card, no keyboard
       const step3 = await handleInitNameConfirm(ctx, 'coding');
       expect(postFn).toHaveBeenCalledTimes(3);
-      expect(postFn.mock.calls[2][2]).toContain('Topic: PostFn Project');
-      expect(postFn.mock.calls[2][2]).toContain('How it works');
+      expect(postFn.mock.calls[2][2]).toContain('PostFn Project');
+      expect(postFn.mock.calls[2][2]).toContain('is ready!');
       expect(postFn.mock.calls[2][3]).toBeUndefined(); // no keyboard for final step
       expect(step3.text).toBe('');
       expect(step3.pin).toBe(true);

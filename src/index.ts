@@ -81,7 +81,8 @@ export default function register(api: {
     return;
   }
 
-  // Lazy-init postFn for fan-out posting (resolved on first use via dynamic import)
+  // Resolve postFn for direct Telegram posting.
+  // The function lives on api.runtime.channel.telegram.sendMessageTelegram.
   type PostFn = (
     groupId: string,
     threadId: string,
@@ -89,47 +90,39 @@ export default function register(api: {
     keyboard?: { inline_keyboard: { text: string; callback_data: string }[][] },
   ) => Promise<void>;
 
-  let resolvedPostFn: PostFn | undefined | null; // null = tried & unavailable
+  let resolvedPostFn: PostFn | null = null;
 
-  const lazyPostFn: PostFn = async (groupId, threadId, text, keyboard) => {
-    if (resolvedPostFn === null) throw new Error('openclaw SDK unavailable – cannot post');
-    if (resolvedPostFn === undefined) {
-      try {
-        // Dynamic path prevents Vite/tsc from resolving at build time
-        const sdkPath = ['openclaw', 'dist', 'plugin-sdk', 'index.js'].join('/');
-        const sdk = (await import(/* @vite-ignore */ sdkPath)) as Record<string, unknown>;
-        if (typeof sdk['sendMessageTelegram'] === 'function') {
-          const sendMsg = sdk['sendMessageTelegram'] as (
-            chatId: string,
-            text: string,
-            opts?: Record<string, unknown>,
-          ) => Promise<void>;
-          resolvedPostFn = async (gId, tId, txt, kb) => {
-            const opts: Record<string, unknown> = {
-              messageThreadId: Number(tId),
-              textMode: 'html',
-            };
-            if (kb) opts.buttons = kb.inline_keyboard;
-            await sendMsg(gId, txt, opts);
-          };
-          api.logger.info('telegram-manager: postFn wired via plugin-sdk');
-        } else {
-          resolvedPostFn = null;
-        }
-      } catch {
-        resolvedPostFn = null;
-      }
-    }
-    if (!resolvedPostFn) throw new Error('openclaw SDK unavailable – cannot post');
-    await resolvedPostFn(groupId, threadId, text, keyboard);
-  };
+  // Try wiring via runtime (available immediately, no dynamic import needed)
+  const rt = (api as Record<string, unknown>).runtime as Record<string, unknown> | undefined;
+  const tgChannel = (rt?.channel as Record<string, unknown> | undefined)?.telegram as Record<string, unknown> | undefined;
+  const sendFn = tgChannel?.sendMessageTelegram;
+  if (typeof sendFn === 'function') {
+    const sendMsg = sendFn as (
+      chatId: string,
+      text: string,
+      opts?: Record<string, unknown>,
+    ) => Promise<unknown>;
+    resolvedPostFn = async (gId, tId, txt, kb) => {
+      const opts: Record<string, unknown> = {
+        messageThreadId: Number(tId),
+        textMode: 'html',
+      };
+      if (kb) opts.buttons = kb.inline_keyboard;
+      await sendMsg(gId, txt, opts);
+    };
+    api.logger.info('telegram-manager: postFn wired via runtime.channel.telegram');
+  } else {
+    api.logger.warn('telegram-manager: runtime.channel.telegram.sendMessageTelegram not available — direct posting disabled');
+  }
+
+  const postFn: PostFn | undefined = resolvedPostFn ?? undefined;
 
   const tool = createTopicManagerTool({
     logger: api.logger,
     configDir,
     workspaceDir,
     rpc: api.rpc,
-    postFn: lazyPostFn,
+    postFn,
   });
 
   api.registerTool({

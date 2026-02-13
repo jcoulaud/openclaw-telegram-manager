@@ -1,3 +1,13 @@
+## [2.5.1](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.5.0...v2.5.1) (2026-02-13)
+
+
+### Bug Fixes
+
+* improve onboarding UX — restore "How it works" and add patience note ([f27ba94](https://github.com/jcoulaud/openclaw-telegram-manager/commit/f27ba94c60fcb47cf17c5a278bdc0b31f3b875fa))
+* make onboarding messages user-friendly ([2d0e3ae](https://github.com/jcoulaud/openclaw-telegram-manager/commit/2d0e3ae0f3a703cf87be944cda21e23a9d07b62b))
+* remove all remaining developer jargon from user-facing messages ([e8b2eb1](https://github.com/jcoulaud/openclaw-telegram-manager/commit/e8b2eb125f0173d80f7704eced314749a4eaf03e))
+* remove remaining "workcell" terminology from onboarding and tool descriptions ([fb972a6](https://github.com/jcoulaud/openclaw-telegram-manager/commit/fb972a6023abdc8c68f0415be80f5e354bfbc6c0))
+
 # [2.5.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.4.0...v2.5.0) (2026-02-13)
 
 

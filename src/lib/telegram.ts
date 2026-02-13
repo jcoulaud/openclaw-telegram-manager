@@ -303,8 +303,6 @@ export function buildHelpCard(): string {
     '/tm snooze 7d — pause health checks (e.g. 7d, 30d)',
     '/tm archive — archive this topic',
     '/tm unarchive — bring back an archived topic',
-    '/tm sync — fix config if out of sync',
-    '/tm upgrade — update topic files to latest version',
   ].join('\n');
 }
 

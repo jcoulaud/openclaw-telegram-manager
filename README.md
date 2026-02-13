@@ -89,8 +89,6 @@ You don't need any of these — everything runs automatically. They're there if 
 | `/tm snooze <duration>` | Pause health checks (e.g. `7d`, `30d`) |
 | `/tm archive` | Archive a topic |
 | `/tm unarchive` | Bring back an archived topic |
-| `/tm upgrade` | Update topic files to the latest version |
-| `/tm sync` | Fix config if something is out of sync |
 
 **Autopilot** (enabled by default)
 

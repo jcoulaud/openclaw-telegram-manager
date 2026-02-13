@@ -10,6 +10,7 @@ import JSON5 from 'json5';
 // ── Constants ──────────────────────────────────────────────────────────
 
 const PLUGIN_NAME = 'openclaw-telegram-manager';
+const PLUGIN_DISPLAY_NAME = 'OpenClaw Telegram Manager';
 const PLUGIN_VERSION: string = JSON.parse(
   fs.readFileSync(new URL('../package.json', import.meta.url), 'utf-8'),
 ).version;
@@ -152,7 +153,7 @@ if (command === 'setup') {
 // ── Setup ─────────────────────────────────────────────────────────────
 
 async function runSetup(): Promise<void> {
-  banner(PLUGIN_NAME, `v${PLUGIN_VERSION}`);
+  banner(PLUGIN_DISPLAY_NAME, `v${PLUGIN_VERSION}`);
 
   startSpinner('Checking OpenClaw version…');
   const version = checkOpenClawVersion();
@@ -201,7 +202,7 @@ async function runSetup(): Promise<void> {
 // ── Uninstall ─────────────────────────────────────────────────────────
 
 async function runUninstall(): Promise<void> {
-  banner(PLUGIN_NAME, 'uninstall');
+  banner(PLUGIN_DISPLAY_NAME, 'uninstall');
 
   startSpinner('Locating config…');
   const configDir = locateConfigDir();

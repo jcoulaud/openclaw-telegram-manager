@@ -25,8 +25,6 @@ const FLUSH_TAG = '[tm]';
 const SETUP_REGISTRY_VERSION = 4;
 const MEMORY_FLUSH_INSTRUCTION =
   `If you are working on a Telegram topic folder (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted. ${FLUSH_TAG}`;
-// Legacy marker from pre-2.6 versions (used "capsule" instead of "folder", no tag)
-const LEGACY_FLUSH_MARKER = 'topic capsule';
 
 // Keep in sync with HEARTBEAT_BLOCK in src/commands/autopilot.ts
 const SETUP_MARKER_START = '<!-- TM_AUTOPILOT_START -->';
@@ -647,10 +645,10 @@ function patchMemoryFlush(configDir: string): void {
     return;
   }
 
-  // Strip any previous version of our instruction (by tag or legacy marker)
+  // Strip any previous version of our instruction (identified by tag)
   const cleaned = raw
     .split('\n')
-    .filter(line => !line.includes(FLUSH_TAG) && !line.includes(LEGACY_FLUSH_MARKER))
+    .filter(line => !line.includes(FLUSH_TAG))
     .join('\n')
     .trim();
 
@@ -674,7 +672,7 @@ function unpatchMemoryFlush(configDir: string): void {
     return;
   }
 
-  if (!content.includes(FLUSH_TAG) && !content.includes(LEGACY_FLUSH_MARKER)) return;
+  if (!content.includes(FLUSH_TAG)) return;
 
   let config: Record<string, unknown>;
   try {
@@ -693,7 +691,7 @@ function unpatchMemoryFlush(configDir: string): void {
   const prompt = memoryFlush['prompt'] as string;
   const cleaned = prompt
     .split('\n')
-    .filter(line => !line.includes(FLUSH_TAG) && !line.includes(LEGACY_FLUSH_MARKER))
+    .filter(line => !line.includes(FLUSH_TAG))
     .join('\n')
     .trim();
 

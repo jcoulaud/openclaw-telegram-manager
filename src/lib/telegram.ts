@@ -192,14 +192,12 @@ export function buildInitNameConfirmHtml(name: string, type: TopicType): string 
   const n = htmlEscape(name);
   const t = htmlEscape(type);
   return [
-    '<b>Almost there!</b>',
+    `<b>Got it — type set to ${t}!</b>`,
     '',
     `Name: <b>${n}</b>`,
-    `Type: ${t}`,
     '',
-    'You\'ll see this name in reports and health checks.',
-    '',
-    `For a custom name: <code>/tm init your-name ${t}</code>`,
+    'This is the name you\'ll see in reports and health checks.',
+    `To change it: <code>/tm init your-name ${t}</code>`,
   ].join('\n');
 }
 

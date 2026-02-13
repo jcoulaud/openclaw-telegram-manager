@@ -503,10 +503,10 @@ describe('commands/init', () => {
       expect(result.text).toContain('Topic 456');
     });
 
-    it('should include Almost there heading in confirm message', async () => {
+    it('should include confirmation heading in confirm message', async () => {
       const result = await handleInitTypeSelect(ctx, 'coding');
 
-      expect(result.text).toContain('Almost there');
+      expect(result.text).toContain('Got it');
     });
 
     it('should include hint about /tm init <name> <type>', async () => {
@@ -549,7 +549,7 @@ describe('commands/init', () => {
       const [gId, tId, html, keyboard] = postFn.mock.calls[0];
       expect(gId).toBe('-100123');
       expect(tId).toBe('456');
-      expect(html).toContain('Almost there');
+      expect(html).toContain('Got it');
       expect(html).toContain('My Project');
       expect(html).toContain('research');
       expect(keyboard).toBeDefined();
@@ -601,7 +601,7 @@ describe('commands/init', () => {
 
       expect(postFn).toHaveBeenCalledOnce();
       // Falls back to markdown with inline keyboard
-      expect(result.text).toContain('Almost there');
+      expect(result.text).toContain('Got it');
       expect(result.inlineKeyboard).toBeDefined();
     });
 

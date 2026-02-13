@@ -624,7 +624,7 @@ describe('init flow integration', () => {
       // Step 2: name confirmation — postFn receives HTML confirm + keyboard
       const step2 = await handleInitTypeSelect(ctx, 'coding');
       expect(postFn).toHaveBeenCalledTimes(2);
-      expect(postFn.mock.calls[1][2]).toContain('Almost there');
+      expect(postFn.mock.calls[1][2]).toContain('Got it');
       expect(postFn.mock.calls[1][2]).toContain('PostFn Project');
       expect(postFn.mock.calls[1][3]).toBeDefined(); // keyboard
       expect(step2.text).toContain('Type selected: coding');

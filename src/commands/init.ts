@@ -378,13 +378,11 @@ export async function handleInitNameConfirm(ctx: CommandContext, type: TopicType
 
 function buildInitConfirmMessage(name: string, type: TopicType): string {
   return [
-    '**Almost there!**',
+    `**Got it — type set to ${type}!**`,
     '',
     `Name: **${name}**`,
-    `Type: ${type}`,
     '',
-    'You\'ll see this name in reports and health checks.',
-    '',
-    `For a custom name: \`/tm init your-name ${type}\``,
+    'This is the name you\'ll see in reports and health checks.',
+    `To change it: \`/tm init your-name ${type}\``,
   ].join('\n');
 }

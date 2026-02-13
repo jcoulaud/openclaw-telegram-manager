@@ -1,3 +1,10 @@
+## [2.6.1](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.6.0...v2.6.1) (2026-02-13)
+
+
+### Bug Fixes
+
+* add registry migration for custom-to-general topic type rename ([52f2d5e](https://github.com/jcoulaud/openclaw-telegram-manager/commit/52f2d5e0624616d467085657b31014e1f0ac916b))
+
 # [2.6.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.5.7...v2.6.0) (2026-02-13)
 
 

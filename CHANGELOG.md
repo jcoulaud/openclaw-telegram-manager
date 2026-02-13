@@ -1,3 +1,10 @@
+## [2.6.3](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.6.2...v2.6.3) (2026-02-13)
+
+
+### Bug Fixes
+
+* make sync command messages user-friendly and gate restart behind configWrites ([1b1ceff](https://github.com/jcoulaud/openclaw-telegram-manager/commit/1b1ceff10c852e4437ebba5b2445a5367c813395))
+
 ## [2.6.2](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.6.1...v2.6.2) (2026-02-13)
 
 

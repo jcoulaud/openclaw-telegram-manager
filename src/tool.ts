@@ -56,11 +56,7 @@ export function createTopicManagerTool(deps: ToolDeps): TopicManagerTool {
       params: { command: string },
       execContext?: Record<string, unknown>,
     ): Promise<CommandResult> {
-      const commandStr = (params.command ?? '').trim();
-
-      if (!commandStr) {
-        return { text: 'No command provided. Try /tm help for available commands.' };
-      }
+      const commandStr = (params.command ?? '').trim() || 'help';
 
       // Extract context from execution params
       const ctx = buildContext(deps, execContext);

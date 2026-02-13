@@ -62,21 +62,14 @@ Each topic gets its own folder with files the AI maintains automatically:
 | `NOTES.md` | Anything else worth keeping |
 | `README.md` | What this topic is about |
 
-<details>
-<summary>Extra files by topic type</summary>
-
+Depending on the topic type, extra files are added:
 - **Coding** adds `ARCHITECTURE.md` and `DEPLOY.md`
 - **Research** adds `SOURCES.md` and `FINDINGS.md`
 - **Marketing** adds `CAMPAIGNS.md` and `METRICS.md`
 
-</details>
-
 ## Optional commands
 
 You don't need any of these — everything runs automatically. They're there if you want to check on things or make changes.
-
-<details>
-<summary>View all commands</summary>
 
 **Check on things**
 
@@ -105,8 +98,6 @@ You don't need any of these — everything runs automatically. They're there if 
 |---------|-------------|
 | `/tm autopilot enable` | Turn on automatic daily health checks |
 | `/tm autopilot disable` | Turn off automatic health checks |
-
-</details>
 
 ## Permissions
 
@@ -142,8 +133,7 @@ npx openclaw-telegram-manager uninstall --purge-data
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-<details>
-<summary>Project layout</summary>
+### Project layout
 
 ```
 src/
@@ -160,8 +150,6 @@ skills/
 ```
 
 `npm run build` compiles TypeScript then bundles into `dist/plugin.js`. The setup script copies only the bundle — no `node_modules` needed at runtime.
-
-</details>
 
 ## License
 

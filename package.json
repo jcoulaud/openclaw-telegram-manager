@@ -3,6 +3,15 @@
   "version": "2.3.2",
   "type": "module",
   "description": "Deterministic Telegram forum topic management for OpenClaw",
+  "keywords": [
+    "openclaw",
+    "telegram",
+    "plugin",
+    "topic-management",
+    "persistent-memory",
+    "chatbot",
+    "forum"
+  ],
   "license": "MIT",
   "repository": "github:jcoulaud/openclaw-telegram-manager",
   "exports": {

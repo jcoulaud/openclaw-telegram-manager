@@ -128,28 +128,6 @@ function confirm(question: string): Promise<boolean> {
   });
 }
 
-// ── Entry point ───────────────────────────────────────────────────────
-
-const command = process.argv[2] ?? 'setup';
-
-if (command === 'setup') {
-  runSetup().catch((err) => {
-    stopSpinner();
-    console.error('Setup failed:', err instanceof Error ? err.message : String(err));
-    process.exit(1);
-  });
-} else if (command === 'uninstall') {
-  runUninstall().catch((err) => {
-    stopSpinner();
-    console.error('Uninstall failed:', err instanceof Error ? err.message : String(err));
-    process.exit(1);
-  });
-} else {
-  console.error(`Unknown command: ${command}`);
-  console.error(`Usage: ${PLUGIN_NAME} [setup|uninstall [--purge-data]]`);
-  process.exit(1);
-}
-
 // ── Setup ─────────────────────────────────────────────────────────────
 
 async function runSetup(): Promise<void> {
@@ -800,4 +778,27 @@ function copyRecursive(src: string, dest: string): void {
   } else {
     fs.copyFileSync(src, dest);
   }
+}
+
+// ── Entry point (must be last — all constants/functions must be
+//    initialized before runSetup() executes synchronously) ─────────────
+
+const command = process.argv[2] ?? 'setup';
+
+if (command === 'setup') {
+  runSetup().catch((err) => {
+    stopSpinner();
+    console.error('Setup failed:', err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  });
+} else if (command === 'uninstall') {
+  runUninstall().catch((err) => {
+    stopSpinner();
+    console.error('Uninstall failed:', err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  });
+} else {
+  console.error(`Unknown command: ${command}`);
+  console.error(`Usage: ${PLUGIN_NAME} [setup|uninstall [--purge-data]]`);
+  process.exit(1);
 }

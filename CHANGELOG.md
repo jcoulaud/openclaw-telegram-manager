@@ -1,3 +1,11 @@
+## [2.5.3](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.5.2...v2.5.3) (2026-02-13)
+
+
+### Bug Fixes
+
+* make memoryFlush patch idempotent across instruction rewording ([0884a6a](https://github.com/jcoulaud/openclaw-telegram-manager/commit/0884a6a71e74255d1f8b845b023d4d3d3c954e60))
+* make memoryFlush patch idempotent across instruction rewording ([9463c05](https://github.com/jcoulaud/openclaw-telegram-manager/commit/9463c05b85c3af1d1ae8942b729d1d9424d408a4))
+
 ## [2.5.2](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.5.1...v2.5.2) (2026-02-13)
 
 

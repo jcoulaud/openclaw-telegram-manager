@@ -45,6 +45,16 @@ OpenClaw's automatic scanner may flag `child_process` and `process.env` usage. T
 
 You can also skip the interactive flow: `/tm init my-project coding`
 
+## Topic memory vs. workspace memory
+
+OpenClaw has its own workspace-level memory (learnings, preferences, patterns). This plugin adds a **per-topic layer on top**.
+
+The AI treats these as a hierarchy:
+1. **Topic files come first** — they define what the topic is working on, its tasks, progress, and history. After a reset, the AI reads these before anything else.
+2. **Workspace memory is secondary** — general learnings and user preferences still apply (coding style, past mistakes), but they don't override the topic's current state.
+
+In practice: if the AI resets and you ask "what are we working on?", it answers from the topic's status and tasks — not from unrelated projects that might exist elsewhere in the workspace.
+
 ## What gets tracked
 
 Each topic gets its own folder with files the AI maintains automatically:

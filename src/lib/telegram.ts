@@ -326,8 +326,8 @@ export function buildListMessage(topics: TopicEntry[]): string {
 
   for (const t of sorted) {
     const activity = t.lastMessageAt ? `active ${relativeTime(t.lastMessageAt)}` : 'no activity yet';
-    const statusTag = t.status !== 'active' ? ` \u2014 ${t.status}` : '';
-    const entry = `**${t.name}** \u00b7 ${t.type}${statusTag}\n  ${activity}`;
+    const icon = t.status === 'snoozed' ? '\ud83d\udca4 ' : t.status === 'archived' ? '\ud83d\udce6 ' : '';
+    const entry = `${icon}**${t.name}** \u00b7 ${t.type}\n  ${activity}`;
 
     // Check if adding this entry would exceed limit
     const tentative = [...lines, entry, ''].join('\n');

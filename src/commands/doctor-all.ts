@@ -10,7 +10,7 @@ import {
   SPAM_THRESHOLD,
 } from '../lib/types.js';
 import type { TopicEntry, InlineKeyboardMarkup } from '../lib/types.js';
-import { buildDoctorReport, buildDoctorButtons, buildDailyReport, createRateLimitedPoster } from '../lib/telegram.js';
+import { buildDoctorReport, buildDoctorButtons, buildDailyReport, createRateLimitedPoster, truncateMessage } from '../lib/telegram.js';
 import { runAllChecksForTopic, backupCapsuleIfHealthy } from '../lib/doctor-checks.js';
 import { includePath } from '../lib/include-generator.js';
 import {
@@ -31,6 +31,193 @@ interface TopicReport {
   text: string;
   keyboard: InlineKeyboardMarkup;
   error?: string;
+}
+
+// ── Per-topic outcome tracking ───────────────────────────────────────
+
+export type SkipReason = 'archived' | 'snoozed' | 'inactive' | 'recently-checked';
+
+export interface EligibilityResult {
+  eligible: boolean;
+  skipReason?: SkipReason;
+}
+
+interface TopicOutcome {
+  name: string;
+  slug: string;
+  status: 'checked' | 'check-failed' | 'post-failed';
+}
+
+interface SkippedTopic {
+  name: string;
+  reason: SkipReason;
+}
+
+/**
+ * Like `isEligible`, but returns the specific skip reason.
+ * `isEligible` is kept for the registry-update loop (line 276).
+ */
+export function getEligibility(
+  entry: TopicEntry,
+  now: Date,
+  statusTimestamp?: string | null,
+): EligibilityResult {
+  if (entry.status === 'archived') return { eligible: false, skipReason: 'archived' };
+
+  if (entry.snoozeUntil && new Date(entry.snoozeUntil).getTime() > now.getTime()) {
+    return { eligible: false, skipReason: 'snoozed' };
+  }
+
+  const lastActive = mostRecent(entry.lastMessageAt, statusTimestamp);
+  if (lastActive) {
+    const lastActiveMs = new Date(lastActive).getTime();
+    const inactiveMs = INACTIVE_AFTER_DAYS * 24 * 60 * 60 * 1000;
+    if (now.getTime() - lastActiveMs > inactiveMs) {
+      return { eligible: false, skipReason: 'inactive' };
+    }
+  }
+
+  if (entry.lastDoctorReportAt) {
+    const lastReport = new Date(entry.lastDoctorReportAt).getTime();
+    if (now.getTime() - lastReport < DOCTOR_PER_TOPIC_CAP_MS) {
+      return { eligible: false, skipReason: 'recently-checked' };
+    }
+  }
+
+  return { eligible: true };
+}
+
+// ── Summary builder ──────────────────────────────────────────────────
+
+const SKIP_ICONS: Record<SkipReason, string> = {
+  archived: '\ud83d\udce6',   // 📦
+  snoozed: '\ud83d\udca4',    // 💤
+  inactive: '\ud83d\udd07',   // 🔇
+  'recently-checked': '\u23f0', // ⏰
+};
+
+const SKIP_LABELS: Record<SkipReason, string> = {
+  archived: 'archived',
+  snoozed: 'snoozed',
+  inactive: 'inactive',
+  'recently-checked': 'recently checked',
+};
+
+export interface DoctorAllSummaryData {
+  checkedTopics: TopicOutcome[];
+  skippedTopics: SkippedTopic[];
+  postFailures: number;
+  dailyReportsSent: number;
+  dailyReportsSkipped: number;
+  hasPostFn: boolean;
+  migrationGroups: number;
+  errors: string[];
+}
+
+const SUMMARY_SOFT_LIMIT = 3800;
+
+export function buildDoctorAllSummary(data: DoctorAllSummaryData): string {
+  const {
+    checkedTopics,
+    skippedTopics,
+    postFailures,
+    dailyReportsSent,
+    dailyReportsSkipped,
+    hasPostFn,
+    migrationGroups,
+    errors,
+  } = data;
+
+  if (checkedTopics.length === 0 && skippedTopics.length === 0) {
+    return '**Health Check Summary**\n\nNo topics registered yet.';
+  }
+
+  const lines: string[] = ['**Health Check Summary**', ''];
+
+  // ── Checked topics ──
+  let checkedRendered = 0;
+  for (const t of checkedTopics) {
+    let icon: string;
+    let label: string;
+    switch (t.status) {
+      case 'checked':
+        icon = '\u2705'; // ✅
+        label = 'checked';
+        break;
+      case 'check-failed':
+        icon = '\u274c'; // ❌
+        label = 'check failed';
+        break;
+      case 'post-failed':
+        icon = '\u26a0\ufe0f'; // ⚠️
+        label = 'failed to post';
+        break;
+    }
+    const line = `${icon} ${t.name} \u2014 ${label}`;
+    if (lines.join('\n').length + line.length > SUMMARY_SOFT_LIMIT) {
+      const remaining = checkedTopics.length - checkedRendered;
+      lines.push(`... and ${remaining} more`);
+      break;
+    }
+    lines.push(line);
+    checkedRendered++;
+  }
+
+  // ── Skipped topics ──
+  if (skippedTopics.length > 0) {
+    lines.push('');
+    lines.push('\u23ed\ufe0f Skipped:'); // ⏭️
+    let skippedRendered = 0;
+    for (const t of skippedTopics) {
+      const icon = SKIP_ICONS[t.reason];
+      const label = SKIP_LABELS[t.reason];
+      const line = `${icon} ${t.name} \u2014 ${label}`;
+      if (lines.join('\n').length + line.length > SUMMARY_SOFT_LIMIT) {
+        const remaining = skippedTopics.length - skippedRendered;
+        lines.push(`... and ${remaining} more`);
+        break;
+      }
+      lines.push(line);
+      skippedRendered++;
+    }
+  }
+
+  // ── Post failures callout ──
+  if (postFailures > 0) {
+    lines.push('');
+    lines.push(`\u26a0\ufe0f ${postFailures} topic(s) failed to post`);
+  }
+
+  // ── Daily reports ──
+  if (hasPostFn) {
+    const parts: string[] = [];
+    if (dailyReportsSent > 0) parts.push(`${dailyReportsSent} sent`);
+    if (dailyReportsSkipped > 0) parts.push(`${dailyReportsSkipped} skipped`);
+    if (parts.length > 0) {
+      lines.push('');
+      lines.push(`Daily reports: ${parts.join(', ')}`);
+    }
+  }
+
+  // ── Migration warning ──
+  if (migrationGroups > 0) {
+    lines.push('');
+    lines.push(`**Warning:** ${migrationGroups} group(s) had all topics fail. The group may have been migrated or deleted.`);
+  }
+
+  // ── Check errors (internal) ──
+  if (errors.length > 0) {
+    lines.push('');
+    lines.push(`**Errors (${errors.length}):**`);
+    for (const e of errors.slice(0, 10)) {
+      lines.push(`- ${e}`);
+    }
+    if (errors.length > 10) {
+      lines.push(`... and ${errors.length - 10} more`);
+    }
+  }
+
+  return truncateMessage(lines.join('\n'));
 }
 
 export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResult> {
@@ -82,8 +269,8 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
   const allEntries = Object.entries(registry.topics);
   const reports: TopicReport[] = [];
   const errors: string[] = [];
-  let processed = 0;
-  let skipped = 0;
+  const checkedTopics: TopicOutcome[] = [];
+  const skippedTopics: SkippedTopic[] = [];
 
   // Group tracking for migration detection
   const groupPostResults = new Map<string, { total: number; failed: number }>();
@@ -93,8 +280,9 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
     const capsuleDir = path.join(projectsBase, entry.slug);
     const statusForEligibility = readFileOrNull(path.join(capsuleDir, 'STATUS.md'));
     const statusTs = statusForEligibility ? extractStatusTimestamp(statusForEligibility) : null;
-    if (!isEligible(entry, now, statusTs)) {
-      skipped++;
+    const eligibility = getEligibility(entry, now, statusTs);
+    if (!eligibility.eligible) {
+      skippedTopics.push({ name: entry.name, reason: eligibility.skipReason! });
       continue;
     }
 
@@ -141,11 +329,13 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
       const group = groupPostResults.get(gk)!;
       group.total++;
 
-      processed++;
+      checkedTopics.push({ name: entry.name, slug: entry.slug, status: 'checked' });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       errors.push(`${entry.slug}: ${msg}`);
       logger.error(`[doctor-all] Error processing ${entry.slug}: ${msg}`);
+
+      checkedTopics.push({ name: entry.name, slug: entry.slug, status: 'check-failed' });
 
       // Track failures for migration detection
       const gk = entry.groupId;
@@ -167,8 +357,8 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
   }
 
   // Fan-out posting: post individual reports to each topic if postFn is available
-  let postErrors = 0;
-  let postSuccesses = 0;
+  let postFailures = 0;
+  const postFailedSlugs = new Set<string>();
 
   if (ctx.postFn && reports.length > 0) {
     const rateLimitedPost = createRateLimitedPoster(ctx.postFn);
@@ -176,7 +366,6 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
     for (const report of reports) {
       try {
         await rateLimitedPost(report.groupId, report.threadId, report.text, report.keyboard);
-        postSuccesses++;
 
         // Update lastDoctorReportAt transactionally on success
         await withRegistry(workspaceDir, (data) => {
@@ -188,7 +377,8 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
           }
         });
       } catch (err) {
-        postErrors++;
+        postFailures++;
+        postFailedSlugs.add(report.slug);
         const msg = err instanceof Error ? err.message : String(err);
         logger.error(`[doctor-all] Post failed for ${report.slug}: ${msg}`);
 
@@ -200,6 +390,13 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
             entry.lastPostError = msg.slice(0, MAX_POST_ERROR_LENGTH);
           }
         });
+      }
+    }
+
+    // Update outcomes for post-failed topics
+    for (const outcome of checkedTopics) {
+      if (postFailedSlugs.has(outcome.slug) && outcome.status === 'checked') {
+        outcome.status = 'post-failed';
       }
     }
   }
@@ -312,37 +509,17 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
   });
 
   // Build summary
-  const lines: string[] = [
-    `**Health Check Summary**`,
-    '',
-    `Checked: ${processed}`,
-    `Skipped: ${skipped}`,
-    `Total topics: ${allEntries.length}`,
-  ];
-
-  if (ctx.postFn) {
-    lines.push(`Posted: ${postSuccesses}, Post failures: ${postErrors}`);
-    lines.push(`Daily reports: ${dailyReportSuccesses} sent, ${dailyReportSkipped} skipped`);
-  }
-
-  if (errors.length > 0) {
-    lines.push('');
-    lines.push(`**Errors (${errors.length}):**`);
-    for (const e of errors.slice(0, 10)) {
-      lines.push(`- ${e}`);
-    }
-    if (errors.length > 10) {
-      lines.push(`... and ${errors.length - 10} more`);
-    }
-  }
-
-  if (migrationGroups.length > 0) {
-    lines.push('');
-    lines.push(`**Warning:** ${migrationGroups.length} group(s) had all topics fail. The group may have been migrated or deleted.`);
-  }
-
   return {
-    text: lines.join('\n'),
+    text: buildDoctorAllSummary({
+      checkedTopics,
+      skippedTopics,
+      postFailures,
+      dailyReportsSent: dailyReportSuccesses,
+      dailyReportsSkipped: dailyReportSkipped,
+      hasPostFn: !!ctx.postFn,
+      migrationGroups: migrationGroups.length,
+      errors,
+    }),
   };
 }
 

@@ -61,7 +61,7 @@ function formatStatus(name: string, content: string): string {
 
   // Last activity
   if (timestamp) {
-    lines.push(`**Last activity:** ${relativeTime(timestamp)}`);
+    lines.push(`\u{1f552} **Last activity:** ${relativeTime(timestamp)}`); // 🕒
   }
 
   // Last done summary (if there's text beyond the timestamp)
@@ -72,14 +72,14 @@ function formatStatus(name: string, content: string): string {
   lines.push('');
 
   // Next actions
-  lines.push('**Next actions**');
+  lines.push('\ud83c\udfaf **Next actions**'); // 🎯
   lines.push(formatSection(nextRaw));
 
   // Upcoming (only show if non-empty)
   const upcomingFormatted = formatSection(upcomingRaw);
   if (upcomingFormatted !== '_None yet._') {
     lines.push('');
-    lines.push('**Upcoming**');
+    lines.push('\ud83d\udcc5 **Upcoming**'); // 📅
     lines.push(upcomingFormatted);
   }
 

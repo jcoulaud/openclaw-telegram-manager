@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { handleDoctorAll, isEligible, extractStatusTimestamp } from '../../src/commands/doctor-all.js';
+import { handleDoctorAll, isEligible, extractStatusTimestamp, getEligibility, buildDoctorAllSummary } from '../../src/commands/doctor-all.js';
+import type { DoctorAllSummaryData } from '../../src/commands/doctor-all.js';
 import {
   createEmptyRegistry,
   writeRegistryAtomic,
@@ -103,7 +104,8 @@ describe('doctor-all', () => {
       expect(postCalls[0]?.threadId).toBe('1');
       expect(postCalls[1]?.groupId).toBe('-100');
       expect(postCalls[1]?.threadId).toBe('1');
-      expect(result.text).toContain('Posted: 1');
+      expect(result.text).toContain('Test Topic');
+      expect(result.text).toContain('checked');
       expect(result.text).toContain('Daily reports: 1 sent');
     });
 
@@ -131,8 +133,9 @@ describe('doctor-all', () => {
       const result = await handleDoctorAll(makeCtx());
 
       expect(result.text).toContain('Health Check Summary');
-      expect(result.text).toContain('Checked: 1');
-      expect(result.text).not.toContain('Posted:');
+      expect(result.text).toContain('Test Topic');
+      expect(result.text).toContain('checked');
+      expect(result.text).not.toContain('failed to post');
     });
   });
 
@@ -157,7 +160,7 @@ describe('doctor-all', () => {
 
       const result = await handleDoctorAll(makeCtx({ postFn }));
 
-      expect(result.text).toContain('Post failures: 1');
+      expect(result.text).toContain('failed to post');
 
       const reg = readRegistry(workspaceDir);
       // First topic should have the error
@@ -201,7 +204,8 @@ describe('doctor-all', () => {
 
       // Only health check, no daily report
       expect(postFn).toHaveBeenCalledTimes(1);
-      expect(result.text).toContain('Daily reports: 0 sent, 1 skipped');
+      expect(result.text).toContain('1 skipped');
+      expect(result.text).not.toContain('0 sent');
     });
 
     it('should update lastDailyReportAt in registry after successful post', async () => {
@@ -252,8 +256,8 @@ describe('doctor-all', () => {
 
       const result = await handleDoctorAll(makeCtx({ postFn }));
 
-      // Health checks should still succeed
-      expect(result.text).toContain('Posted: 2');
+      // Health checks should still succeed — both topics show as checked
+      expect(result.text).toContain('checked');
       // One daily report should succeed, one failed
       expect(result.text).toContain('Daily reports: 1 sent');
     });
@@ -324,8 +328,9 @@ describe('doctor-all', () => {
       fs.writeFileSync(statusPath, `# Status: Test\n\n## Last done (UTC)\n\n${freshTs}\n\nDid something.\n\n## Next actions (now)\n\n_None._`);
 
       const result = await handleDoctorAll(makeCtx());
-      expect(result.text).toContain('Checked: 1');
-      expect(result.text).toContain('Skipped: 0');
+      expect(result.text).toContain('Test Topic');
+      expect(result.text).toContain('checked');
+      expect(result.text).not.toContain('Skipped');
     });
 
     it('should skip topic with stale lastMessageAt and no fresh STATUS.md', async () => {
@@ -340,8 +345,155 @@ describe('doctor-all', () => {
       fs.writeFileSync(statusPath, `# Status: Test\n\n## Last done (UTC)\n\n${eightDaysAgo}\n\nDid something.\n\n## Next actions (now)\n\n_None._`);
 
       const result = await handleDoctorAll(makeCtx());
-      expect(result.text).toContain('Checked: 0');
-      expect(result.text).toContain('Skipped: 1');
+      expect(result.text).not.toContain('✅');
+      expect(result.text).toContain('Test Topic');
+      expect(result.text).toContain('inactive');
+    });
+  });
+
+  describe('getEligibility', () => {
+    const now = new Date('2025-06-15T12:00:00Z');
+    const eightDaysAgo = new Date('2025-06-07T12:00:00Z').toISOString();
+    const twoDaysAgo = new Date('2025-06-13T12:00:00Z').toISOString();
+
+    it('should return archived skip reason for archived topics', () => {
+      const entry = makeEntry({ status: 'archived', lastMessageAt: twoDaysAgo });
+      const result = getEligibility(entry, now);
+      expect(result.eligible).toBe(false);
+      expect(result.skipReason).toBe('archived');
+    });
+
+    it('should return snoozed skip reason for snoozed topics', () => {
+      const entry = makeEntry({
+        status: 'snoozed',
+        lastMessageAt: twoDaysAgo,
+        snoozeUntil: new Date('2025-07-01T00:00:00Z').toISOString(),
+      });
+      const result = getEligibility(entry, now);
+      expect(result.eligible).toBe(false);
+      expect(result.skipReason).toBe('snoozed');
+    });
+
+    it('should return inactive skip reason for stale topics', () => {
+      const entry = makeEntry({ lastMessageAt: eightDaysAgo });
+      const result = getEligibility(entry, now, null);
+      expect(result.eligible).toBe(false);
+      expect(result.skipReason).toBe('inactive');
+    });
+
+    it('should return recently-checked skip reason for recently reported topics', () => {
+      const entry = makeEntry({
+        lastMessageAt: twoDaysAgo,
+        lastDoctorReportAt: new Date('2025-06-15T10:00:00Z').toISOString(),
+      });
+      const result = getEligibility(entry, now);
+      expect(result.eligible).toBe(false);
+      expect(result.skipReason).toBe('recently-checked');
+    });
+
+    it('should return eligible for active topics', () => {
+      const entry = makeEntry({ lastMessageAt: twoDaysAgo });
+      const result = getEligibility(entry, now);
+      expect(result.eligible).toBe(true);
+      expect(result.skipReason).toBeUndefined();
+    });
+  });
+
+  describe('buildDoctorAllSummary', () => {
+    const baseSummary: DoctorAllSummaryData = {
+      checkedTopics: [],
+      skippedTopics: [],
+      postFailures: 0,
+      dailyReportsSent: 0,
+      dailyReportsSkipped: 0,
+      hasPostFn: false,
+      migrationGroups: 0,
+      errors: [],
+    };
+
+    it('should show empty workspace message when no topics', () => {
+      const result = buildDoctorAllSummary(baseSummary);
+      expect(result).toContain('No topics registered yet.');
+    });
+
+    it('should show all checked with no skipped section', () => {
+      const result = buildDoctorAllSummary({
+        ...baseSummary,
+        checkedTopics: [
+          { name: 'Alpha', slug: 'alpha', status: 'checked' },
+          { name: 'Beta', slug: 'beta', status: 'checked' },
+        ],
+      });
+      expect(result).toContain('✅ Alpha — checked');
+      expect(result).toContain('✅ Beta — checked');
+      expect(result).not.toContain('Skipped');
+    });
+
+    it('should show both checked and skipped sections', () => {
+      const result = buildDoctorAllSummary({
+        ...baseSummary,
+        checkedTopics: [{ name: 'Alpha', slug: 'alpha', status: 'checked' }],
+        skippedTopics: [
+          { name: 'Gamma', reason: 'snoozed' },
+          { name: 'Delta', reason: 'inactive' },
+        ],
+      });
+      expect(result).toContain('✅ Alpha — checked');
+      expect(result).toContain('Skipped');
+      expect(result).toContain('💤 Gamma — snoozed');
+      expect(result).toContain('🔇 Delta — inactive');
+    });
+
+    it('should suppress zero-value daily reports and post failures', () => {
+      const result = buildDoctorAllSummary({
+        ...baseSummary,
+        checkedTopics: [{ name: 'Alpha', slug: 'alpha', status: 'checked' }],
+        hasPostFn: true,
+        postFailures: 0,
+        dailyReportsSent: 0,
+        dailyReportsSkipped: 0,
+      });
+      expect(result).not.toContain('Daily reports');
+      expect(result).not.toContain('failed to post');
+    });
+
+    it('should show per-topic names and skip reasons', () => {
+      const result = buildDoctorAllSummary({
+        ...baseSummary,
+        skippedTopics: [
+          { name: 'Archived Project', reason: 'archived' },
+          { name: 'Snoozed Project', reason: 'snoozed' },
+          { name: 'Quiet Project', reason: 'inactive' },
+          { name: 'Recent Project', reason: 'recently-checked' },
+        ],
+      });
+      expect(result).toContain('📦 Archived Project — archived');
+      expect(result).toContain('💤 Snoozed Project — snoozed');
+      expect(result).toContain('🔇 Quiet Project — inactive');
+      expect(result).toContain('⏰ Recent Project — recently checked');
+    });
+
+    it('should show post-failed topics with warning icon', () => {
+      const result = buildDoctorAllSummary({
+        ...baseSummary,
+        checkedTopics: [{ name: 'Failed Topic', slug: 'failed', status: 'post-failed' }],
+        hasPostFn: true,
+        postFailures: 1,
+      });
+      expect(result).toContain('⚠️ Failed Topic — failed to post');
+      expect(result).toContain('1 topic(s) failed to post');
+    });
+
+    it('should show daily reports line with only non-zero values', () => {
+      const result = buildDoctorAllSummary({
+        ...baseSummary,
+        checkedTopics: [{ name: 'Alpha', slug: 'alpha', status: 'checked' }],
+        hasPostFn: true,
+        dailyReportsSent: 2,
+        dailyReportsSkipped: 0,
+      });
+      expect(result).toContain('Daily reports: 2 sent');
+      expect(result).not.toContain('skipped');
     });
   });
 });

@@ -1,3 +1,18 @@
+# [2.6.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.5.7...v2.6.0) (2026-02-13)
+
+
+### Bug Fixes
+
+* doctor-all inactivity check now considers STATUS.md activity ([1cf0c01](https://github.com/jcoulaud/openclaw-telegram-manager/commit/1cf0c0145eb936fdc65938e1f2fbbbcce13c8f50))
+* remove markdown italic underscores from daily report placeholders ([bbfa12e](https://github.com/jcoulaud/openclaw-telegram-manager/commit/bbfa12e068860ed4f46114ad6ca41cbd0f062c6b))
+
+
+### Features
+
+* add context hierarchy so topic files override workspace memory ([4d84269](https://github.com/jcoulaud/openclaw-telegram-manager/commit/4d842693235f78b970293b83b81b70e4749ab9b2))
+* gitignore operational files in workspace during setup ([65af991](https://github.com/jcoulaud/openclaw-telegram-manager/commit/65af991a36b9dc1df44b86cfee99533cf9ab1a30))
+* redesign doctor-all summary and add icons to status/list output ([fbc4bd5](https://github.com/jcoulaud/openclaw-telegram-manager/commit/fbc4bd509699b0dc0a18c4ca5bb18fed949e8874))
+
 ## [2.5.7](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.5.6...v2.5.7) (2026-02-13)
 
 

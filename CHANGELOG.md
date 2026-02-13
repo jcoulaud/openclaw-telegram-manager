@@ -1,3 +1,10 @@
+# [2.8.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.7.0...v2.8.0) (2026-02-13)
+
+
+### Features
+
+* add structured sections to templates and proactive context persistence ([3e4de82](https://github.com/jcoulaud/openclaw-telegram-manager/commit/3e4de82c7bc9f74358b452c1f86d89587085a1ba))
+
 # [2.7.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.6.3...v2.7.0) (2026-02-13)
 
 

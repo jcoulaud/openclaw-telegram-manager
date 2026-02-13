@@ -1,4 +1,4 @@
-# Persistent Memory for Telegram Topics
+# Persistent Memory for OpenClaw Telegram Topics
 
 `openclaw-telegram-manager` — an [OpenClaw](https://openclaw.ai) plugin that gives each Telegram topic its own persistent memory, so nothing gets lost when the AI resets or context gets compacted.
 

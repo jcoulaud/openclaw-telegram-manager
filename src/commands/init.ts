@@ -202,21 +202,24 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
     }
   }
 
-  // If configWrites enabled: regenerate include + trigger restart
+  // Regenerate include file so doctor checks pass immediately
   let restartMsg = '';
-  const configWritesEnabled = await getConfigWrites(ctx.rpc);
-  if (configWritesEnabled) {
-    try {
-      const updatedRegistry = readRegistry(workspaceDir);
-      generateInclude(workspaceDir, updatedRegistry, configDir);
+  try {
+    const updatedRegistry = readRegistry(workspaceDir);
+    generateInclude(workspaceDir, updatedRegistry, configDir);
+
+    // Only trigger restart if configWrites is enabled
+    const configWritesEnabled = await getConfigWrites(ctx.rpc);
+    if (configWritesEnabled) {
       const result = await triggerRestart(rpc, logger);
       if (!result.success && result.fallbackMessage) {
         restartMsg = '\n' + result.fallbackMessage;
       }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      restartMsg = `\nWarning: config sync failed: ${msg}`;
     }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error(`[init] Config sync failed: ${msg}`);
+    restartMsg = `\nWarning: config sync failed: ${msg}`;
   }
 
   // Audit log

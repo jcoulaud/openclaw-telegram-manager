@@ -57,21 +57,23 @@ async function handleArchiveToggle(ctx: CommandContext, archive: boolean): Promi
     }
   });
 
-  // Regenerate include if configWrites enabled
+  // Regenerate include file so config stays in sync
   let restartMsg = '';
-  const configWritesEnabled = await getConfigWrites(ctx.rpc);
-  if (configWritesEnabled) {
-    try {
-      const updatedRegistry = readRegistry(workspaceDir);
-      generateInclude(workspaceDir, updatedRegistry, configDir);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      restartMsg = `\nWarning: config sync failed: ${msg}`;
+  try {
+    const updatedRegistry = readRegistry(workspaceDir);
+    generateInclude(workspaceDir, updatedRegistry, configDir);
+
+    // Only trigger restart if configWrites is enabled
+    const configWritesEnabled = await getConfigWrites(ctx.rpc);
+    if (configWritesEnabled) {
+      const result = await triggerRestart(rpc, logger);
+      if (!result.success && result.fallbackMessage) {
+        restartMsg = '\n' + result.fallbackMessage;
+      }
     }
-    const result = await triggerRestart(rpc, logger);
-    if (!result.success && result.fallbackMessage) {
-      restartMsg += '\n' + result.fallbackMessage;
-    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    restartMsg = `\nWarning: config sync failed: ${msg}`;
   }
 
   appendAudit(

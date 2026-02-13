@@ -59,10 +59,18 @@ Separation:
 // ── Registry hash ──────────────────────────────────────────────────────
 
 /**
- * Compute a SHA256 hash of the registry topics for drift detection.
+ * Compute a SHA256 hash of registry topic fields that affect the include file.
+ *
+ * Only hashes fields used by `buildIncludeObject` (groupId, threadId, slug,
+ * name, type, status).  Volatile bookkeeping fields such as `lastMessageAt`
+ * or `lastDoctorReportAt` are excluded so that routine activity tracking does
+ * not cause false-positive drift warnings.
  */
 export function computeRegistryHash(topics: Registry['topics']): string {
-  const content = JSON.stringify(topics);
+  const canonical = Object.entries(topics)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, e]) => [key, e.groupId, e.threadId, e.slug, e.name, e.type, e.status]);
+  const content = JSON.stringify(canonical);
   return crypto.createHash('sha256').update(content).digest('hex');
 }
 

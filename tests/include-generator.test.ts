@@ -102,6 +102,43 @@ describe('include-generator', () => {
       const hash = computeRegistryHash({});
       expect(hash).toHaveLength(64);
     });
+
+    it('should ignore volatile fields like lastMessageAt', () => {
+      const base: Registry['topics'] = {
+        '-100:123': {
+          groupId: '-100',
+          threadId: '123',
+          name: 'test',
+          slug: 'test',
+          type: 'coding',
+          status: 'active',
+          capsuleVersion: 1,
+          lastMessageAt: null,
+          lastDoctorReportAt: null,
+          lastDoctorRunAt: null,
+          lastDailyReportAt: null,
+          snoozeUntil: null,
+          consecutiveSilentDoctors: 0,
+          lastPostError: null,
+          extras: {},
+        },
+      };
+
+      const withUpdatedTimestamps: Registry['topics'] = {
+        '-100:123': {
+          ...base['-100:123']!,
+          lastMessageAt: '2026-01-01T00:00:00Z',
+          lastDoctorReportAt: '2026-01-01T00:00:00Z',
+          lastDoctorRunAt: '2026-01-01T00:00:00Z',
+          lastDailyReportAt: '2026-01-01T00:00:00Z',
+          consecutiveSilentDoctors: 5,
+          lastPostError: 'some error',
+          lastCapsuleWriteAt: '2026-01-01T00:00:00Z',
+        },
+      };
+
+      expect(computeRegistryHash(base)).toBe(computeRegistryHash(withUpdatedTimestamps));
+    });
   });
 
   describe('getSystemPromptTemplate', () => {

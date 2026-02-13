@@ -1,3 +1,10 @@
+# [2.5.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.4.0...v2.5.0) (2026-02-13)
+
+
+### Features
+
+* auto-enable autopilot and integrate daily reports into doctor-all ([11b075d](https://github.com/jcoulaud/openclaw-telegram-manager/commit/11b075d1f56a98926b06c3dfd9c7a0d8c6b51640))
+
 # [2.4.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.3.2...v2.4.0) (2026-02-13)
 
 

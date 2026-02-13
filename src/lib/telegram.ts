@@ -155,7 +155,10 @@ export function buildTopicCard(name: string, type: TopicType): string {
     '',
     `Type: ${type}`,
     '',
-    'Just talk to the AI normally — everything is tracked automatically. Type /tm help if you ever need it.',
+    '**How it works**',
+    'Just talk to the AI in this topic like you normally would. Progress, TODOs, and decisions are tracked automatically so nothing is lost between sessions.',
+    '',
+    'Type /tm help if you ever need it.',
   ].join('\n');
 }
 
@@ -176,6 +179,8 @@ export function buildInitWelcomeHtml(): string {
     '\u2022 <b>Research</b> \u2014 tracks sources and key findings',
     '\u2022 <b>Marketing</b> \u2014 tracks campaigns and metrics',
     '\u2022 <b>Custom</b> \u2014 general-purpose tracking',
+    '',
+    '<i>The AI may take a few seconds to respond \u2014 no need to tap twice.</i>',
   ].join('\n');
 }
 
@@ -210,7 +215,10 @@ export function buildTopicCardHtml(name: string, type: TopicType): string {
     '',
     `Type: ${t}`,
     '',
-    'Just talk to the AI normally \u2014 everything is tracked automatically. Type /tm help if you ever need it.',
+    '<b>How it works</b>',
+    'Just talk to the AI in this topic like you normally would. Progress, TODOs, and decisions are tracked automatically so nothing is lost between sessions.',
+    '',
+    'Type /tm help if you ever need it.',
   ].join('\n');
 }
 

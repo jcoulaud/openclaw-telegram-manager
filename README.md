@@ -1,6 +1,4 @@
-# openclaw-telegram-manager [WIP]
-
-> **This project is a work in progress and is not yet functional.** I'm actively working on it — expect breaking changes, incomplete features, and rough edges. Feel free to watch the repo, but don't use it in production yet.
+# openclaw-telegram-manager
 
 [![CI](https://github.com/jcoulaud/openclaw-telegram-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/jcoulaud/openclaw-telegram-manager/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/openclaw-telegram-manager)](https://www.npmjs.com/package/openclaw-telegram-manager)

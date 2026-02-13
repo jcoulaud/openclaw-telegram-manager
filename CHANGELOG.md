@@ -1,3 +1,10 @@
+## [2.3.2](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.3.1...v2.3.2) (2026-02-13)
+
+
+### Bug Fixes
+
+* wire postFn via api.runtime instead of broken SDK import ([90cdda4](https://github.com/jcoulaud/openclaw-telegram-manager/commit/90cdda47e8580641176824fe7750c978d3d59574))
+
 ## [2.3.1](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.3.0...v2.3.1) (2026-02-12)
 
 

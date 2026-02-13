@@ -135,6 +135,52 @@ describe('commands/init', () => {
     });
   });
 
+  describe('first-user autopilot bootstrap', () => {
+    it('should set autopilotEnabled to true on first-user init', async () => {
+      await handleInit(ctx, 'first-topic');
+
+      const registry = readRegistry(workspaceDir);
+      expect(registry.autopilotEnabled).toBe(true);
+    });
+
+    it('should write HEARTBEAT.md with markers on first-user init', async () => {
+      await handleInit(ctx, 'first-topic');
+
+      const heartbeatPath = path.join(workspaceDir, 'HEARTBEAT.md');
+      expect(fs.existsSync(heartbeatPath)).toBe(true);
+
+      const content = fs.readFileSync(heartbeatPath, 'utf-8');
+      expect(content).toContain('<!-- TM_AUTOPILOT_START -->');
+      expect(content).toContain('<!-- TM_AUTOPILOT_END -->');
+      expect(content).toContain('doctor --all');
+    });
+
+    it('should NOT write HEARTBEAT.md for non-first-user init', async () => {
+      // Set up an existing admin so this is not the first user
+      const registry = readRegistry(workspaceDir);
+      registry.topicManagerAdmins = ['admin1'];
+      writeRegistryAtomic(registryPath(workspaceDir), registry);
+
+      ctx.userId = 'admin1';
+      await handleInit(ctx, 'second-topic');
+
+      const heartbeatPath = path.join(workspaceDir, 'HEARTBEAT.md');
+      expect(fs.existsSync(heartbeatPath)).toBe(false);
+    });
+
+    it('should be idempotent — does not duplicate markers if HEARTBEAT.md already exists', async () => {
+      // Pre-create HEARTBEAT.md with markers
+      const heartbeatPath = path.join(workspaceDir, 'HEARTBEAT.md');
+      fs.writeFileSync(heartbeatPath, '<!-- TM_AUTOPILOT_START -->\nExisting content\n<!-- TM_AUTOPILOT_END -->\n');
+
+      await handleInit(ctx, 'first-topic');
+
+      const content = fs.readFileSync(heartbeatPath, 'utf-8');
+      const startCount = (content.match(/TM_AUTOPILOT_START/g) ?? []).length;
+      expect(startCount).toBe(1);
+    });
+  });
+
   describe('validation', () => {
     it('should reject missing context', async () => {
       ctx.groupId = undefined;

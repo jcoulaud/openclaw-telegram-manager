@@ -26,10 +26,10 @@ If you detect any of these conditions, invoke `topic_manager` proactively:
 
 ## Autopilot context
 
-When autopilot is enabled (`/tm autopilot enable`), a daily health sweep
-runs via the OpenClaw heartbeat. The heartbeat triggers `doctor --all`,
-which checks all active topics and posts individual reports. No manual
-intervention is needed once enabled.
+Autopilot is enabled by default on setup and first-user init. The OpenClaw
+heartbeat triggers `doctor --all` roughly once per hour, which health-checks
+all active topics and posts a daily progress report (one per UTC day).
+No manual intervention is needed. Users can disable with `/tm autopilot disable`.
 
 ## Callback routing
 

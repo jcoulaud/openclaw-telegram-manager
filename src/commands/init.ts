@@ -27,6 +27,7 @@ import {
 import { generateInclude } from '../lib/include-generator.js';
 import { triggerRestart, getConfigWrites } from '../lib/config-restart.js';
 import { appendAudit, buildAuditEntry } from '../lib/audit.js';
+import { MARKER_START, HEARTBEAT_BLOCK, HEARTBEAT_FILENAME } from './autopilot.js';
 import type { CommandContext, CommandResult } from './help.js';
 
 const VALID_TYPES: ReadonlySet<string> = new Set<TopicType>(['coding', 'research', 'marketing', 'custom']);
@@ -164,14 +165,41 @@ export async function handleInit(ctx: CommandContext, args: string): Promise<Com
 
       data.topics[key] = newEntry;
 
-      // First-user bootstrap: add as admin
+      // First-user bootstrap: add as admin + enable autopilot
       if (isFirstUser) {
         data.topicManagerAdmins.push(userId);
+        data.autopilotEnabled = true;
       }
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { text: `Failed to initialize topic: ${msg}` };
+  }
+
+  // First-user bootstrap: write HEARTBEAT.md (idempotent, non-critical)
+  if (isFirstUser) {
+    try {
+      const heartbeatPath = path.join(workspaceDir, HEARTBEAT_FILENAME);
+      let hbContent = '';
+      try {
+        if (fs.existsSync(heartbeatPath)) {
+          hbContent = fs.readFileSync(heartbeatPath, 'utf-8');
+        }
+      } catch {
+        // File doesn't exist — fine
+      }
+
+      if (!hbContent.includes(MARKER_START)) {
+        const newContent = hbContent
+          ? hbContent.trimEnd() + '\n\n' + HEARTBEAT_BLOCK + '\n'
+          : HEARTBEAT_BLOCK + '\n';
+        const tmpPath = heartbeatPath + '.tmp';
+        fs.writeFileSync(tmpPath, newContent, { mode: 0o640 });
+        fs.renameSync(tmpPath, heartbeatPath);
+      }
+    } catch {
+      // Non-critical — autopilot can be enabled manually
+    }
   }
 
   // If configWrites enabled: regenerate include + trigger restart

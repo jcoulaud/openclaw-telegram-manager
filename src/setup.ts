@@ -23,6 +23,21 @@ const SETUP_REGISTRY_VERSION = 4;
 const MEMORY_FLUSH_INSTRUCTION =
   'If you are working on a Telegram topic folder (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted.';
 
+// Keep in sync with HEARTBEAT_BLOCK in src/commands/autopilot.ts
+const SETUP_MARKER_START = '<!-- TM_AUTOPILOT_START -->';
+const SETUP_MARKER_END = '<!-- TM_AUTOPILOT_END -->';
+const SETUP_HEARTBEAT_BLOCK = `${SETUP_MARKER_START}
+## Topic Manager — Balanced Autopilot
+
+Execute these steps IN ORDER. Do not skip steps.
+
+1. CALL \`topic_manager\` with command "doctor --all" to health-check all active topics.
+   This runs health checks AND posts daily progress reports for each eligible topic automatically.
+2. For each topic where STATUS.md "Last done (UTC)" is >3 days old:
+   post a brief nudge in that topic asking the user for a status update.
+3. If no actions were taken in steps 1-2, do nothing (HEARTBEAT_OK).
+${SETUP_MARKER_END}`;
+
 // ── Colors (zero dependencies, respects NO_COLOR / non-TTY) ──────────
 
 const useColor =
@@ -158,6 +173,10 @@ async function runSetup(): Promise<void> {
   createEmptyInclude(configDir, existingGroups);
   ok('Workspace ready');
 
+  startSpinner('Enabling autopilot…');
+  writeHeartbeat(configDir);
+  ok('Autopilot enabled');
+
   startSpinner('Restarting gateway…');
   if (triggerRestart()) ok('Gateway restarted');
 
@@ -167,6 +186,9 @@ async function runSetup(): Promise<void> {
   console.log(`  ${c.dim}1.${c.reset} Open any Telegram forum topic`);
   console.log(`  ${c.dim}2.${c.reset} Type ${c.cyan}/tm init${c.reset}`);
   console.log(`  ${c.dim}3.${c.reset} The topic will be set up with persistent memory`);
+  console.log('');
+  console.log(`  ${c.dim}Autopilot is active — health checks and daily reports run automatically.${c.reset}`);
+  console.log(`  ${c.dim}To disable: ${c.reset}${c.cyan}/tm autopilot disable${c.reset}`);
   console.log('');
 }
 
@@ -403,7 +425,7 @@ function initRegistry(projectsDir: string): void {
     topicManagerAdmins: [],
     callbackSecret,
     lastDoctorAllRunAt: null,
-    autopilotEnabled: false,
+    autopilotEnabled: true,
     maxTopics: 100,
     topics: {},
   };
@@ -431,6 +453,35 @@ function createEmptyInclude(configDir: string, seedGroups?: Record<string, unkno
   ].join('\n');
 
   fs.writeFileSync(includePath, content, { mode: 0o600 });
+}
+
+function writeHeartbeat(configDir: string): void {
+  const heartbeatPath = path.join(configDir, 'workspace', 'HEARTBEAT.md');
+
+  // Read existing content if any
+  let content = '';
+  try {
+    if (fs.existsSync(heartbeatPath)) {
+      content = fs.readFileSync(heartbeatPath, 'utf-8');
+    }
+  } catch {
+    // File doesn't exist yet — that's fine
+  }
+
+  // Idempotent: don't duplicate if marker already present
+  if (content.includes(SETUP_MARKER_START)) {
+    return;
+  }
+
+  const newContent = content
+    ? content.trimEnd() + '\n\n' + SETUP_HEARTBEAT_BLOCK + '\n'
+    : SETUP_HEARTBEAT_BLOCK + '\n';
+
+  // Atomic write: .tmp → rename
+  const tmpPath = heartbeatPath + '.tmp';
+  fs.mkdirSync(path.dirname(heartbeatPath), { recursive: true });
+  fs.writeFileSync(tmpPath, newContent, { mode: 0o640 });
+  fs.renameSync(tmpPath, heartbeatPath);
 }
 
 // ── Uninstall step implementations ────────────────────────────────────

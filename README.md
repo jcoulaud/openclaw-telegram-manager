@@ -40,8 +40,8 @@ OpenClaw's automatic scanner may flag `child_process` and `process.env` usage. T
 2. **Everything else is automatic**
    The AI reads and updates the topic's files on its own — tracking progress, TODOs, decisions, and learnings. When context gets compacted or the AI resets, it re-reads these files and continues where it left off.
 
-3. **Health checks run in the background**
-   Enable autopilot (`/tm autopilot enable`) and the plugin checks all your topics daily, posting a report only when something needs attention.
+3. **Health checks and daily reports run in the background**
+   Autopilot is enabled by default — the plugin checks all your topics daily and posts a progress report, only when something needs attention.
 
 You can also skip the interactive flow: `/tm init my-project coding`
 
@@ -90,12 +90,13 @@ You don't need any of these — everything runs automatically. They're there if 
 | `/tm upgrade` | Update topic files to the latest version |
 | `/tm sync` | Fix config if something is out of sync |
 
-**Autopilot**
+**Autopilot** (enabled by default)
 
 | Command | What it does |
 |---------|-------------|
-| `/tm autopilot enable` | Turn on automatic daily health checks |
-| `/tm autopilot disable` | Turn off automatic health checks |
+| `/tm autopilot status` | Check if autopilot is on and when it last ran |
+| `/tm autopilot disable` | Turn off automatic health checks and daily reports |
+| `/tm autopilot enable` | Re-enable if you previously disabled it |
 
 ## Permissions
 

@@ -94,7 +94,7 @@ export async function handleDailyReport(ctx: CommandContext): Promise<CommandRes
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
-function readFileOrNull(filePath: string): string | null {
+export function readFileOrNull(filePath: string): string | null {
   try {
     return fs.readFileSync(filePath, 'utf-8');
   } catch {
@@ -102,7 +102,7 @@ function readFileOrNull(filePath: string): string | null {
   }
 }
 
-function extractDoneSection(statusContent: string | null): string {
+export function extractDoneSection(statusContent: string | null): string {
   if (!statusContent) return '_No STATUS.md found._';
   const match = statusContent.match(/^##\s*Last done\s*\(UTC\)\s*\n([\s\S]*?)(?=\n##\s|\n*$)/im);
   if (!match) return '_No "Last done" section found._';
@@ -110,7 +110,7 @@ function extractDoneSection(statusContent: string | null): string {
   return text || '_Empty._';
 }
 
-function extractTodayLearnings(learningsContent: string | null): string {
+export function extractTodayLearnings(learningsContent: string | null): string {
   if (!learningsContent) return '_No LEARNINGS.md found._';
   const today = new Date().toISOString().slice(0, 10);
   const lines = learningsContent.split('\n');
@@ -133,7 +133,7 @@ function extractTodayLearnings(learningsContent: string | null): string {
   return todayLines.length > 0 ? todayLines.join('\n') : '_None today._';
 }
 
-function extractBlockers(todoContent: string | null): string {
+export function extractBlockers(todoContent: string | null): string {
   if (!todoContent) return '_No TODO.md found._';
   const lines = todoContent.split('\n');
   const blockerLines = lines.filter(
@@ -142,7 +142,7 @@ function extractBlockers(todoContent: string | null): string {
   return blockerLines.length > 0 ? blockerLines.join('\n') : '_None._';
 }
 
-function extractNextActions(statusContent: string | null): string {
+export function extractNextActions(statusContent: string | null): string {
   if (!statusContent) return '_No STATUS.md found._';
   const match = statusContent.match(/^##\s*Next (?:3 )?actions(?: \(now\))?\s*\n([\s\S]*?)(?=\n##\s|\n*$)/im);
   if (!match) return '_No "Next actions" section found._';
@@ -150,7 +150,7 @@ function extractNextActions(statusContent: string | null): string {
   return text || '_Empty._';
 }
 
-function extractUpcoming(statusContent: string | null): string {
+export function extractUpcoming(statusContent: string | null): string {
   if (!statusContent) return '_No STATUS.md found._';
   const match = statusContent.match(/^##\s*Upcoming actions\s*\n([\s\S]*?)(?=\n##\s|\n*$)/im);
   if (!match) return '_No "Upcoming actions" section found._';

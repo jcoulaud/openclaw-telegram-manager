@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { handleAutopilot } from '../../src/commands/autopilot.js';
+import { handleAutopilot, MARKER_START, MARKER_END, HEARTBEAT_BLOCK, HEARTBEAT_FILENAME } from '../../src/commands/autopilot.js';
 import { createEmptyRegistry, writeRegistryAtomic, registryPath, readRegistry } from '../../src/lib/registry.js';
 import type { CommandContext } from '../../src/lib/types.js';
 
@@ -153,6 +153,23 @@ describe('autopilot', () => {
     it('should return error for unknown sub-command', async () => {
       const result = await handleAutopilot(makeCtx(), 'foobar');
       expect(result.text).toContain('Unknown autopilot sub-command');
+    });
+  });
+
+  describe('exported constants', () => {
+    it('should export MARKER_START and MARKER_END', () => {
+      expect(MARKER_START).toBe('<!-- TM_AUTOPILOT_START -->');
+      expect(MARKER_END).toBe('<!-- TM_AUTOPILOT_END -->');
+    });
+
+    it('should export HEARTBEAT_FILENAME', () => {
+      expect(HEARTBEAT_FILENAME).toBe('HEARTBEAT.md');
+    });
+
+    it('should export HEARTBEAT_BLOCK containing markers and daily report mention', () => {
+      expect(HEARTBEAT_BLOCK).toContain(MARKER_START);
+      expect(HEARTBEAT_BLOCK).toContain(MARKER_END);
+      expect(HEARTBEAT_BLOCK).toContain('daily');
     });
   });
 });

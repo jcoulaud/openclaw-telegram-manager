@@ -1,3 +1,10 @@
+# [2.7.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.6.3...v2.7.0) (2026-02-13)
+
+
+### Features
+
+* add reliability plan — post-failure tracking, cron daily reports, status output ([37245b4](https://github.com/jcoulaud/openclaw-telegram-manager/commit/37245b4dc3535d496bb122cb6e5a750a70b7ea74))
+
 ## [2.6.3](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.6.2...v2.6.3) (2026-02-13)
 
 

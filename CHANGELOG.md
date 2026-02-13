@@ -1,3 +1,10 @@
+# [2.4.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.3.2...v2.4.0) (2026-02-13)
+
+
+### Features
+
+* comprehensive UX polish for all user-facing messages ([1302f75](https://github.com/jcoulaud/openclaw-telegram-manager/commit/1302f7577f42e3a59dab89c7dba8594089254fe5))
+
 ## [2.3.2](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.3.1...v2.3.2) (2026-02-13)
 
 

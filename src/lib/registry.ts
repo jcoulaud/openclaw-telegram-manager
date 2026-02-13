@@ -59,6 +59,17 @@ const migrations: Record<string, MigrationFn> = {
     }
     return data;
   },
+  '4_to_5': (data) => {
+    const topics = data['topics'];
+    if (topics && typeof topics === 'object' && !Array.isArray(topics)) {
+      for (const entry of Object.values(topics as Record<string, Record<string, unknown>>)) {
+        if (entry['type'] === 'custom') {
+          entry['type'] = 'general';
+        }
+      }
+    }
+    return data;
+  },
 };
 
 function migrateRegistry(data: Record<string, unknown>): Record<string, unknown> {

@@ -26,7 +26,7 @@ const FLUSH_TAG = '[tm]';
 // and drop the tag, so we also match on keywords that only appear in our instruction.
 const FLUSH_FINGERPRINTS = [FLUSH_TAG, 'STATUS.md'];
 // Keep in sync with CURRENT_REGISTRY_VERSION in src/lib/types.ts
-const SETUP_REGISTRY_VERSION = 4;
+const SETUP_REGISTRY_VERSION = 5;
 const MEMORY_FLUSH_INSTRUCTION =
   `If you are working on a Telegram topic folder (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted. ${FLUSH_TAG}`;
 

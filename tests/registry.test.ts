@@ -216,6 +216,63 @@ describe('registry', () => {
       expect(result.topics['-100:1']?.lastDailyReportAt).toBeNull();
     });
 
+    it('should migrate v4 registry to v5 by renaming type custom to general', () => {
+      const regPath = registryPath(workspaceDir);
+      const v4Registry = {
+        version: 4,
+        topicManagerAdmins: [],
+        callbackSecret: 'secret',
+        lastDoctorAllRunAt: null,
+        autopilotEnabled: false,
+        maxTopics: 100,
+        topics: {
+          '-100:1': {
+            groupId: '-100',
+            threadId: '1',
+            slug: 'alpha',
+            name: 'alpha',
+            type: 'custom',
+            status: 'active',
+            capsuleVersion: 2,
+            lastMessageAt: null,
+            lastDoctorReportAt: null,
+            lastDoctorRunAt: null,
+            lastCapsuleWriteAt: null,
+            lastDailyReportAt: null,
+            snoozeUntil: null,
+            consecutiveSilentDoctors: 0,
+            lastPostError: null,
+            extras: {},
+          },
+          '-100:2': {
+            groupId: '-100',
+            threadId: '2',
+            slug: 'beta',
+            name: 'beta',
+            type: 'coding',
+            status: 'active',
+            capsuleVersion: 2,
+            lastMessageAt: null,
+            lastDoctorReportAt: null,
+            lastDoctorRunAt: null,
+            lastCapsuleWriteAt: null,
+            lastDailyReportAt: null,
+            snoozeUntil: null,
+            consecutiveSilentDoctors: 0,
+            lastPostError: null,
+            extras: {},
+          },
+        },
+      };
+      fs.writeFileSync(regPath, JSON.stringify(v4Registry), { mode: 0o600 });
+
+      const result = readRegistry(workspaceDir);
+
+      expect(result.version).toBe(CURRENT_REGISTRY_VERSION);
+      expect(result.topics['-100:1']?.type).toBe('general');
+      expect(result.topics['-100:2']?.type).toBe('coding');
+    });
+
     it('should migrate v1 registry entries by setting name = slug', () => {
       const regPath = registryPath(workspaceDir);
       // Write a v1-shaped registry (entries have no `name` field)

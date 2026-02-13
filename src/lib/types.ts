@@ -2,7 +2,7 @@ import { Type, type Static } from '@sinclair/typebox';
 
 // ── Constants ──────────────────────────────────────────────────────────
 
-export const CURRENT_REGISTRY_VERSION = 4;
+export const CURRENT_REGISTRY_VERSION = 5;
 export const CAPSULE_VERSION = 3;
 export const MAX_EXTRAS_BYTES = 10_240;
 export const MAX_POST_ERROR_LENGTH = 500;

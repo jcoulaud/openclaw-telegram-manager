@@ -18,11 +18,15 @@ const INCLUDE_FILENAME = 'telegram-manager.generated.groups.json5';
 const REGISTRY_FILENAME = 'topics.json';
 const PLUGIN_FILES = ['openclaw.plugin.json', 'dist/plugin.js', 'skills', 'package.json'];
 const REQUIRED_PLUGIN_FILES = ['openclaw.plugin.json', 'dist/plugin.js'];
-const MEMORY_FLUSH_MARKER = 'topic folder';
+// Stable tag embedded in the instruction — never changes, even if wording does.
+// Used to identify and replace our line idempotently.
+const FLUSH_TAG = '[tm]';
 // Keep in sync with CURRENT_REGISTRY_VERSION in src/lib/types.ts
 const SETUP_REGISTRY_VERSION = 4;
 const MEMORY_FLUSH_INSTRUCTION =
-  'If you are working on a Telegram topic folder (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted.';
+  `If you are working on a Telegram topic folder (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted. ${FLUSH_TAG}`;
+// Legacy marker from pre-2.6 versions (used "capsule" instead of "folder", no tag)
+const LEGACY_FLUSH_MARKER = 'topic capsule';
 
 // Keep in sync with HEARTBEAT_BLOCK in src/commands/autopilot.ts
 const SETUP_MARKER_START = '<!-- TM_AUTOPILOT_START -->';
@@ -635,16 +639,23 @@ function patchMemoryFlush(configDir: string): void {
   if (!compaction['memoryFlush']) compaction['memoryFlush'] = {};
   const memoryFlush = compaction['memoryFlush'] as Record<string, unknown>;
 
-  const existing = typeof memoryFlush['prompt'] === 'string' ? memoryFlush['prompt'] : '';
+  const raw = typeof memoryFlush['prompt'] === 'string' ? memoryFlush['prompt'] : '';
 
-  // Idempotent: skip if already contains our marker
-  if (existing.includes(MEMORY_FLUSH_MARKER)) {
+  // Already has the exact current instruction — nothing to do
+  if (raw.includes(MEMORY_FLUSH_INSTRUCTION)) {
     ok('Memory flush prompt already patched');
     return;
   }
 
-  memoryFlush['prompt'] = existing
-    ? existing + '\n' + MEMORY_FLUSH_INSTRUCTION
+  // Strip any previous version of our instruction (by tag or legacy marker)
+  const cleaned = raw
+    .split('\n')
+    .filter(line => !line.includes(FLUSH_TAG) && !line.includes(LEGACY_FLUSH_MARKER))
+    .join('\n')
+    .trim();
+
+  memoryFlush['prompt'] = cleaned
+    ? cleaned + '\n' + MEMORY_FLUSH_INSTRUCTION
     : MEMORY_FLUSH_INSTRUCTION;
 
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
@@ -663,7 +674,7 @@ function unpatchMemoryFlush(configDir: string): void {
     return;
   }
 
-  if (!content.includes(MEMORY_FLUSH_MARKER)) return;
+  if (!content.includes(FLUSH_TAG) && !content.includes(LEGACY_FLUSH_MARKER)) return;
 
   let config: Record<string, unknown>;
   try {
@@ -681,8 +692,9 @@ function unpatchMemoryFlush(configDir: string): void {
 
   const prompt = memoryFlush['prompt'] as string;
   const cleaned = prompt
-    .replace(MEMORY_FLUSH_INSTRUCTION, '')
-    .replace(/\n{2,}/g, '\n')
+    .split('\n')
+    .filter(line => !line.includes(FLUSH_TAG) && !line.includes(LEGACY_FLUSH_MARKER))
+    .join('\n')
     .trim();
 
   if (cleaned) {

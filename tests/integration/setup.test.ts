@@ -629,8 +629,11 @@ describe('setup integration', () => {
   });
 
   describe('patchMemoryFlush', () => {
-    const MEMORY_FLUSH_MARKER = 'topic capsule';
+    const FLUSH_TAG = '[tm]';
+    const LEGACY_FLUSH_MARKER = 'topic capsule';
     const MEMORY_FLUSH_INSTRUCTION =
+      `If you are working on a Telegram topic folder (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted. ${FLUSH_TAG}`;
+    const LEGACY_INSTRUCTION =
       'If you are working on a Telegram topic capsule (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted.';
 
     function patchMemoryFlush(cfgDir: string): void {
@@ -645,12 +648,18 @@ describe('setup integration', () => {
       if (!config.agents.defaults.compaction.memoryFlush) config.agents.defaults.compaction.memoryFlush = {};
 
       const memoryFlush = config.agents.defaults.compaction.memoryFlush;
-      const existing = typeof memoryFlush.prompt === 'string' ? memoryFlush.prompt : '';
+      const raw = typeof memoryFlush.prompt === 'string' ? memoryFlush.prompt : '';
 
-      if (existing.includes(MEMORY_FLUSH_MARKER)) return;
+      if (raw.includes(MEMORY_FLUSH_INSTRUCTION)) return;
 
-      memoryFlush.prompt = existing
-        ? existing + '\n' + MEMORY_FLUSH_INSTRUCTION
+      const cleaned = raw
+        .split('\n')
+        .filter((line: string) => !line.includes(FLUSH_TAG) && !line.includes(LEGACY_FLUSH_MARKER))
+        .join('\n')
+        .trim();
+
+      memoryFlush.prompt = cleaned
+        ? cleaned + '\n' + MEMORY_FLUSH_INSTRUCTION
         : MEMORY_FLUSH_INSTRUCTION;
 
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
@@ -680,7 +689,7 @@ describe('setup integration', () => {
       const updated = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       const prompt = updated.agents.defaults.compaction.memoryFlush.prompt;
       expect(prompt).toContain('Save important context');
-      expect(prompt).toContain(MEMORY_FLUSH_MARKER);
+      expect(prompt).toContain(FLUSH_TAG);
     });
 
     it('should be idempotent (does not duplicate)', () => {
@@ -689,14 +698,80 @@ describe('setup integration', () => {
 
       const config = JSON.parse(fs.readFileSync(path.join(configDir, 'openclaw.json'), 'utf-8'));
       const prompt = config.agents.defaults.compaction.memoryFlush.prompt as string;
-      const occurrences = prompt.split(MEMORY_FLUSH_MARKER).length - 1;
+      const occurrences = prompt.split(FLUSH_TAG).length - 1;
       expect(occurrences).toBe(1);
+    });
+
+    it('should replace legacy "capsule" instruction with current version', () => {
+      const configPath = path.join(configDir, 'openclaw.json');
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      config.agents = {
+        defaults: {
+          compaction: {
+            memoryFlush: { prompt: LEGACY_INSTRUCTION },
+          },
+        },
+      };
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+
+      patchMemoryFlush(configDir);
+
+      const updated = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      const prompt = updated.agents.defaults.compaction.memoryFlush.prompt as string;
+      expect(prompt).toBe(MEMORY_FLUSH_INSTRUCTION);
+      expect(prompt).not.toContain('capsule');
+    });
+
+    it('should replace legacy instruction while preserving custom prompt', () => {
+      const configPath = path.join(configDir, 'openclaw.json');
+      const customPrompt = 'Save important context before compaction.';
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      config.agents = {
+        defaults: {
+          compaction: {
+            memoryFlush: { prompt: customPrompt + '\n' + LEGACY_INSTRUCTION },
+          },
+        },
+      };
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+
+      patchMemoryFlush(configDir);
+
+      const updated = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      const prompt = updated.agents.defaults.compaction.memoryFlush.prompt as string;
+      expect(prompt).toContain(customPrompt);
+      expect(prompt).toContain(FLUSH_TAG);
+      expect(prompt).not.toContain('capsule');
+    });
+
+    it('should update instruction when wording changes but tag stays', () => {
+      const configPath = path.join(configDir, 'openclaw.json');
+      const oldTaggedInstruction = `Old wording for the instruction. ${FLUSH_TAG}`;
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      config.agents = {
+        defaults: {
+          compaction: {
+            memoryFlush: { prompt: oldTaggedInstruction },
+          },
+        },
+      };
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+
+      patchMemoryFlush(configDir);
+
+      const updated = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      const prompt = updated.agents.defaults.compaction.memoryFlush.prompt as string;
+      expect(prompt).toBe(MEMORY_FLUSH_INSTRUCTION);
+      expect(prompt).not.toContain('Old wording');
     });
   });
 
   describe('unpatchMemoryFlush', () => {
-    const MEMORY_FLUSH_MARKER = 'topic capsule';
+    const FLUSH_TAG = '[tm]';
+    const LEGACY_FLUSH_MARKER = 'topic capsule';
     const MEMORY_FLUSH_INSTRUCTION =
+      `If you are working on a Telegram topic folder (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted. ${FLUSH_TAG}`;
+    const LEGACY_INSTRUCTION =
       'If you are working on a Telegram topic capsule (projects/<slug>/), update its STATUS.md with current "Last done (UTC)" and "Next actions (now)" before this context is compacted.';
 
     function unpatchMemoryFlush(cfgDir: string): void {
@@ -705,7 +780,7 @@ describe('setup integration', () => {
 
       let content: string;
       try { content = fs.readFileSync(configPath, 'utf-8'); } catch { return; }
-      if (!content.includes(MEMORY_FLUSH_MARKER)) return;
+      if (!content.includes(FLUSH_TAG) && !content.includes(LEGACY_FLUSH_MARKER)) return;
 
       let config: Record<string, unknown>;
       try { config = JSON.parse(content); } catch { return; }
@@ -717,7 +792,11 @@ describe('setup integration', () => {
       if (!memoryFlush || typeof memoryFlush['prompt'] !== 'string') return;
 
       const prompt = memoryFlush['prompt'] as string;
-      const cleaned = prompt.replace(MEMORY_FLUSH_INSTRUCTION, '').replace(/\n{2,}/g, '\n').trim();
+      const cleaned = prompt
+        .split('\n')
+        .filter(line => !line.includes(FLUSH_TAG) && !line.includes(LEGACY_FLUSH_MARKER))
+        .join('\n')
+        .trim();
 
       if (cleaned) {
         memoryFlush['prompt'] = cleaned;
@@ -776,7 +855,7 @@ describe('setup integration', () => {
       expect(restored.agents.defaults.compaction.memoryFlush.prompt).toBe(customPrompt);
     });
 
-    it('should be a no-op when marker is not present', () => {
+    it('should be a no-op when neither tag nor legacy marker is present', () => {
       const configPath = path.join(configDir, 'openclaw.json');
       const config = {
         version: '2026.1.0',
@@ -795,6 +874,51 @@ describe('setup integration', () => {
 
       const restored = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       expect(restored.agents.defaults.compaction.memoryFlush.prompt).toBe('Some other prompt.');
+    });
+
+    it('should remove legacy "capsule" instruction and clean up', () => {
+      const configPath = path.join(configDir, 'openclaw.json');
+      const config = {
+        version: '2026.1.0',
+        channels: {},
+        agents: {
+          defaults: {
+            compaction: {
+              memoryFlush: { prompt: LEGACY_INSTRUCTION },
+            },
+          },
+        },
+      };
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+
+      unpatchMemoryFlush(configDir);
+
+      const restored = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(restored.agents).toBeUndefined();
+    });
+
+    it('should remove both legacy and current instructions when present', () => {
+      const configPath = path.join(configDir, 'openclaw.json');
+      const customPrompt = 'Save important context.';
+      const config = {
+        version: '2026.1.0',
+        channels: {},
+        agents: {
+          defaults: {
+            compaction: {
+              memoryFlush: {
+                prompt: customPrompt + '\n' + LEGACY_INSTRUCTION + '\n' + MEMORY_FLUSH_INSTRUCTION,
+              },
+            },
+          },
+        },
+      };
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+
+      unpatchMemoryFlush(configDir);
+
+      const restored = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(restored.agents.defaults.compaction.memoryFlush.prompt).toBe(customPrompt);
     });
   });
 

@@ -313,6 +313,81 @@ describe('doctor-all', () => {
     });
   });
 
+  describe('auto-upgrade during doctor-all', () => {
+    it('should upgrade capsule and persist version for outdated topics', async () => {
+      const entry = makeEntry({ capsuleVersion: 3 });
+      const key = `${entry.groupId}:${entry.threadId}`;
+      setupRegistry({ [key]: entry });
+
+      const projectsBase = path.join(workspaceDir, 'projects');
+      const capsuleDir = path.join(projectsBase, entry.slug);
+      fs.mkdirSync(capsuleDir, { recursive: true });
+
+      // Simulate a v3 capsule (no Backlog/Completed in STATUS.md)
+      fs.writeFileSync(path.join(capsuleDir, 'STATUS.md'), [
+        '# Status: Test Topic',
+        '',
+        '## Last done (UTC)',
+        '',
+        `${new Date().toISOString()} Did something.`,
+        '',
+        '## Next actions (now)',
+        '',
+        '_None yet._',
+        '',
+        '## Upcoming actions',
+        '',
+        '_None yet._',
+      ].join('\n'));
+      fs.writeFileSync(path.join(capsuleDir, 'README.md'), '# Test');
+      fs.writeFileSync(path.join(capsuleDir, 'LEARNINGS.md'), '# Learnings');
+
+      await handleDoctorAll(makeCtx());
+
+      // Verify capsule files were upgraded (Backlog + Completed appended)
+      const statusContent = fs.readFileSync(path.join(capsuleDir, 'STATUS.md'), 'utf-8');
+      expect(statusContent).toContain('## Backlog');
+      expect(statusContent).toContain('## Completed');
+
+      // Verify capsuleVersion persisted in registry
+      const reg = readRegistry(workspaceDir);
+      expect(reg.topics[key]?.capsuleVersion).toBe(CAPSULE_VERSION);
+    });
+
+    it('should not upgrade topics already at current version', async () => {
+      const logSpy = vi.fn();
+      const entry = makeEntry({ capsuleVersion: CAPSULE_VERSION });
+      const key = `${entry.groupId}:${entry.threadId}`;
+      setupRegistry({ [key]: entry });
+      scaffoldCapsule(path.join(workspaceDir, 'projects'), entry.slug, entry.name, entry.type);
+
+      await handleDoctorAll(makeCtx({
+        logger: { info: logSpy, warn() {}, error() {} },
+      }));
+
+      expect(logSpy.mock.calls.some(([msg]: string[]) =>
+        msg.includes('[auto-upgrade]'),
+      )).toBe(false);
+    });
+
+    it('should continue health checks even if upgrade fails', async () => {
+      const entry = makeEntry({ capsuleVersion: 1 });
+      const key = `${entry.groupId}:${entry.threadId}`;
+      setupRegistry({ [key]: entry });
+
+      // Capsule dir doesn't exist — upgrade will fail, but health checks should still run
+      const projectsBase = path.join(workspaceDir, 'projects');
+      fs.mkdirSync(path.join(projectsBase, entry.slug), { recursive: true });
+      // Minimal files so health checks can run (but upgrade will fail on missing files)
+      fs.writeFileSync(path.join(projectsBase, entry.slug, 'STATUS.md'), '# Status');
+
+      const result = await handleDoctorAll(makeCtx());
+
+      // Should still produce a summary (not crash)
+      expect(result.text).toContain('Health Check Summary');
+    });
+  });
+
   describe('buildDoctorAllSummary', () => {
     const baseSummary: DoctorAllSummaryData = {
       checkedTopics: [],

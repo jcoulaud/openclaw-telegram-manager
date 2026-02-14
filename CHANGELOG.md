@@ -1,3 +1,10 @@
+## [2.11.1](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.11.0...v2.11.1) (2026-02-14)
+
+
+### Bug Fixes
+
+* remove heartbeat block during uninstall ([0dd9dfd](https://github.com/jcoulaud/openclaw-telegram-manager/commit/0dd9dfde8e59cd60c5f87482c65f5b1a786714cb))
+
 # [2.11.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.10.0...v2.11.0) (2026-02-14)
 
 

@@ -190,6 +190,7 @@ async function runUninstall(): Promise<void> {
   removePluginDir(configDir);
   unpatchConfig(configDir);
   unpatchMemoryFlush(configDir);
+  unpatchHeartbeat(configDir);
   removeFile(path.join(configDir, INCLUDE_FILENAME));
   ok('Plugin files removed');
 
@@ -780,6 +781,35 @@ function unpatchMemoryFlush(configDir: string): void {
   }
 
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
+}
+
+function unpatchHeartbeat(configDir: string): void {
+  const heartbeatPath = path.join(configDir, 'workspace', 'HEARTBEAT.md');
+  if (!fs.existsSync(heartbeatPath)) return;
+
+  let content: string;
+  try {
+    content = fs.readFileSync(heartbeatPath, 'utf-8');
+  } catch {
+    return;
+  }
+
+  if (!content.includes(SETUP_MARKER_START)) return;
+
+  const startIdx = content.indexOf(SETUP_MARKER_START);
+  const endIdx = content.indexOf(SETUP_MARKER_END);
+
+  if (startIdx >= 0 && endIdx >= 0) {
+    const before = content.slice(0, startIdx);
+    const after = content.slice(endIdx + SETUP_MARKER_END.length);
+    const cleaned = (before + after).replace(/\n{3,}/g, '\n\n').trim();
+
+    if (cleaned) {
+      fs.writeFileSync(heartbeatPath, cleaned + '\n', { mode: 0o640 });
+    } else {
+      fs.unlinkSync(heartbeatPath);
+    }
+  }
 }
 
 // ── Shared helpers ────────────────────────────────────────────────────

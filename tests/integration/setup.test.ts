@@ -1259,6 +1259,93 @@ describe('setup integration', () => {
     });
   });
 
+  describe('heartbeat cleanup on uninstall', () => {
+    const MARKER_START = '<!-- TM_AUTOPILOT_START -->';
+    const MARKER_END = '<!-- TM_AUTOPILOT_END -->';
+    const HEARTBEAT_BLOCK = `${MARKER_START}
+## Topic Manager — Balanced Autopilot
+
+Daily reports and health checks are handled by the cron scheduler.
+No action needed here (HEARTBEAT_OK).
+${MARKER_END}`;
+
+    function unpatchHeartbeat(cfgDir: string): void {
+      const heartbeatPath = path.join(cfgDir, 'workspace', 'HEARTBEAT.md');
+      if (!fs.existsSync(heartbeatPath)) return;
+
+      let content: string;
+      try {
+        content = fs.readFileSync(heartbeatPath, 'utf-8');
+      } catch {
+        return;
+      }
+
+      if (!content.includes(MARKER_START)) return;
+
+      const startIdx = content.indexOf(MARKER_START);
+      const endIdx = content.indexOf(MARKER_END);
+
+      if (startIdx >= 0 && endIdx >= 0) {
+        const before = content.slice(0, startIdx);
+        const after = content.slice(endIdx + MARKER_END.length);
+        const cleaned = (before + after).replace(/\n{3,}/g, '\n\n').trim();
+
+        if (cleaned) {
+          fs.writeFileSync(heartbeatPath, cleaned + '\n', { mode: 0o640 });
+        } else {
+          fs.unlinkSync(heartbeatPath);
+        }
+      }
+    }
+
+    it('should delete HEARTBEAT.md when it only contains the autopilot block', () => {
+      const workspaceDir = path.join(configDir, 'workspace');
+      fs.mkdirSync(workspaceDir, { recursive: true });
+      const heartbeatPath = path.join(workspaceDir, 'HEARTBEAT.md');
+
+      fs.writeFileSync(heartbeatPath, HEARTBEAT_BLOCK + '\n', { mode: 0o640 });
+
+      unpatchHeartbeat(configDir);
+
+      expect(fs.existsSync(heartbeatPath)).toBe(false);
+    });
+
+    it('should preserve other content when removing the autopilot block', () => {
+      const workspaceDir = path.join(configDir, 'workspace');
+      fs.mkdirSync(workspaceDir, { recursive: true });
+      const heartbeatPath = path.join(workspaceDir, 'HEARTBEAT.md');
+
+      const otherContent = '## My Custom Section\n\nSome notes here.';
+      fs.writeFileSync(heartbeatPath, otherContent + '\n\n' + HEARTBEAT_BLOCK + '\n', { mode: 0o640 });
+
+      unpatchHeartbeat(configDir);
+
+      expect(fs.existsSync(heartbeatPath)).toBe(true);
+      const result = fs.readFileSync(heartbeatPath, 'utf-8');
+      expect(result).toContain('My Custom Section');
+      expect(result).not.toContain(MARKER_START);
+      expect(result).not.toContain(MARKER_END);
+    });
+
+    it('should be a no-op when HEARTBEAT.md does not exist', () => {
+      // No workspace dir created — should not throw
+      expect(() => unpatchHeartbeat(configDir)).not.toThrow();
+    });
+
+    it('should be a no-op when HEARTBEAT.md has no autopilot block', () => {
+      const workspaceDir = path.join(configDir, 'workspace');
+      fs.mkdirSync(workspaceDir, { recursive: true });
+      const heartbeatPath = path.join(workspaceDir, 'HEARTBEAT.md');
+
+      const content = '## Other Agent\n\nDoing other things.\n';
+      fs.writeFileSync(heartbeatPath, content, { mode: 0o640 });
+
+      unpatchHeartbeat(configDir);
+
+      expect(fs.readFileSync(heartbeatPath, 'utf-8')).toBe(content);
+    });
+  });
+
   describe('complete setup flow', () => {
     it('should complete all setup steps', () => {
       const workspaceDir = path.join(configDir, 'workspace');

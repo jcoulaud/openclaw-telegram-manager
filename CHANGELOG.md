@@ -1,3 +1,15 @@
+# [2.9.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.8.0...v2.9.0) (2026-02-14)
+
+
+### Bug Fixes
+
+* auto-upgrade capsules during doctor --all for autopilot users ([da195a9](https://github.com/jcoulaud/openclaw-telegram-manager/commit/da195a9c9ddbad896f461aa6ed2e0e276d99eed2))
+
+
+### Features
+
+* consolidate capsule to 3 files with type-specific README sections ([55e8770](https://github.com/jcoulaud/openclaw-telegram-manager/commit/55e8770aad856e361d00853f129e5b3f35895e74))
+
 # [2.8.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.7.0...v2.8.0) (2026-02-13)
 
 

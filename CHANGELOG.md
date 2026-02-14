@@ -1,3 +1,10 @@
+# [2.11.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.10.0...v2.11.0) (2026-02-14)
+
+
+### Features
+
+* remove cron jobs during uninstall ([4293ea4](https://github.com/jcoulaud/openclaw-telegram-manager/commit/4293ea4067234adaee19c567d4b57c19bcd465f5))
+
 # [2.10.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.9.0...v2.10.0) (2026-02-14)
 
 

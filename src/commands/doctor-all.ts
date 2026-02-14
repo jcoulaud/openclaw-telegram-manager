@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import { readRegistry, withRegistry } from '../lib/registry.js';
 import { checkAuthorization } from '../lib/auth.js';
 import {
+  CAPSULE_VERSION,
   DOCTOR_ALL_COOLDOWN_MS,
   DOCTOR_PER_TOPIC_CAP_MS,
   INACTIVE_AFTER_DAYS,
@@ -12,6 +13,7 @@ import {
 import type { TopicEntry, InlineKeyboardMarkup } from '../lib/types.js';
 import { buildDoctorReport, buildDoctorButtons, createRateLimitedPoster, truncateMessage } from '../lib/telegram.js';
 import { runAllChecksForTopic, backupCapsuleIfHealthy } from '../lib/doctor-checks.js';
+import { upgradeCapsule } from '../lib/capsule.js';
 import { includePath } from '../lib/include-generator.js';
 import {
   readFileOrNull,
@@ -250,6 +252,7 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
 
   // Group tracking for migration detection
   const groupPostResults = new Map<string, { total: number; failed: number }>();
+  const upgradedSlugs = new Set<string>();
 
   for (const [_key, entry] of allEntries) {
     // Eligibility gating — consider STATUS.md timestamp alongside lastMessageAt
@@ -263,6 +266,19 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
     }
 
     try {
+      // Auto-upgrade capsule if version is behind
+      if (entry.capsuleVersion < CAPSULE_VERSION) {
+        const oldVersion = entry.capsuleVersion;
+        try {
+          upgradeCapsule(projectsBase, entry.slug, entry.name, entry.type, entry.capsuleVersion);
+          upgradedSlugs.add(entry.slug);
+          logger.info(`[doctor-all] Auto-upgraded ${entry.slug} v${oldVersion} → v${CAPSULE_VERSION}`);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          logger.error(`[doctor-all] Auto-upgrade failed for ${entry.slug}: ${msg}`);
+        }
+      }
+
       const results = runAllChecksForTopic(
         entry,
         projectsBase,
@@ -404,6 +420,11 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
       }
 
       entry.lastDoctorRunAt = now.toISOString();
+
+      // Persist capsule upgrade
+      if (upgradedSlugs.has(entry.slug)) {
+        entry.capsuleVersion = CAPSULE_VERSION;
+      }
 
       // Auto-snooze for spam control
       if (entry.consecutiveSilentDoctors >= SPAM_THRESHOLD) {

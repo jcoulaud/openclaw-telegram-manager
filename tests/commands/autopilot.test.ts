@@ -37,7 +37,7 @@ describe('autopilot', () => {
   });
 
   describe('enable', () => {
-    it('should create HEARTBEAT.md with markers and deterministic instructions', async () => {
+    it('should create HEARTBEAT.md with markers and simplified content', async () => {
       const result = await handleAutopilot(makeCtx(), '');
       expect(result.text).toContain('Autopilot enabled');
 
@@ -47,11 +47,8 @@ describe('autopilot', () => {
       const content = fs.readFileSync(heartbeatPath, 'utf-8');
       expect(content).toContain('<!-- TM_AUTOPILOT_START -->');
       expect(content).toContain('<!-- TM_AUTOPILOT_END -->');
-      expect(content).toContain('doctor --all');
       expect(content).toContain('Balanced Autopilot');
-      expect(content).toContain('Last done (UTC)');
-      expect(content).toContain('CALL');
-      expect(content).toContain('IN ORDER');
+      expect(content).toContain('cron scheduler');
       expect(content).toContain('HEARTBEAT_OK');
     });
 
@@ -123,10 +120,11 @@ describe('autopilot', () => {
   });
 
   describe('status', () => {
-    it('should show disabled state', async () => {
+    it('should show disabled state and cron not registered', async () => {
       const result = await handleAutopilot(makeCtx(), 'status');
       expect(result.text).toContain('disabled');
       expect(result.text).toContain('never');
+      expect(result.text).toContain('not registered');
     });
 
     it('should show enabled state and last run time', async () => {
@@ -166,10 +164,11 @@ describe('autopilot', () => {
       expect(HEARTBEAT_FILENAME).toBe('HEARTBEAT.md');
     });
 
-    it('should export HEARTBEAT_BLOCK containing markers and daily report mention', () => {
+    it('should export HEARTBEAT_BLOCK containing markers and cron reference', () => {
       expect(HEARTBEAT_BLOCK).toContain(MARKER_START);
       expect(HEARTBEAT_BLOCK).toContain(MARKER_END);
-      expect(HEARTBEAT_BLOCK).toContain('daily');
+      expect(HEARTBEAT_BLOCK).toContain('cron scheduler');
+      expect(HEARTBEAT_BLOCK).toContain('HEARTBEAT_OK');
     });
   });
 });

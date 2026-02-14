@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { readRegistry, withRegistry } from '../lib/registry.js';
 import { checkAuthorization } from '../lib/auth.js';
-import { topicKey } from '../lib/types.js';
+import { topicKey, DOCTOR_PER_TOPIC_CAP_MS } from '../lib/types.js';
 import { jailCheck, rejectSymlink } from '../lib/security.js';
 import { buildDoctorReport, buildDoctorButtons } from '../lib/telegram.js';
 import { runAllChecksForTopic, backupCapsuleIfHealthy } from '../lib/doctor-checks.js';
@@ -29,6 +29,17 @@ export async function handleDoctor(ctx: CommandContext): Promise<CommandResult> 
 
   if (!entry) {
     return { text: 'This topic is not registered. Run /tm init first.' };
+  }
+
+  // Per-topic cooldown: skip if recently checked
+  if (entry.lastDoctorReportAt) {
+    const elapsed = Date.now() - new Date(entry.lastDoctorReportAt).getTime();
+    if (elapsed < DOCTOR_PER_TOPIC_CAP_MS) {
+      const remainingHrs = Math.ceil((DOCTOR_PER_TOPIC_CAP_MS - elapsed) / 3_600_000);
+      return {
+        text: `This topic was checked recently. Next health check available in ~${remainingHrs} hour(s).`,
+      };
+    }
   }
 
   const projectsBase = path.join(workspaceDir, 'projects');

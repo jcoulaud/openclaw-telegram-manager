@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import { readRegistry, withRegistry } from '../lib/registry.js';
 import { checkAuthorization } from '../lib/auth.js';
 import { relativeTime } from '../lib/telegram.js';
+import { registerCombinedCron, removeCronJob } from '../lib/cron.js';
 import type { CommandContext, CommandResult } from './help.js';
 
 // ── Marker constants ────────────────────────────────────────────────
@@ -13,13 +14,8 @@ export const MARKER_END = '<!-- TM_AUTOPILOT_END -->';
 export const HEARTBEAT_BLOCK = `${MARKER_START}
 ## Topic Manager — Balanced Autopilot
 
-Execute these steps IN ORDER. Do not skip steps.
-
-1. CALL \`topic_manager\` with command "doctor --all" to health-check all active topics.
-   This runs health checks AND posts daily progress reports for each eligible topic automatically.
-2. For each topic where STATUS.md "Last done (UTC)" is >3 days old:
-   post a brief nudge in that topic asking the user for a status update.
-3. If no actions were taken in steps 1-2, do nothing (HEARTBEAT_OK).
+Daily reports and health checks are handled by the cron scheduler.
+No action needed here (HEARTBEAT_OK).
 ${MARKER_END}`;
 
 export const HEARTBEAT_FILENAME = 'HEARTBEAT.md';
@@ -57,7 +53,7 @@ export async function handleAutopilot(ctx: CommandContext, args: string): Promis
 // ── Enable ──────────────────────────────────────────────────────────
 
 async function handleEnable(ctx: CommandContext): Promise<CommandResult> {
-  const { workspaceDir } = ctx;
+  const { workspaceDir, rpc, logger } = ctx;
   const heartbeatPath = path.join(workspaceDir, HEARTBEAT_FILENAME);
 
   // Read or create HEARTBEAT.md
@@ -76,6 +72,10 @@ async function handleEnable(ctx: CommandContext): Promise<CommandResult> {
     await withRegistry(workspaceDir, (data) => {
       data.autopilotEnabled = true;
     });
+
+    // Ensure combined cron is registered
+    await ensureCombinedCron(workspaceDir, rpc, logger);
+
     return { text: 'Autopilot is already enabled.' };
   }
 
@@ -87,18 +87,23 @@ async function handleEnable(ctx: CommandContext): Promise<CommandResult> {
     data.autopilotEnabled = true;
   });
 
+  // Register combined cron + cleanup per-topic crons
+  await ensureCombinedCron(workspaceDir, rpc, logger);
+  await cleanupPerTopicCrons(workspaceDir, rpc, logger);
+
   return {
-    text: '**Autopilot enabled.**\nHealth checks will run automatically every day.',
+    text: '**Autopilot enabled.**\nDaily reports and health checks will run automatically at 09:00 UTC.',
   };
 }
 
 // ── Disable ─────────────────────────────────────────────────────────
 
 async function handleDisable(ctx: CommandContext): Promise<CommandResult> {
-  const { workspaceDir } = ctx;
+  const { workspaceDir, rpc, logger } = ctx;
   const heartbeatPath = path.join(workspaceDir, HEARTBEAT_FILENAME);
 
   if (!fs.existsSync(heartbeatPath)) {
+    await removeCombinedCron(workspaceDir, rpc, logger);
     await withRegistry(workspaceDir, (data) => {
       data.autopilotEnabled = false;
     });
@@ -108,6 +113,7 @@ async function handleDisable(ctx: CommandContext): Promise<CommandResult> {
   let content = fs.readFileSync(heartbeatPath, 'utf-8');
 
   if (!content.includes(MARKER_START)) {
+    await removeCombinedCron(workspaceDir, rpc, logger);
     await withRegistry(workspaceDir, (data) => {
       data.autopilotEnabled = false;
     });
@@ -130,12 +136,15 @@ async function handleDisable(ctx: CommandContext): Promise<CommandResult> {
     }
   }
 
+  // Remove combined cron
+  await removeCombinedCron(workspaceDir, rpc, logger);
+
   await withRegistry(workspaceDir, (data) => {
     data.autopilotEnabled = false;
   });
 
   return {
-    text: '**Autopilot disabled.**\nAutomatic health checks are now off.',
+    text: '**Autopilot disabled.**\nAutomatic daily reports and health checks are now off.',
   };
 }
 
@@ -150,12 +159,88 @@ async function handleStatus(ctx: CommandContext): Promise<CommandResult> {
     ? relativeTime(registry.lastDoctorAllRunAt)
     : 'never';
 
+  const cronStatus = registry.dailyReportCronJobId
+    ? 'active (09:00 UTC)'
+    : 'not registered';
+
   const lines = [
     `**Autopilot:** ${enabled ? 'enabled' : 'disabled'}`,
+    `**Daily cron:** ${cronStatus}`,
     `**Last health check run:** ${lastRun}`,
   ];
 
   return {
     text: lines.join('\n'),
   };
+}
+
+// ── Cron helpers ──────────────────────────────────────────────────────
+
+import type { RpcInterface, Logger } from '../lib/types.js';
+
+/**
+ * Register the combined daily cron job if not already registered.
+ * Stores the job ID in the registry's `dailyReportCronJobId`.
+ */
+export async function ensureCombinedCron(
+  workspaceDir: string,
+  rpc: RpcInterface | null | undefined,
+  logger: Logger,
+): Promise<void> {
+  const registry = readRegistry(workspaceDir);
+  if (registry.dailyReportCronJobId) return;
+
+  const result = await registerCombinedCron(rpc, logger);
+  if (result.jobId) {
+    await withRegistry(workspaceDir, (data) => {
+      data.dailyReportCronJobId = result.jobId;
+    });
+  }
+}
+
+/**
+ * Remove the combined daily cron job and clear the registry field.
+ */
+async function removeCombinedCron(
+  workspaceDir: string,
+  rpc: RpcInterface | null | undefined,
+  logger: Logger,
+): Promise<void> {
+  const registry = readRegistry(workspaceDir);
+  if (!registry.dailyReportCronJobId) return;
+
+  await removeCronJob(rpc, registry.dailyReportCronJobId, logger);
+  await withRegistry(workspaceDir, (data) => {
+    data.dailyReportCronJobId = null;
+  });
+}
+
+/**
+ * Remove all per-topic cron jobs and clear their cronJobId fields.
+ */
+export async function cleanupPerTopicCrons(
+  workspaceDir: string,
+  rpc: RpcInterface | null | undefined,
+  logger: Logger,
+): Promise<void> {
+  const registry = readRegistry(workspaceDir);
+  const topicsWithCron = Object.entries(registry.topics)
+    .filter(([, entry]) => entry.cronJobId !== null);
+
+  if (topicsWithCron.length === 0) return;
+
+  for (const [, entry] of topicsWithCron) {
+    if (entry.cronJobId) {
+      await removeCronJob(rpc, entry.cronJobId, logger);
+    }
+  }
+
+  await withRegistry(workspaceDir, (data) => {
+    for (const [key] of topicsWithCron) {
+      const entry = data.topics[key];
+      if (entry) {
+        entry.cronJobId = null;
+      }
+    }
+  });
 }

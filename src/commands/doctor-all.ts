@@ -461,7 +461,7 @@ export function extractStatusTimestamp(content: string): string | null {
   return match ? match[0] : null;
 }
 
-function mostRecent(a: string | null | undefined, b: string | null | undefined): string | null {
+export function mostRecent(a: string | null | undefined, b: string | null | undefined): string | null {
   if (!a && !b) return null;
   if (!a) return b!;
   if (!b) return a;

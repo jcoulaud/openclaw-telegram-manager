@@ -16,6 +16,8 @@ import { handleSnooze } from './commands/snooze.js';
 import { handleArchive, handleUnarchive } from './commands/archive.js';
 import { handleAutopilot } from './commands/autopilot.js';
 import { handleDailyReport } from './commands/daily-report.js';
+import { handleDailyReportAll } from './commands/daily-report-all.js';
+import { ensureCombinedCron, cleanupPerTopicCrons } from './commands/autopilot.js';
 import { handleHelp } from './commands/help.js';
 import type { CommandContext, CommandResult } from './commands/help.js';
 import type { Logger, RpcInterface } from './lib/config-restart.js';
@@ -98,6 +100,22 @@ export function createTopicManagerTool(deps: ToolDeps): TopicManagerTool {
         });
       }
 
+      // One-time migration: register combined cron + cleanup per-topic crons
+      // for autopilot users who haven't migrated yet (fire-and-forget)
+      try {
+        const migrationReg = readRegistry(workspaceDir);
+        if (migrationReg.autopilotEnabled && !migrationReg.dailyReportCronJobId) {
+          void ensureCombinedCron(workspaceDir, rpc, logger)
+            .then(() => cleanupPerTopicCrons(workspaceDir, rpc, logger))
+            .catch((err) => {
+              const msg = err instanceof Error ? err.message : String(err);
+              logger.error(`[cron-migration] Failed: ${msg}`);
+            });
+        }
+      } catch {
+        // Non-critical — migration will retry on next command
+      }
+
       try {
         switch (subCommand) {
           case 'init':
@@ -140,7 +158,13 @@ export function createTopicManagerTool(deps: ToolDeps): TopicManagerTool {
             return await handleAutopilot(ctx, args);
 
           case 'daily-report':
+            if (flags.has('--all') || flags.has('all')) {
+              return await handleDailyReportAll(ctx);
+            }
             return await handleDailyReport(ctx);
+
+          case 'daily-report-all':
+            return await handleDailyReportAll(ctx);
 
           case 'help':
             return await handleHelp(ctx);

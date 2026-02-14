@@ -2,13 +2,13 @@ import { Type, type Static } from '@sinclair/typebox';
 
 // ── Constants ──────────────────────────────────────────────────────────
 
-export const CURRENT_REGISTRY_VERSION = 6;
+export const CURRENT_REGISTRY_VERSION = 7;
 export const CAPSULE_VERSION = 4;
 export const MAX_EXTRAS_BYTES = 10_240;
 export const MAX_POST_ERROR_LENGTH = 500;
 export const MAX_TOPICS_DEFAULT = 100;
 export const MAX_NAME_LENGTH = 100;
-export const DOCTOR_ALL_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+export const DOCTOR_ALL_COOLDOWN_MS = 20 * 60 * 60 * 1000; // 20 hours
 export const DOCTOR_PER_TOPIC_CAP_MS = 24 * 60 * 60 * 1000; // 24 hours
 export const INACTIVE_AFTER_DAYS = 7;
 export const SPAM_THRESHOLD = 3;
@@ -82,6 +82,7 @@ export const RegistrySchema = Type.Object({
   topicManagerAdmins: Type.Array(Type.String()),
   callbackSecret: Type.String(),
   lastDoctorAllRunAt: Type.Union([Type.String(), Type.Null()]),
+  dailyReportCronJobId: Type.Union([Type.String(), Type.Null()]),
   autopilotEnabled: Type.Boolean(),
   maxTopics: Type.Integer({ minimum: 1 }),
   topics: Type.Record(Type.String(), TopicEntrySchema),

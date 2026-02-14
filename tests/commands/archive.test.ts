@@ -75,94 +75,49 @@ describe('commands/archive', () => {
     return registry;
   }
 
-  describe('cron job cleanup on archive', () => {
-    it('should call cron.remove when topic has cronJobId', async () => {
-      const entry = makeEntry({ cronJobId: 'cron-xyz-789' });
+  describe('archive', () => {
+    it('should set status to archived', async () => {
+      const entry = makeEntry();
       setupRegistry(entry);
 
-      const rpc = {
-        call: vi.fn().mockResolvedValue({}),
-      };
-
-      await handleArchive(makeCtx({ rpc }));
-
-      expect(rpc.call).toHaveBeenCalledWith('cron.remove', { jobId: 'cron-xyz-789' });
-
-      const reg = readRegistry(workspaceDir);
-      expect(reg.topics['-100:1']?.cronJobId).toBeNull();
-      expect(reg.topics['-100:1']?.status).toBe('archived');
-    });
-
-    it('should not call cron.remove when topic has no cronJobId', async () => {
-      const entry = makeEntry({ cronJobId: null });
-      setupRegistry(entry);
-
-      const rpc = {
-        call: vi.fn().mockResolvedValue({}),
-      };
-
-      await handleArchive(makeCtx({ rpc }));
-
-      // cron.remove should not be called (config.get may still be called)
-      expect(rpc.call).not.toHaveBeenCalledWith('cron.remove', expect.anything());
-
-      const reg = readRegistry(workspaceDir);
-      expect(reg.topics['-100:1']?.status).toBe('archived');
-    });
-
-    it('should still archive when cron removal fails', async () => {
-      const entry = makeEntry({ cronJobId: 'cron-fail' });
-      setupRegistry(entry);
-
-      const rpc = {
-        call: vi.fn().mockRejectedValue(new Error('RPC unavailable')),
-      };
-
-      const result = await handleArchive(makeCtx({ rpc }));
+      const result = await handleArchive(makeCtx());
 
       expect(result.text).toContain('archived');
       const reg = readRegistry(workspaceDir);
       expect(reg.topics['-100:1']?.status).toBe('archived');
     });
+
+    it('should return already archived when topic is already archived', async () => {
+      const entry = makeEntry({ status: 'archived' });
+      setupRegistry(entry);
+
+      const result = await handleArchive(makeCtx());
+      expect(result.text).toContain('already archived');
+    });
   });
 
-  describe('cron job re-registration on unarchive', () => {
-    it('should register cron job when unarchiving', async () => {
-      const entry = makeEntry({ status: 'archived', cronJobId: null });
+  describe('unarchive', () => {
+    it('should set status to active and clear snooze', async () => {
+      const entry = makeEntry({
+        status: 'archived',
+        snoozeUntil: new Date('2099-01-01').toISOString(),
+      });
       setupRegistry(entry);
 
-      const rpc = {
-        call: vi.fn().mockResolvedValue({ jobId: 'cron-new-456' }),
-      };
-
-      await handleUnarchive(makeCtx({ rpc }));
-
-      expect(rpc.call).toHaveBeenCalledWith(
-        'cron.add',
-        expect.objectContaining({
-          name: 'tm-daily-t-1',
-        }),
-      );
-
-      const reg = readRegistry(workspaceDir);
-      expect(reg.topics['-100:1']?.cronJobId).toBe('cron-new-456');
-      expect(reg.topics['-100:1']?.status).toBe('active');
-    });
-
-    it('should still unarchive when cron registration fails', async () => {
-      const entry = makeEntry({ status: 'archived', cronJobId: null });
-      setupRegistry(entry);
-
-      const rpc = {
-        call: vi.fn().mockRejectedValue(new Error('RPC timeout')),
-      };
-
-      const result = await handleUnarchive(makeCtx({ rpc }));
+      const result = await handleUnarchive(makeCtx());
 
       expect(result.text).toContain('unarchived');
       const reg = readRegistry(workspaceDir);
       expect(reg.topics['-100:1']?.status).toBe('active');
-      expect(reg.topics['-100:1']?.cronJobId).toBeNull();
+      expect(reg.topics['-100:1']?.snoozeUntil).toBeNull();
+    });
+
+    it('should return not archived when topic is not archived', async () => {
+      const entry = makeEntry({ status: 'active' });
+      setupRegistry(entry);
+
+      const result = await handleUnarchive(makeCtx());
+      expect(result.text).toContain('not archived');
     });
   });
 });

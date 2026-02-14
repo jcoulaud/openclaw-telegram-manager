@@ -14,6 +14,8 @@ export type AuthTier = (typeof AuthTier)[keyof typeof AuthTier];
 const ADMIN_COMMANDS = new Set([
   'doctor --all',
   'doctor-all',
+  'daily-report --all',
+  'daily-report-all',
   'list',
   'sync',
   'rename',

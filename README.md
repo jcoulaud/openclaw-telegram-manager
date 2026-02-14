@@ -84,6 +84,7 @@ You don't need any of these — everything runs automatically. They're there if 
 | `/tm doctor` | Run health checks |
 | `/tm doctor --all` | Health check all topics at once |
 | `/tm daily-report` | Post a daily summary |
+| `/tm daily-report --all` | Post daily summaries for all topics |
 | `/tm list` | List all topics |
 
 **Make changes**
@@ -107,7 +108,7 @@ You don't need any of these — everything runs automatically. They're there if 
 
 Two roles:
 - **User** — can manage topics they have access to
-- **Admin** — can run `doctor --all` and manage anyone's topics
+- **Admin** — can run `doctor --all`, `daily-report --all`, and manage anyone's topics
 
 The first person to run `/tm init` automatically becomes admin.
 

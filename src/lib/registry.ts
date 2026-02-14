@@ -81,6 +81,12 @@ const migrations: Record<string, MigrationFn> = {
     }
     return data;
   },
+  '6_to_7': (data) => {
+    if (data['dailyReportCronJobId'] === undefined) {
+      data['dailyReportCronJobId'] = null;
+    }
+    return data;
+  },
 };
 
 function migrateRegistry(data: Record<string, unknown>): Record<string, unknown> {
@@ -242,6 +248,7 @@ export function createEmptyRegistry(callbackSecret: string): Registry {
     topicManagerAdmins: [],
     callbackSecret,
     lastDoctorAllRunAt: null,
+    dailyReportCronJobId: null,
     autopilotEnabled: false,
     maxTopics: MAX_TOPICS_DEFAULT,
     topics: {},

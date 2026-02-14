@@ -150,7 +150,7 @@ describe('commands/init', () => {
       const content = fs.readFileSync(heartbeatPath, 'utf-8');
       expect(content).toContain('<!-- TM_AUTOPILOT_START -->');
       expect(content).toContain('<!-- TM_AUTOPILOT_END -->');
-      expect(content).toContain('doctor --all');
+      expect(content).toContain('cron scheduler');
     });
 
     it('should NOT write HEARTBEAT.md for non-first-user init', async () => {
@@ -694,52 +694,4 @@ describe('commands/init', () => {
     });
   });
 
-  describe('cron job registration', () => {
-    it('should store cronJobId when RPC returns a job ID', async () => {
-      const rpc = {
-        call: vi.fn().mockResolvedValue({ jobId: 'cron-abc-123' }),
-      };
-      ctx.rpc = rpc;
-
-      await handleInit(ctx, 'test-topic coding');
-
-      const registry = readRegistry(workspaceDir);
-      expect(registry.topics['-100123:456']?.cronJobId).toBe('cron-abc-123');
-    });
-
-    it('should leave cronJobId null when RPC is unavailable', async () => {
-      ctx.rpc = null;
-
-      await handleInit(ctx, 'test-topic coding');
-
-      const registry = readRegistry(workspaceDir);
-      expect(registry.topics['-100123:456']?.cronJobId).toBeNull();
-    });
-
-    it('should leave cronJobId null when RPC call fails', async () => {
-      const rpc = {
-        call: vi.fn().mockRejectedValue(new Error('RPC timeout')),
-      };
-      ctx.rpc = rpc;
-
-      await handleInit(ctx, 'test-topic coding');
-
-      const registry = readRegistry(workspaceDir);
-      expect(registry.topics['-100123:456']?.cronJobId).toBeNull();
-    });
-
-    it('should still succeed init when cron registration fails', async () => {
-      const rpc = {
-        call: vi.fn().mockRejectedValue(new Error('RPC timeout')),
-      };
-      ctx.rpc = rpc;
-
-      const result = await handleInit(ctx, 'test-topic coding');
-
-      // Init should succeed even if cron fails
-      expect(result.text).toContain('test-topic');
-      const registry = readRegistry(workspaceDir);
-      expect(registry.topics['-100123:456']).toBeDefined();
-    });
-  });
 });

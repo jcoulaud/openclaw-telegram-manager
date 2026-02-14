@@ -44,6 +44,7 @@ describe('registry', () => {
       expect(registry.topicManagerAdmins).toEqual([]);
       expect(registry.callbackSecret).toBe(secret);
       expect(registry.lastDoctorAllRunAt).toBeNull();
+      expect(registry.dailyReportCronJobId).toBeNull();
       expect(registry.autopilotEnabled).toBe(false);
       expect(registry.maxTopics).toBe(100);
       expect(registry.topics).toEqual({});

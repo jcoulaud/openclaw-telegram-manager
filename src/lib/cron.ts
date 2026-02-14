@@ -92,6 +92,63 @@ export async function registerDailyReportCron(
   }
 }
 
+// ── Create a combined daily cron job ────────────────────────────────────
+
+export interface CombinedCronResult {
+  jobId: string | null;
+  error?: string;
+}
+
+/**
+ * Register a single Gateway cron job that runs daily-report --all
+ * then doctor --all. Replaces per-topic cron jobs.
+ *
+ * Returns the job ID on success, or null with error message on failure.
+ */
+export async function registerCombinedCron(
+  rpc: RpcInterface | null | undefined,
+  logger: Logger,
+  schedule?: string,
+  tz?: string,
+): Promise<CombinedCronResult> {
+  if (!rpc) {
+    return { jobId: null, error: 'RPC not available' };
+  }
+
+  const cronExpr = schedule ?? DEFAULT_CRON_SCHEDULE;
+  const timezone = tz ?? DEFAULT_CRON_TZ;
+
+  try {
+    const result = await rpc.call('cron.add', {
+      name: 'tm-daily-combined',
+      schedule: {
+        kind: 'cron',
+        expr: cronExpr,
+        tz: timezone,
+      },
+      sessionTarget: 'isolated',
+      wakeMode: 'now',
+      payload: {
+        kind: 'agentTurn',
+        message: 'Run topic_manager with command "daily-report --all" to post daily reports for all eligible topics. Then run topic_manager with command "doctor --all" to health-check all active topics.',
+      },
+    });
+
+    const jobId = (result['jobId'] ?? result['id'] ?? null) as string | null;
+
+    if (jobId) {
+      logger.info(`[cron] Created combined daily job "${jobId}" (${cronExpr} ${timezone})`);
+      return { jobId };
+    }
+
+    return { jobId: null, error: 'Gateway did not return a job ID' };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error(`[cron] Failed to create combined daily job: ${msg}`);
+    return { jobId: null, error: msg };
+  }
+}
+
 // ── Remove a cron job ──────────────────────────────────────────────────
 
 /**

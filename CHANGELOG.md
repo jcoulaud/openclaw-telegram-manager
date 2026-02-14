@@ -1,3 +1,10 @@
+# [2.10.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.9.0...v2.10.0) (2026-02-14)
+
+
+### Features
+
+* add daily-report --all and single combined cron job ([f5811cf](https://github.com/jcoulaud/openclaw-telegram-manager/commit/f5811cfb06ab10c7fb1a340ec8e0c4510b4a4b33))
+
 # [2.9.0](https://github.com/jcoulaud/openclaw-telegram-manager/compare/v2.8.0...v2.9.0) (2026-02-14)
 
 

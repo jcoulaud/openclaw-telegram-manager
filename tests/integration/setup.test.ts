@@ -984,6 +984,281 @@ describe('setup integration', () => {
     });
   });
 
+  describe('cron cleanup on uninstall', () => {
+    const REGISTRY_FILENAME = 'topics.json';
+
+    /**
+     * Mirror of collectCronJobIds from setup.ts — reads registry and returns
+     * all cron job IDs that should be removed during uninstall.
+     */
+    function collectCronJobIds(projectsDir: string): string[] {
+      const registryPath = path.join(projectsDir, REGISTRY_FILENAME);
+      if (!fs.existsSync(registryPath)) return [];
+
+      let registry: Record<string, unknown>;
+      try {
+        registry = JSON.parse(fs.readFileSync(registryPath, 'utf-8')) as Record<string, unknown>;
+      } catch {
+        return [];
+      }
+
+      const ids: string[] = [];
+
+      if (typeof registry['dailyReportCronJobId'] === 'string') {
+        ids.push(registry['dailyReportCronJobId']);
+      }
+
+      const topics = registry['topics'];
+      if (topics && typeof topics === 'object') {
+        for (const entry of Object.values(topics as Record<string, Record<string, unknown>>)) {
+          if (typeof entry['cronJobId'] === 'string') {
+            ids.push(entry['cronJobId']);
+          }
+        }
+      }
+
+      return ids;
+    }
+
+    it('should collect combined cron job ID from registry', () => {
+      const projectsDir = path.join(configDir, 'workspace', 'projects');
+      fs.mkdirSync(projectsDir, { recursive: true });
+
+      const registry = {
+        version: 7,
+        topicManagerAdmins: [],
+        callbackSecret: 'secret',
+        lastDoctorAllRunAt: null,
+        dailyReportCronJobId: 'cron-combined-123',
+        autopilotEnabled: true,
+        maxTopics: 100,
+        topics: {},
+      };
+      fs.writeFileSync(path.join(projectsDir, REGISTRY_FILENAME), JSON.stringify(registry));
+
+      const ids = collectCronJobIds(projectsDir);
+      expect(ids).toEqual(['cron-combined-123']);
+    });
+
+    it('should collect per-topic legacy cron job IDs', () => {
+      const projectsDir = path.join(configDir, 'workspace', 'projects');
+      fs.mkdirSync(projectsDir, { recursive: true });
+
+      const registry = {
+        version: 7,
+        topicManagerAdmins: [],
+        callbackSecret: 'secret',
+        lastDoctorAllRunAt: null,
+        dailyReportCronJobId: null,
+        autopilotEnabled: true,
+        maxTopics: 100,
+        topics: {
+          'topic-1': {
+            groupId: '-100123',
+            threadId: '1',
+            slug: 'topic-1',
+            name: 'Topic 1',
+            type: 'coding',
+            status: 'active',
+            capsuleVersion: 4,
+            lastMessageAt: null,
+            lastDoctorReportAt: null,
+            lastDoctorRunAt: null,
+            lastDailyReportAt: null,
+            lastCapsuleWriteAt: null,
+            snoozeUntil: null,
+            consecutiveSilentDoctors: 0,
+            lastPostError: null,
+            cronJobId: 'cron-legacy-aaa',
+            extras: {},
+          },
+          'topic-2': {
+            groupId: '-100123',
+            threadId: '2',
+            slug: 'topic-2',
+            name: 'Topic 2',
+            type: 'research',
+            status: 'active',
+            capsuleVersion: 4,
+            lastMessageAt: null,
+            lastDoctorReportAt: null,
+            lastDoctorRunAt: null,
+            lastDailyReportAt: null,
+            lastCapsuleWriteAt: null,
+            snoozeUntil: null,
+            consecutiveSilentDoctors: 0,
+            lastPostError: null,
+            cronJobId: 'cron-legacy-bbb',
+            extras: {},
+          },
+        },
+      };
+      fs.writeFileSync(path.join(projectsDir, REGISTRY_FILENAME), JSON.stringify(registry));
+
+      const ids = collectCronJobIds(projectsDir);
+      expect(ids).toContain('cron-legacy-aaa');
+      expect(ids).toContain('cron-legacy-bbb');
+      expect(ids).toHaveLength(2);
+    });
+
+    it('should collect both combined and per-topic cron job IDs', () => {
+      const projectsDir = path.join(configDir, 'workspace', 'projects');
+      fs.mkdirSync(projectsDir, { recursive: true });
+
+      const registry = {
+        version: 7,
+        topicManagerAdmins: [],
+        callbackSecret: 'secret',
+        lastDoctorAllRunAt: null,
+        dailyReportCronJobId: 'cron-combined-xyz',
+        autopilotEnabled: true,
+        maxTopics: 100,
+        topics: {
+          'topic-1': {
+            groupId: '-100123',
+            threadId: '1',
+            slug: 'topic-1',
+            name: 'Topic 1',
+            type: 'coding',
+            status: 'active',
+            capsuleVersion: 4,
+            lastMessageAt: null,
+            lastDoctorReportAt: null,
+            lastDoctorRunAt: null,
+            lastDailyReportAt: null,
+            lastCapsuleWriteAt: null,
+            snoozeUntil: null,
+            consecutiveSilentDoctors: 0,
+            lastPostError: null,
+            cronJobId: 'cron-legacy-111',
+            extras: {},
+          },
+        },
+      };
+      fs.writeFileSync(path.join(projectsDir, REGISTRY_FILENAME), JSON.stringify(registry));
+
+      const ids = collectCronJobIds(projectsDir);
+      expect(ids).toEqual(['cron-combined-xyz', 'cron-legacy-111']);
+    });
+
+    it('should return empty array when registry does not exist', () => {
+      const projectsDir = path.join(configDir, 'workspace', 'projects');
+      // Don't create projectsDir — no registry file
+
+      const ids = collectCronJobIds(projectsDir);
+      expect(ids).toEqual([]);
+    });
+
+    it('should return empty array when registry has no cron job IDs', () => {
+      const projectsDir = path.join(configDir, 'workspace', 'projects');
+      fs.mkdirSync(projectsDir, { recursive: true });
+
+      const registry = {
+        version: 7,
+        topicManagerAdmins: [],
+        callbackSecret: 'secret',
+        lastDoctorAllRunAt: null,
+        dailyReportCronJobId: null,
+        autopilotEnabled: true,
+        maxTopics: 100,
+        topics: {
+          'topic-1': {
+            groupId: '-100123',
+            threadId: '1',
+            slug: 'topic-1',
+            name: 'Topic 1',
+            type: 'coding',
+            status: 'active',
+            capsuleVersion: 4,
+            lastMessageAt: null,
+            lastDoctorReportAt: null,
+            lastDoctorRunAt: null,
+            lastDailyReportAt: null,
+            lastCapsuleWriteAt: null,
+            snoozeUntil: null,
+            consecutiveSilentDoctors: 0,
+            lastPostError: null,
+            cronJobId: null,
+            extras: {},
+          },
+        },
+      };
+      fs.writeFileSync(path.join(projectsDir, REGISTRY_FILENAME), JSON.stringify(registry));
+
+      const ids = collectCronJobIds(projectsDir);
+      expect(ids).toEqual([]);
+    });
+
+    it('should return empty array when registry is malformed JSON', () => {
+      const projectsDir = path.join(configDir, 'workspace', 'projects');
+      fs.mkdirSync(projectsDir, { recursive: true });
+
+      fs.writeFileSync(path.join(projectsDir, REGISTRY_FILENAME), '{{not json}}');
+
+      const ids = collectCronJobIds(projectsDir);
+      expect(ids).toEqual([]);
+    });
+
+    it('should skip topics with null cronJobId', () => {
+      const projectsDir = path.join(configDir, 'workspace', 'projects');
+      fs.mkdirSync(projectsDir, { recursive: true });
+
+      const registry = {
+        version: 7,
+        topicManagerAdmins: [],
+        callbackSecret: 'secret',
+        lastDoctorAllRunAt: null,
+        dailyReportCronJobId: 'cron-combined-ok',
+        autopilotEnabled: true,
+        maxTopics: 100,
+        topics: {
+          'has-cron': {
+            groupId: '-100123',
+            threadId: '1',
+            slug: 'has-cron',
+            name: 'Has Cron',
+            type: 'coding',
+            status: 'active',
+            capsuleVersion: 4,
+            lastMessageAt: null,
+            lastDoctorReportAt: null,
+            lastDoctorRunAt: null,
+            lastDailyReportAt: null,
+            lastCapsuleWriteAt: null,
+            snoozeUntil: null,
+            consecutiveSilentDoctors: 0,
+            lastPostError: null,
+            cronJobId: 'cron-topic-yes',
+            extras: {},
+          },
+          'no-cron': {
+            groupId: '-100123',
+            threadId: '2',
+            slug: 'no-cron',
+            name: 'No Cron',
+            type: 'research',
+            status: 'active',
+            capsuleVersion: 4,
+            lastMessageAt: null,
+            lastDoctorReportAt: null,
+            lastDoctorRunAt: null,
+            lastDailyReportAt: null,
+            lastCapsuleWriteAt: null,
+            snoozeUntil: null,
+            consecutiveSilentDoctors: 0,
+            lastPostError: null,
+            cronJobId: null,
+            extras: {},
+          },
+        },
+      };
+      fs.writeFileSync(path.join(projectsDir, REGISTRY_FILENAME), JSON.stringify(registry));
+
+      const ids = collectCronJobIds(projectsDir);
+      expect(ids).toEqual(['cron-combined-ok', 'cron-topic-yes']);
+    });
+  });
+
   describe('complete setup flow', () => {
     it('should complete all setup steps', () => {
       const workspaceDir = path.join(configDir, 'workspace');

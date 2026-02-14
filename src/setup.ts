@@ -183,6 +183,9 @@ async function runUninstall(): Promise<void> {
   const configDir = locateConfigDir();
   ok(`Config ${c.dim}${configDir}${c.reset}`);
 
+  const projectsDir = path.join(configDir, 'workspace', 'projects');
+  removeCronJobs(projectsDir);
+
   startSpinner('Removing plugin…');
   removePluginDir(configDir);
   unpatchConfig(configDir);
@@ -193,7 +196,6 @@ async function runUninstall(): Promise<void> {
   startSpinner('Restarting gateway…');
   if (triggerRestart()) ok('Gateway restarted');
 
-  const projectsDir = path.join(configDir, 'workspace', 'projects');
   if (fs.existsSync(projectsDir)) {
     const purge = process.argv.includes('--purge-data')
       || await confirm(`Also delete the plugin's stored data at ${projectsDir}? This cannot be undone.`);
@@ -496,6 +498,65 @@ function writeHeartbeat(configDir: string): void {
   fs.mkdirSync(path.dirname(heartbeatPath), { recursive: true });
   fs.writeFileSync(tmpPath, newContent, { mode: 0o640 });
   fs.renameSync(tmpPath, heartbeatPath);
+}
+
+/**
+ * Reads the registry and returns all cron job IDs that should be removed.
+ * Exported-style helper so the logic is testable without execSync.
+ */
+function collectCronJobIds(projectsDir: string): string[] {
+  const registryPath = path.join(projectsDir, REGISTRY_FILENAME);
+  if (!fs.existsSync(registryPath)) return [];
+
+  let registry: Record<string, unknown>;
+  try {
+    registry = JSON.parse(fs.readFileSync(registryPath, 'utf-8')) as Record<string, unknown>;
+  } catch {
+    return [];
+  }
+
+  const ids: string[] = [];
+
+  // Registry-level combined cron
+  if (typeof registry['dailyReportCronJobId'] === 'string') {
+    ids.push(registry['dailyReportCronJobId']);
+  }
+
+  // Per-topic legacy cron jobs
+  const topics = registry['topics'];
+  if (topics && typeof topics === 'object') {
+    for (const entry of Object.values(topics as Record<string, Record<string, unknown>>)) {
+      if (typeof entry['cronJobId'] === 'string') {
+        ids.push(entry['cronJobId']);
+      }
+    }
+  }
+
+  return ids;
+}
+
+function removeCronJobs(projectsDir: string): void {
+  startSpinner('Removing cron jobs…');
+
+  const ids = collectCronJobIds(projectsDir);
+  if (ids.length === 0) {
+    ok('No cron jobs to remove');
+    return;
+  }
+
+  let removed = 0;
+  for (const id of ids) {
+    try {
+      execSync(`openclaw cron remove ${id}`, { encoding: 'utf-8', timeout: 10_000 });
+      removed++;
+    } catch {
+      warn(`Could not remove cron job ${id}. It may have been removed already.`);
+    }
+  }
+
+  if (removed > 0) {
+    ok(`Removed ${removed} cron job${removed > 1 ? 's' : ''}`);
+  }
 }
 
 // ── Uninstall step implementations ────────────────────────────────────

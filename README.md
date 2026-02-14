@@ -128,7 +128,7 @@ See [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
 npx openclaw-telegram-manager uninstall
 ```
 
-This removes any scheduled cron jobs, the plugin, the config reference, and the generated include file, then restarts the gateway. You'll be asked whether to delete your topic data. To skip the prompt and delete everything:
+This removes any scheduled cron jobs, the autopilot heartbeat block, the plugin, the config reference, and the generated include file, then restarts the gateway. You'll be asked whether to delete your topic data. To skip the prompt and delete everything:
 
 ```bash
 npx openclaw-telegram-manager uninstall --purge-data

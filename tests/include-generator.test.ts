@@ -161,8 +161,8 @@ describe('include-generator', () => {
     it('should include determinism rules', () => {
       const prompt = getSystemPromptTemplate('test', 'test', '/workspace');
       expect(prompt).toContain('STATUS.md');
-      expect(prompt).toContain('TODO.md');
-      expect(prompt).toContain('COMMANDS.md');
+      expect(prompt).toContain('README.md');
+      expect(prompt).toContain('LEARNINGS.md');
       expect(prompt).toContain('Determinism rules');
     });
   });

@@ -55,13 +55,11 @@ export async function handleDoctor(ctx: CommandContext): Promise<CommandResult> 
   }
 
   // Run all checks
-  const cronJobsPath = path.join(configDir, 'cron', 'jobs.json');
   const results = runAllChecksForTopic(
     entry,
     projectsBase,
     includeContent,
     registry,
-    cronJobsPath,
   );
 
   // Backup if healthy

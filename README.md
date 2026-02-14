@@ -57,23 +57,18 @@ In practice: if the AI resets and you ask "what are we working on?", it answers 
 
 ## What gets tracked
 
-Each topic gets its own folder with files the AI maintains automatically:
+Each topic gets its own folder with three files the AI maintains automatically:
 
 | File | Purpose |
 |------|---------|
-| `STATUS.md` | Last activity, next actions, upcoming work |
-| `TODO.md` | Task list |
+| `README.md` | What this topic is about, goals, key resources, and type-specific sections |
+| `STATUS.md` | Last activity, next actions, upcoming work, backlog, and completed tasks |
 | `LEARNINGS.md` | Insights, mistakes, workarounds |
-| `COMMANDS.md` | Build/deploy/test commands |
-| `LINKS.md` | URLs and endpoints |
-| `CRON.md` | Scheduled jobs |
-| `NOTES.md` | Anything else worth keeping |
-| `README.md` | What this topic is about |
 
-Depending on the topic type, extra files are added:
-- **Coding** adds `ARCHITECTURE.md` and `DEPLOY.md`
-- **Research** adds `SOURCES.md` and `FINDINGS.md`
-- **Marketing** adds `CAMPAIGNS.md` and `METRICS.md`
+The README includes type-specific sections depending on the topic:
+- **Coding** adds Architecture, Deployment, and Commands sections
+- **Research** adds Sources and Findings sections
+- **Marketing** adds Campaigns and Metrics sections
 
 These files are committed to your workspace git repo so they persist and have history. Operational files (the internal registry and audit log) are automatically added to `.gitignore` during setup.
 

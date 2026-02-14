@@ -99,8 +99,8 @@ describe('commands/init', () => {
 
       const capsuleDir = path.join(projectsDir, 't-456');
       expect(fs.existsSync(path.join(capsuleDir, 'STATUS.md'))).toBe(true);
-      expect(fs.existsSync(path.join(capsuleDir, 'TODO.md'))).toBe(true);
       expect(fs.existsSync(path.join(capsuleDir, 'README.md'))).toBe(true);
+      expect(fs.existsSync(path.join(capsuleDir, 'LEARNINGS.md'))).toBe(true);
     });
   });
 

@@ -54,52 +54,45 @@ describe('capsule', () => {
       }
     });
 
-    it('should create coding overlay files', () => {
+    it('should have no overlay files (all types use empty overlays)', () => {
+      const types: TopicType[] = ['coding', 'research', 'marketing', 'general'];
+      for (const type of types) {
+        expect(OVERLAY_FILES[type]).toEqual([]);
+      }
+    });
+
+    it('should create type-specific README.md sections for coding', () => {
       const slug = 'test-coding';
       scaffoldCapsule(projectsBase, slug, slug, 'coding');
 
       const capsuleDir = path.join(projectsBase, slug);
-      const overlays = OVERLAY_FILES['coding'];
+      const content = fs.readFileSync(path.join(capsuleDir, 'README.md'), 'utf-8');
 
-      expect(overlays).toContain('ARCHITECTURE.md');
-      expect(overlays).toContain('DEPLOY.md');
-
-      for (const file of overlays) {
-        const filePath = path.join(capsuleDir, file);
-        expect(fs.existsSync(filePath)).toBe(true);
-      }
+      expect(content).toContain('## Architecture');
+      expect(content).toContain('## Deployment');
+      expect(content).toContain('## Commands');
     });
 
-    it('should create research overlay files', () => {
+    it('should create type-specific README.md sections for research', () => {
       const slug = 'test-research';
       scaffoldCapsule(projectsBase, slug, slug, 'research');
 
       const capsuleDir = path.join(projectsBase, slug);
-      const overlays = OVERLAY_FILES['research'];
+      const content = fs.readFileSync(path.join(capsuleDir, 'README.md'), 'utf-8');
 
-      expect(overlays).toContain('SOURCES.md');
-      expect(overlays).toContain('FINDINGS.md');
-
-      for (const file of overlays) {
-        const filePath = path.join(capsuleDir, file);
-        expect(fs.existsSync(filePath)).toBe(true);
-      }
+      expect(content).toContain('## Sources');
+      expect(content).toContain('## Findings');
     });
 
-    it('should create marketing overlay files', () => {
+    it('should create type-specific README.md sections for marketing', () => {
       const slug = 'test-marketing';
       scaffoldCapsule(projectsBase, slug, slug, 'marketing');
 
       const capsuleDir = path.join(projectsBase, slug);
-      const overlays = OVERLAY_FILES['marketing'];
+      const content = fs.readFileSync(path.join(capsuleDir, 'README.md'), 'utf-8');
 
-      expect(overlays).toContain('CAMPAIGNS.md');
-      expect(overlays).toContain('METRICS.md');
-
-      for (const file of overlays) {
-        const filePath = path.join(capsuleDir, file);
-        expect(fs.existsSync(filePath)).toBe(true);
-      }
+      expect(content).toContain('## Campaigns');
+      expect(content).toContain('## Metrics');
     });
 
     it('should set correct file permissions', () => {
@@ -140,7 +133,7 @@ describe('capsule', () => {
       expect(content).toContain('Hard-won insights');
     });
 
-    it('should include slug in file content', () => {
+    it('should include name in README.md content', () => {
       const slug = 'my-project';
       scaffoldCapsule(projectsBase, slug, slug, 'coding');
 
@@ -151,8 +144,8 @@ describe('capsule', () => {
       expect(content).toContain(slug);
     });
 
-    it('should create STATUS.md with two-tier queue format', () => {
-      const slug = 'test-two-tier';
+    it('should create STATUS.md with full section layout', () => {
+      const slug = 'test-full-layout';
       scaffoldCapsule(projectsBase, slug, slug, 'coding');
 
       const capsuleDir = path.join(projectsBase, slug);
@@ -161,6 +154,8 @@ describe('capsule', () => {
 
       expect(content).toContain('## Next actions (now)');
       expect(content).toContain('## Upcoming actions');
+      expect(content).toContain('## Backlog');
+      expect(content).toContain('## Completed');
       expect(content).not.toContain('Next 3 actions');
     });
   });
@@ -183,14 +178,14 @@ describe('capsule', () => {
 
       // Remove a base file
       const capsuleDir = path.join(projectsBase, slug);
-      fs.unlinkSync(path.join(capsuleDir, 'NOTES.md'));
+      fs.unlinkSync(path.join(capsuleDir, 'LEARNINGS.md'));
 
       const result = upgradeCapsule(projectsBase, slug, slug, 'coding', 0);
 
       expect(result.upgraded).toBe(true);
       expect(result.newVersion).toBe(CAPSULE_VERSION);
-      expect(result.addedFiles).toContain('NOTES.md');
-      expect(fs.existsSync(path.join(capsuleDir, 'NOTES.md'))).toBe(true);
+      expect(result.addedFiles).toContain('LEARNINGS.md');
+      expect(fs.existsSync(path.join(capsuleDir, 'LEARNINGS.md'))).toBe(true);
     });
 
     it('should add LEARNINGS.md when upgrading from v1', () => {
@@ -210,35 +205,55 @@ describe('capsule', () => {
       expect(fs.existsSync(learningsPath)).toBe(true);
     });
 
-    it('should add missing overlay files', () => {
-      const slug = 'test-overlay-upgrade';
-      scaffoldCapsule(projectsBase, slug, slug, 'research');
-
-      // Remove an overlay file
+    it('should add Backlog and Completed sections when upgrading from v3', () => {
+      const slug = 'test-v3-upgrade';
       const capsuleDir = path.join(projectsBase, slug);
-      fs.unlinkSync(path.join(capsuleDir, 'FINDINGS.md'));
+      fs.mkdirSync(capsuleDir);
 
-      const result = upgradeCapsule(projectsBase, slug, slug, 'research', 0);
+      // Simulate a v3 STATUS.md (no Backlog/Completed)
+      const v3Status = [
+        '# Status: test-topic',
+        '',
+        '## Last done (UTC)',
+        '',
+        '2026-02-13T10:00:00Z Did some work',
+        '',
+        '## Next actions (now)',
+        '',
+        '1. First action',
+        '',
+        '## Upcoming actions',
+        '',
+        '_None yet._',
+      ].join('\n');
+      fs.writeFileSync(path.join(capsuleDir, 'STATUS.md'), v3Status);
+      fs.writeFileSync(path.join(capsuleDir, 'README.md'), '# test');
+      fs.writeFileSync(path.join(capsuleDir, 'LEARNINGS.md'), '# Learnings');
+
+      const result = upgradeCapsule(projectsBase, slug, slug, 'coding', 3);
 
       expect(result.upgraded).toBe(true);
-      expect(result.addedFiles).toContain('FINDINGS.md');
-      expect(fs.existsSync(path.join(capsuleDir, 'FINDINGS.md'))).toBe(true);
+      const content = fs.readFileSync(path.join(capsuleDir, 'STATUS.md'), 'utf-8');
+      expect(content).toContain('## Backlog');
+      expect(content).toContain('## Completed');
     });
 
-    it('should not overwrite existing files', () => {
+    it('should not overwrite existing files but may append missing sections', () => {
       const slug = 'test-no-overwrite';
       scaffoldCapsule(projectsBase, slug, slug, 'coding');
 
       const capsuleDir = path.join(projectsBase, slug);
-      const statusPath = path.join(capsuleDir, 'STATUS.md');
-      const originalContent = fs.readFileSync(statusPath, 'utf-8');
+      const readmePath = path.join(capsuleDir, 'README.md');
 
-      fs.writeFileSync(statusPath, 'CUSTOM CONTENT', 'utf-8');
+      // README.md with custom user content (not the default template)
+      fs.writeFileSync(readmePath, '# My Custom README\n\nCustom content here.', 'utf-8');
 
       upgradeCapsule(projectsBase, slug, slug, 'coding', 0);
 
-      const afterContent = fs.readFileSync(statusPath, 'utf-8');
-      expect(afterContent).toBe('CUSTOM CONTENT');
+      const afterContent = fs.readFileSync(readmePath, 'utf-8');
+      // Custom README should not be replaced (it's not the default template)
+      expect(afterContent).toContain('My Custom README');
+      expect(afterContent).toContain('Custom content here.');
     });
 
     it('should reject path traversal', () => {
@@ -275,28 +290,13 @@ describe('capsule', () => {
       scaffoldCapsule(projectsBase, slug, slug, 'coding');
 
       const capsuleDir = path.join(projectsBase, slug);
-      fs.unlinkSync(path.join(capsuleDir, 'TODO.md'));
-      fs.unlinkSync(path.join(capsuleDir, 'COMMANDS.md'));
+      fs.unlinkSync(path.join(capsuleDir, 'LEARNINGS.md'));
 
       const result = validateCapsule(projectsBase, slug, 'coding');
 
-      expect(result.missing).toContain('TODO.md');
-      expect(result.missing).toContain('COMMANDS.md');
-      expect(result.present).not.toContain('TODO.md');
+      expect(result.missing).toContain('LEARNINGS.md');
+      expect(result.present).not.toContain('LEARNINGS.md');
       expect(result.present).toContain('STATUS.md');
-    });
-
-    it('should detect missing overlay files', () => {
-      const slug = 'missing-overlays';
-      scaffoldCapsule(projectsBase, slug, slug, 'research');
-
-      const capsuleDir = path.join(projectsBase, slug);
-      fs.unlinkSync(path.join(capsuleDir, 'SOURCES.md'));
-
-      const result = validateCapsule(projectsBase, slug, 'research');
-
-      expect(result.missing).toContain('SOURCES.md');
-      expect(result.present).toContain('FINDINGS.md');
     });
 
     it('should handle different topic types', () => {

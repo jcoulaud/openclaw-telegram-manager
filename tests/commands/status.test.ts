@@ -23,8 +23,15 @@ describe('formatStatus', () => {
       '',
       '- Refactor user model',
       '- Add rate limiting',
+      '',
+      '## Backlog',
+      '',
+      '- [T-1] Set up project scaffolding',
+      '',
+      '## Completed',
+      '',
+      '_None yet._',
     ].join('\n'),
-    todoContent: null,
     expanded: false,
   };
 
@@ -68,16 +75,34 @@ describe('formatStatus', () => {
     expect(result).not.toContain('Blockers');
   });
 
-  it('should show blockers when present in TODO.md', () => {
-    const todoContent = [
-      '## Tasks',
+  it('should show blockers when present in Backlog section', () => {
+    const statusWithBlocker = [
+      '# Status: My Project',
+      '',
+      '## Last done (UTC)',
+      '',
+      '2026-02-13T10:30:00Z Implemented the login flow',
+      '',
+      '## Next actions (now)',
+      '',
+      '1. Add tests for auth',
+      '',
+      '## Upcoming actions',
+      '',
+      '_None yet._',
+      '',
+      '## Backlog',
       '',
       '- [x] Setup project',
       '- [ ] [BLOCKED] Waiting for API access',
       '- [ ] Deploy',
+      '',
+      '## Completed',
+      '',
+      '_None yet._',
     ].join('\n');
 
-    const result = formatStatus({ ...baseData, todoContent });
+    const result = formatStatus({ ...baseData, statusContent: statusWithBlocker });
     expect(result).toContain('Blockers');
     expect(result).toContain('BLOCKED');
   });

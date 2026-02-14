@@ -4,7 +4,6 @@ import JSON5 from 'json5';
 import {
   Severity,
   CAPSULE_VERSION,
-  OVERLAY_FILES,
   SPAM_THRESHOLD,
 } from './types.js';
 import type { TopicEntry, DoctorCheckResult, Registry } from './types.js';
@@ -101,7 +100,7 @@ export function runOrphanCheck(
 // ── Capsule structure checks ───────────────────────────────────────────
 
 /**
- * Check capsule structure: required files, overlay files, capsule version.
+ * Check capsule structure: required files and capsule version.
  */
 export function runCapsuleChecks(
   entry: TopicEntry,
@@ -117,23 +116,6 @@ export function runCapsuleChecks(
     results.push(
       check(Severity.ERROR, 'statusMissing', 'Status file is missing', true, 'Run /tm upgrade to recreate it'),
     );
-  }
-
-  // TODO.md is important
-  if (!fs.existsSync(path.join(capsuleDir, 'TODO.md'))) {
-    results.push(
-      check(Severity.WARN, 'todoMissing', 'TODO file is missing', true, 'Run /tm upgrade to recreate it'),
-    );
-  }
-
-  // Overlay files are optional but worth noting
-  const overlays = OVERLAY_FILES[entry.type] ?? [];
-  for (const file of overlays) {
-    if (!fs.existsSync(path.join(capsuleDir, file))) {
-      results.push(
-        check(Severity.INFO, `overlayMissing:${file}`, `Optional overlay ${file} missing for type "${entry.type}"`, true),
-      );
-    }
   }
 
   // Capsule version behind
@@ -240,14 +222,15 @@ export function runStatusQualityChecks(
   return results;
 }
 
-// ── Next vs TODO cross-reference ───────────────────────────────────────
+// ── Next vs Backlog cross-reference ────────────────────────────────────
+
+const BACKLOG_RE = /^##\s*Backlog/im;
 
 /**
- * Check that task IDs in "Next actions (now)" exist in TODO.md.
+ * Check that task IDs in "Next actions (now)" exist in the Backlog section of STATUS.md.
  */
-export function runNextVsTodoChecks(
+export function runNextVsBacklogChecks(
   statusContent: string,
-  todoContent: string,
 ): DoctorCheckResult[] {
   const results: DoctorCheckResult[] = [];
 
@@ -265,19 +248,28 @@ export function runNextVsTodoChecks(
   const nextTaskIds = nextActionsSection.match(TASK_ID_RE) ?? [];
   if (nextTaskIds.length === 0) return results;
 
-  // Get task IDs from TODO
-  const todoTaskIds = new Set(todoContent.match(TASK_ID_RE) ?? []);
+  // Extract Backlog section from STATUS.md
+  const backlogIndex = statusContent.search(BACKLOG_RE);
+  if (backlogIndex < 0) return results;
 
-  // Find task IDs in next that are not in TODO
-  const missing = nextTaskIds.filter((id) => !todoTaskIds.has(id));
+  const backlogAfter = statusContent.slice(backlogIndex);
+  const backlogNextSection = backlogAfter.indexOf('\n## ', 1);
+  const backlogSection = backlogNextSection > 0
+    ? backlogAfter.slice(0, backlogNextSection)
+    : backlogAfter;
+
+  const backlogTaskIds = new Set(backlogSection.match(TASK_ID_RE) ?? []);
+
+  // Find task IDs in next that are not in Backlog
+  const missing = nextTaskIds.filter((id) => !backlogTaskIds.has(id));
 
   // Only warn if 2+ are missing (allows 1 stale reference)
   if (missing.length >= 2) {
     results.push(
       check(
         Severity.WARN,
-        'nextNotInTodo',
-        `${missing.length} tasks referenced in next actions don't exist in the TODO list: ${missing.join(', ')}`,
+        'nextNotInBacklog',
+        `${missing.length} tasks referenced in next actions don't exist in the backlog: ${missing.join(', ')}`,
         false,
         'The AI will clean these up on next interaction',
       ),
@@ -287,104 +279,26 @@ export function runNextVsTodoChecks(
   return results;
 }
 
-// ── Commands / Links checks ────────────────────────────────────────────
+// ── Unfilled context check ─────────────────────────────────────────────
 
 /**
- * Check COMMANDS.md and LINKS.md for relevant topic types.
+ * Check if README.md still has the default template placeholder.
  */
-export function runCommandsLinksChecks(
-  entry: TopicEntry,
+export function runUnfilledContextCheck(
   capsuleFiles: Map<string, string>,
 ): DoctorCheckResult[] {
   const results: DoctorCheckResult[] = [];
+  const readmeContent = capsuleFiles.get('README.md');
 
-  // COMMANDS.md empty for coding topics
-  if (entry.type === 'coding') {
-    const commandsContent = capsuleFiles.get('COMMANDS.md');
-    if (commandsContent !== undefined && isEffectivelyEmpty(commandsContent)) {
-      results.push(
-        check(Severity.INFO, 'commandsEmpty', 'COMMANDS.md is empty for a coding topic', false, 'Add build/test/deploy commands to COMMANDS.md'),
-      );
-    }
-  }
-
-  // LINKS.md empty for coding or research
-  if (entry.type === 'coding' || entry.type === 'research') {
-    const linksContent = capsuleFiles.get('LINKS.md');
-    if (linksContent !== undefined && isEffectivelyEmpty(linksContent)) {
-      results.push(
-        check(Severity.INFO, 'linksEmpty', 'LINKS.md is empty for a coding/research topic', false, 'Add URLs and endpoints to LINKS.md'),
-      );
-    }
-  }
-
-  return results;
-}
-
-/**
- * Check if a markdown file is effectively empty (only has a heading and template text).
- */
-function isEffectivelyEmpty(content: string): boolean {
-  // Remove markdown heading lines and template placeholders
-  const stripped = content
-    .replace(/^#.*$/gm, '')           // headings
-    .replace(/^_.*_$/gm, '')          // italic template text
-    .replace(/\s+/g, '')              // whitespace
-    .trim();
-  return stripped.length === 0;
-}
-
-// ── Cron checks ────────────────────────────────────────────────────────
-
-const JOB_ID_RE = /[a-zA-Z0-9_-]{8,}/;
-
-/**
- * Check CRON.md for job ID presence and optionally validate against cron/jobs.json.
- */
-export function runCronChecks(
-  cronContent: string,
-  cronJobsPath?: string,
-): DoctorCheckResult[] {
-  const results: DoctorCheckResult[] = [];
-
-  // Skip if cron content is effectively empty
-  if (isEffectivelyEmpty(cronContent)) return results;
-
-  // Check for job IDs in CRON.md
-  const lines = cronContent.split('\n').filter((l) => !l.startsWith('#') && l.trim().length > 0);
-  const hasJobIds = lines.some((line) => JOB_ID_RE.test(line));
-
-  if (!hasJobIds) {
+  if (readmeContent && readmeContent.includes('_Describe what this topic is about._')) {
     results.push(
-      check(Severity.WARN, 'cronNoJobIds', 'Scheduled jobs are listed but have no recognizable job IDs', false),
+      check(
+        Severity.INFO,
+        'contextUnfilled',
+        'Topic context is empty — tell the AI about your project to get better help.',
+        false,
+      ),
     );
-    return results;
-  }
-
-  // Optionally validate job IDs against cron/jobs.json
-  if (cronJobsPath && fs.existsSync(cronJobsPath)) {
-    try {
-      const jobsRaw = fs.readFileSync(cronJobsPath, 'utf-8');
-      const jobs = JSON.parse(jobsRaw) as Record<string, unknown>;
-      const knownJobIds = new Set(Object.keys(jobs));
-
-      // Extract job IDs from CRON.md lines
-      for (const line of lines) {
-        const match = line.match(JOB_ID_RE);
-        if (match && !knownJobIds.has(match[0])) {
-          results.push(
-            check(
-              Severity.WARN,
-              'cronJobNotFound',
-              `Scheduled job "${match[0]}" not found in the jobs registry`,
-              false,
-            ),
-          );
-        }
-      }
-    } catch {
-      // Can't read jobs file — skip validation
-    }
   }
 
   return results;
@@ -502,7 +416,7 @@ export function runSpamControlCheck(
       check(
         Severity.INFO,
         'spamControl',
-        `No activity for a while \u2014 auto-snoozing for 30 days`,
+        `No activity for a while — auto-snoozing for 30 days`,
         true,
         'Send a message to resume',
       ),
@@ -551,7 +465,6 @@ export function runAllChecksForTopic(
   projectsBase: string,
   includeContent?: string,
   registry?: Registry,
-  cronJobsPath?: string,
 ): DoctorCheckResult[] {
   const results: DoctorCheckResult[] = [];
   const capsuleDir = path.join(projectsBase, entry.slug);
@@ -576,21 +489,12 @@ export function runAllChecksForTopic(
   if (statusContent) {
     results.push(...runStatusQualityChecks(statusContent, entry));
 
-    // Next vs TODO checks
-    const todoContent = capsuleFiles.get('TODO.md');
-    if (todoContent) {
-      results.push(...runNextVsTodoChecks(statusContent, todoContent));
-    }
+    // Next vs Backlog checks (Backlog section is in STATUS.md itself)
+    results.push(...runNextVsBacklogChecks(statusContent));
   }
 
-  // Commands / Links checks
-  results.push(...runCommandsLinksChecks(entry, capsuleFiles));
-
-  // Cron checks
-  const cronContent = capsuleFiles.get('CRON.md');
-  if (cronContent) {
-    results.push(...runCronChecks(cronContent, cronJobsPath));
-  }
+  // Unfilled context check
+  results.push(...runUnfilledContextCheck(capsuleFiles));
 
   // Config checks (if include content provided)
   if (includeContent && registry) {
@@ -611,10 +515,10 @@ export function runAllChecksForTopic(
 // ── Backup helper ──────────────────────────────────────────────────────
 
 const BACKUP_DIR = '.tm-backup';
-const BACKUP_FILES = ['STATUS.md', 'TODO.md'];
+const BACKUP_FILES = ['STATUS.md'];
 
 /**
- * Snapshot STATUS.md and TODO.md to .tm-backup/ when all checks pass.
+ * Snapshot STATUS.md to .tm-backup/ when all checks pass.
  * Only creates a backup if no ERROR or WARN findings exist.
  */
 export function backupCapsuleIfHealthy(
@@ -645,13 +549,7 @@ export function backupCapsuleIfHealthy(
 
 function readCapsuleFiles(capsuleDir: string): Map<string, string> {
   const files = new Map<string, string>();
-  const filenames = [
-    'STATUS.md', 'TODO.md', 'COMMANDS.md', 'LINKS.md',
-    'CRON.md', 'NOTES.md', 'README.md', 'LEARNINGS.md',
-    'ARCHITECTURE.md', 'DEPLOY.md',
-    'SOURCES.md', 'FINDINGS.md',
-    'CAMPAIGNS.md', 'METRICS.md',
-  ];
+  const filenames = ['README.md', 'STATUS.md', 'LEARNINGS.md'];
 
   for (const name of filenames) {
     const filePath = path.join(capsuleDir, name);

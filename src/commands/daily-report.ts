@@ -42,11 +42,10 @@ export async function handleDailyReport(ctx: CommandContext): Promise<CommandRes
 
   // Read capsule files
   const statusContent = readFileOrNull(path.join(capsuleDir, 'STATUS.md'));
-  const todoContent = readFileOrNull(path.join(capsuleDir, 'TODO.md'));
 
   // Extract sections
   const doneContent = extractDoneSection(statusContent);
-  const blockers = extractBlockers(todoContent);
+  const blockers = extractBlockers(statusContent);
   const nextContent = extractNextActions(statusContent);
 
   const reportData = {
@@ -110,9 +109,12 @@ export function extractDoneSection(statusContent: string | null): string {
   return text || 'Empty.';
 }
 
-export function extractBlockers(todoContent: string | null): string {
-  if (!todoContent) return 'No tasks recorded yet.';
-  const lines = todoContent.split('\n');
+export function extractBlockers(statusContent: string | null): string {
+  if (!statusContent) return 'No tasks recorded yet.';
+  // Extract Backlog section from STATUS.md
+  const backlogMatch = statusContent.match(/^##\s*Backlog\b.*\n((?:(?!\n## )[\s\S])*)/im);
+  const backlogSection = backlogMatch ? backlogMatch[1] ?? '' : statusContent;
+  const lines = backlogSection.split('\n');
   const blockerLines = lines.filter(
     (l) => /\[BLOCKED\]/i.test(l) || /\bblocked\b/i.test(l),
   );

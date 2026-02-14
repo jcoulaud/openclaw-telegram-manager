@@ -32,8 +32,8 @@ Context hierarchy (strictly ordered):
 
 Determinism rules:
 - After /reset, /new, or context compaction: ALWAYS re-read your topic files
-  first — STATUS.md, then TODO.md, then LEARNINGS.md (last 20 entries), then
-  COMMANDS.md — before doing anything else. These are your ground truth.
+  first — STATUS.md, then LEARNINGS.md (last 20 entries), then README.md for
+  topic context — before doing anything else. These are your ground truth.
   Do not rely on summarized memory or workspace-level files for this topic's
   tasks, status, or goals.
 - Before context compaction or when the conversation is long: proactively
@@ -41,13 +41,12 @@ Determinism rules:
   "Next actions (now)") so compaction cannot erase critical state.
   Use the standard file write tool directly — do not route through /tm.
 - Keep STATUS.md accurate: always maintain "Last done (UTC)", "Next actions (now)",
-  and "Upcoming actions".
-- When new commands appear, add them to COMMANDS.md (don't leave them only in chat).
-- When new links/paths/services appear, add them to LINKS.md.
-- If automation/cron is involved, record job IDs + schedules in CRON.md.
-- Task IDs (e.g., [T-1]) must stay consistent between STATUS.md and TODO.md.
+  "Upcoming actions", "Backlog", and "Completed".
+- Task IDs (e.g., [T-1]) must stay consistent across STATUS.md sections.
+  Move completed tasks from Backlog to Completed.
 - STATUS.md has two priority sections: "Next actions (now)" for immediate work
   and "Upcoming actions" for the near-future pipeline.
+- Key resources, commands, and context belong in README.md.
 
 Learning capture:
 - When you discover something unexpected, a mistake, a workaround, or a

@@ -7,50 +7,69 @@ import { jailCheck, rejectSymlink } from './security.js';
 // ── Template content (embedded string constants) ───────────────────────
 // These are the source-of-truth defaults, matching src/templates/.
 
-const BASE_TEMPLATES: Record<string, (name: string) => string> = {
-  'README.md': (name) =>
-    `# ${name}\n\n_Describe what this topic is about._\n`,
+const README_UNIVERSAL = (name: string) =>
+  `# ${name}
+
+## What is this about?
+
+_Describe what this topic is about._
+
+## Goal
+
+_What does success look like?_
+
+## Key resources
+
+_URLs, repos, paths, dashboards — anything the AI needs after a reset._
+`;
+
+const README_TYPE_SECTIONS: Record<TopicType, (name: string) => string> = {
+  coding: () => `
+## Architecture
+
+_Components, data flow, key decisions._
+
+## Deployment
+
+_Environments, deploy steps, rollback._
+
+## Commands
+
+_Build, test, deploy — kept here so they survive a reset._
+`,
+  research: () => `
+## Sources
+
+_Papers, articles, datasets, APIs._
+
+## Findings
+
+_Key findings, evidence, recommendations._
+`,
+  marketing: () => `
+## Campaigns
+
+_Active campaigns, audiences, channels._
+
+## Metrics
+
+_KPIs, targets, tracking dashboards._
+`,
+  general: () => '',
+};
+
+const BASE_TEMPLATES: Record<string, (name: string, type?: TopicType) => string> = {
+  'README.md': (name, type) => {
+    const universal = README_UNIVERSAL(name);
+    const extra = type ? README_TYPE_SECTIONS[type](name) : '';
+    return universal + extra;
+  },
 
   'STATUS.md': (name) =>
-    `# Status: ${name}\n\n## Last done (UTC)\n\n${new Date().toISOString()}\n\nTopic created. Waiting for first instructions.\n\n## Next actions (now)\n\n_None yet._\n\n## Upcoming actions\n\n_None yet._\n`,
-
-  'TODO.md': (name) =>
-    `# TODO: ${name}\n\n## Backlog\n\n- [T-1] _e.g. Set up project scaffolding_\n- [T-2] _Waiting for next task_\n- [T-3] _Waiting for next task_\n\n## Completed\n\n_None yet._\n`,
-
-  'COMMANDS.md': (name) =>
-    `# Commands: ${name}\n\n_Build, deploy, test, and other commands for this topic. Kept here so they're not lost on reset._\n`,
-
-  'LINKS.md': (name) =>
-    `# Links: ${name}\n\n## Key paths & URLs\n\n_Not set yet — add repository paths, dashboards, service URLs, or anything the agent needs after a reset._\n`,
-
-  'CRON.md': (name) =>
-    `# Cron: ${name}\n\n_Cron job IDs and schedules for this topic._\n`,
-
-  'NOTES.md': (name) =>
-    `# Notes: ${name}\n\n_Anything worth remembering about this topic._\n`,
+    `# Status: ${name}\n\n## Last done (UTC)\n\n${new Date().toISOString()}\nTopic created. Waiting for first instructions.\n\n## Next actions (now)\n\n_None yet._\n\n## Upcoming actions\n\n_None yet._\n\n## Backlog\n\n- [T-1] _e.g. Set up project scaffolding_\n\n## Completed\n\n_None yet._\n`,
 
   'LEARNINGS.md': (name) =>
     `# Learnings: ${name}\n\n_Hard-won insights, mistakes, and workarounds._\n_Agent prepends here automatically. Most recent entries first._\n`,
-};
-
-const OVERLAY_TEMPLATES: Record<string, (name: string) => string> = {
-  'ARCHITECTURE.md': (name) =>
-    `# Architecture: ${name}\n\n## Components\n\n_None yet._\n\n## Data flow\n\n_None yet._\n\n## Key decisions\n\n_None yet._\n`,
-
-  'DEPLOY.md': (name) =>
-    `# Deployment: ${name}\n\n## Paths\n\n_Repository and runtime/data paths go here._\n\n## Environments\n\n_None yet._\n\n## Deploy steps\n\n_None yet._\n\n## Rollback\n\n_None yet._\n`,
-
-  'SOURCES.md': (name) =>
-    `# Sources: ${name}\n\n## Papers & articles\n\n_None yet._\n\n## Datasets & APIs\n\n_None yet._\n\n## Other references\n\n_None yet._\n`,
-
-  'FINDINGS.md': (name) =>
-    `# Findings: ${name}\n\n## Key findings\n\n_None yet._\n\n## Evidence & data\n\n_None yet._\n\n## Recommendations\n\n_None yet._\n`,
-
-  'CAMPAIGNS.md': (name) =>
-    `# Campaigns: ${name}\n\n## Active campaigns\n\n_None yet._\n\n## Audiences & channels\n\n_None yet._\n\n## Timeline & budget\n\n_None yet._\n`,
-
-  'METRICS.md': (name) =>
-    `# Metrics: ${name}\n\n## KPIs & targets\n\n_None yet._\n\n## Tracking & dashboards\n\n_None yet._\n\n## Performance data\n\n_None yet._\n`,
 };
 
 // ── File permissions ───────────────────────────────────────────────────
@@ -60,7 +79,7 @@ const CAPSULE_FILE_MODE = 0o640;
 // ── Scaffold ───────────────────────────────────────────────────────────
 
 /**
- * Scaffold a new capsule directory with base kit + type overlays.
+ * Scaffold a new capsule directory with base kit + type-specific README sections.
  * Uses fs.mkdirSync with exclusive flag as the atomic reservation mechanism.
  * Throws if the directory already exists (collision).
  *
@@ -93,17 +112,7 @@ export function scaffoldCapsule(
     const templateFn = BASE_TEMPLATES[file];
     if (templateFn) {
       const filePath = path.join(capsuleDir, file);
-      fs.writeFileSync(filePath, templateFn(name), { mode: CAPSULE_FILE_MODE });
-    }
-  }
-
-  // Write overlay files for the type
-  const overlays = OVERLAY_FILES[type];
-  for (const file of overlays) {
-    const templateFn = OVERLAY_TEMPLATES[file];
-    if (templateFn) {
-      const filePath = path.join(capsuleDir, file);
-      fs.writeFileSync(filePath, templateFn(name), { mode: CAPSULE_FILE_MODE });
+      fs.writeFileSync(filePath, templateFn(name, type), { mode: CAPSULE_FILE_MODE });
     }
   }
 }
@@ -118,7 +127,9 @@ export interface UpgradeResult {
 
 /**
  * Upgrade an existing capsule to the latest template version.
- * Adds missing files without overwriting existing ones.
+ * v3→v4: append Backlog + Completed sections to STATUS.md if missing,
+ * replace default README.md with new template if still at default.
+ * Never deletes old files (LINKS.md, TODO.md, etc.) — they may have user content.
  *
  * @param slug - stable ID used for directory name
  * @param name - human-readable label used in template headers
@@ -152,21 +163,33 @@ export function upgradeCapsule(
     if (!fs.existsSync(filePath)) {
       const templateFn = BASE_TEMPLATES[file];
       if (templateFn) {
-        fs.writeFileSync(filePath, templateFn(name), { mode: CAPSULE_FILE_MODE });
+        fs.writeFileSync(filePath, templateFn(name, type), { mode: CAPSULE_FILE_MODE });
         addedFiles.push(file);
       }
     }
   }
 
-  // Add missing overlay files
-  const overlays = OVERLAY_FILES[type];
-  for (const file of overlays) {
-    const filePath = path.join(capsuleDir, file);
-    if (!fs.existsSync(filePath)) {
-      const templateFn = OVERLAY_TEMPLATES[file];
-      if (templateFn) {
-        fs.writeFileSync(filePath, templateFn(name), { mode: CAPSULE_FILE_MODE });
-        addedFiles.push(file);
+  // v3→v4 specific upgrades
+  if (currentVersion < 4) {
+    // Append Backlog + Completed sections to STATUS.md if missing
+    const statusPath = path.join(capsuleDir, 'STATUS.md');
+    if (fs.existsSync(statusPath)) {
+      const content = fs.readFileSync(statusPath, 'utf-8');
+      if (!content.includes('## Backlog')) {
+        const appendix = '\n## Backlog\n\n- [T-1] _e.g. Set up project scaffolding_\n\n## Completed\n\n_None yet._\n';
+        fs.writeFileSync(statusPath, content.trimEnd() + '\n' + appendix, { mode: CAPSULE_FILE_MODE });
+      }
+    }
+
+    // Replace README.md with new template if still at default
+    const readmePath = path.join(capsuleDir, 'README.md');
+    if (fs.existsSync(readmePath)) {
+      const content = fs.readFileSync(readmePath, 'utf-8');
+      if (content.includes('_Describe what this topic is about._') && !content.includes('## Goal')) {
+        const templateFn = BASE_TEMPLATES['README.md'];
+        if (templateFn) {
+          fs.writeFileSync(readmePath, templateFn(name, type), { mode: CAPSULE_FILE_MODE });
+        }
       }
     }
   }

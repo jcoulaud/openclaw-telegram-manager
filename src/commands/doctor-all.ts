@@ -242,7 +242,6 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
     // Not critical
   }
 
-  const cronJobsPath = path.join(configDir, 'cron', 'jobs.json');
   const allEntries = Object.entries(registry.topics);
   const reports: TopicReport[] = [];
   const errors: string[] = [];
@@ -269,7 +268,6 @@ export async function handleDoctorAll(ctx: CommandContext): Promise<CommandResul
         projectsBase,
         includeContent,
         registry,
-        cronJobsPath,
       );
 
       // Spam control: auto-snooze if threshold reached

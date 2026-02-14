@@ -5,7 +5,7 @@ import { checkAuthorization } from '../lib/auth.js';
 import { topicKey } from '../lib/types.js';
 import { jailCheck, rejectSymlink } from '../lib/security.js';
 import { truncateMessage, relativeTime } from '../lib/telegram.js';
-import { readFileOrNull, extractBlockers } from './daily-report.js';
+import { extractBlockers } from './daily-report.js';
 import type { CommandContext, CommandResult } from './help.js';
 
 // ── STATUS.md section parsers ──────────────────────────────────────────
@@ -49,15 +49,14 @@ export interface StatusData {
   name: string;
   type: string;
   statusContent: string;
-  todoContent: string | null;
   expanded: boolean;
 }
 
 export function formatStatus(data: StatusData): string {
-  const { name, type, statusContent, todoContent, expanded } = data;
+  const { name, type, statusContent, expanded } = data;
   const timestamp = extractTimestamp(statusContent);
   const nextRaw = extractSection(statusContent, NEXT_ACTIONS_RE);
-  const blockers = extractBlockers(todoContent);
+  const blockers = extractBlockers(statusContent);
 
   // Last done body text (everything after the timestamp)
   const doneMatch = statusContent.match(LAST_DONE_RE);
@@ -156,13 +155,11 @@ export async function handleStatus(ctx: CommandContext, args: string): Promise<C
 
   try {
     const statusContent = fs.readFileSync(statusPath, 'utf-8');
-    const todoContent = readFileOrNull(path.join(capsuleDir, 'TODO.md'));
     return {
       text: truncateMessage(formatStatus({
         name: entry.name,
         type: entry.type,
         statusContent,
-        todoContent,
         expanded,
       })),
     };

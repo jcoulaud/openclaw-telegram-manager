@@ -229,15 +229,15 @@ describe('init flow integration', () => {
       expect(registry.topics['-100123:2']).toBeUndefined();
     });
 
-    it('should handle different topic types with correct overlays', async () => {
+    it('should handle different topic types with correct README sections', async () => {
       const types = [
-        { type: 'coding', overlays: ['ARCHITECTURE.md', 'DEPLOY.md'] },
-        { type: 'research', overlays: ['SOURCES.md', 'FINDINGS.md'] },
-        { type: 'marketing', overlays: ['CAMPAIGNS.md', 'METRICS.md'] },
+        { type: 'coding', sections: ['## Architecture', '## Deployment', '## Commands'] },
+        { type: 'research', sections: ['## Sources', '## Findings'] },
+        { type: 'marketing', sections: ['## Campaigns', '## Metrics'] },
       ];
 
       let threadNum = 1;
-      for (const { type, overlays } of types) {
+      for (const { type, sections } of types) {
         const ctx: CommandContext = {
           workspaceDir,
           configDir,
@@ -252,8 +252,9 @@ describe('init flow integration', () => {
         await handleInit(ctx, `${type}-topic ${type}`);
 
         const capsuleDir = path.join(projectsDir, `t-${threadNum}`);
-        for (const overlay of overlays) {
-          expect(fs.existsSync(path.join(capsuleDir, overlay))).toBe(true);
+        const readmeContent = fs.readFileSync(path.join(capsuleDir, 'README.md'), 'utf-8');
+        for (const section of sections) {
+          expect(readmeContent).toContain(section);
         }
 
         threadNum++;

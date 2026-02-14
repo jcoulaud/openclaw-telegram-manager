@@ -3,7 +3,7 @@ import { Type, type Static } from '@sinclair/typebox';
 // ── Constants ──────────────────────────────────────────────────────────
 
 export const CURRENT_REGISTRY_VERSION = 6;
-export const CAPSULE_VERSION = 3;
+export const CAPSULE_VERSION = 4;
 export const MAX_EXTRAS_BYTES = 10_240;
 export const MAX_POST_ERROR_LENGTH = 500;
 export const MAX_TOPICS_DEFAULT = 100;
@@ -102,20 +102,15 @@ export interface DoctorCheckResult {
 // ── Overlay mappings ───────────────────────────────────────────────────
 
 export const OVERLAY_FILES: Record<TopicType, string[]> = {
-  coding: ['ARCHITECTURE.md', 'DEPLOY.md'],
-  research: ['SOURCES.md', 'FINDINGS.md'],
-  marketing: ['CAMPAIGNS.md', 'METRICS.md'],
+  coding: [],
+  research: [],
+  marketing: [],
   general: [],
 };
 
 export const BASE_FILES = [
   'README.md',
   'STATUS.md',
-  'TODO.md',
-  'COMMANDS.md',
-  'LINKS.md',
-  'CRON.md',
-  'NOTES.md',
   'LEARNINGS.md',
 ] as const;
 

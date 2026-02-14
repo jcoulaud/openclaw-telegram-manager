@@ -7,9 +7,8 @@ import {
   runOrphanCheck,
   runCapsuleChecks,
   runStatusQualityChecks,
-  runNextVsTodoChecks,
-  runCommandsLinksChecks,
-  runCronChecks,
+  runNextVsBacklogChecks,
+  runUnfilledContextCheck,
   runConfigChecks,
   runIncludeDriftCheck,
   runSpamControlCheck,
@@ -151,26 +150,6 @@ describe('doctor-checks', () => {
       expect(finding).toBeDefined();
       expect(finding!.severity).toBe(Severity.ERROR);
       expect(finding!.remediation).toContain('Run /tm upgrade to recreate it');
-    });
-
-    it('should detect missing TODO.md', () => {
-      const entry = createTestEntry();
-      scaffoldCapsule(projectsBase, entry.slug, entry.name, entry.type);
-      fs.unlinkSync(path.join(projectsBase, entry.slug, 'TODO.md'));
-
-      const results = runCapsuleChecks(entry, projectsBase);
-
-      expect(results.some(r => r.checkId === 'todoMissing' && r.severity === Severity.WARN)).toBe(true);
-    });
-
-    it('should detect missing overlay files', () => {
-      const entry = createTestEntry({ type: 'coding' });
-      scaffoldCapsule(projectsBase, entry.slug, entry.name, entry.type);
-      fs.unlinkSync(path.join(projectsBase, entry.slug, 'ARCHITECTURE.md'));
-
-      const results = runCapsuleChecks(entry, projectsBase);
-
-      expect(results.some(r => r.checkId === 'overlayMissing:ARCHITECTURE.md')).toBe(true);
     });
 
     it('should detect capsule version behind', () => {
@@ -331,7 +310,7 @@ ${new Date().toISOString()}
 
 ## Upcoming actions
 
-_See TODO.md for full backlog._
+_None yet._
 `;
 
       const results = runStatusQualityChecks(status, entry);
@@ -357,43 +336,41 @@ _See TODO.md for full backlog._
     });
   });
 
-  describe('runNextVsTodoChecks', () => {
-    it('should pass when all task IDs exist in TODO', () => {
+  describe('runNextVsBacklogChecks', () => {
+    it('should pass when all task IDs exist in Backlog', () => {
       const status = `## Next 3 actions
 
 1. [T-1] First task
 2. [T-2] Second task
-`;
 
-      const todo = `## Backlog
+## Backlog
 
 - [T-1] First task
 - [T-2] Second task
 - [T-3] Third task
 `;
 
-      const results = runNextVsTodoChecks(status, todo);
+      const results = runNextVsBacklogChecks(status);
 
       expect(results).toHaveLength(0);
     });
 
-    it('should warn when 2+ task IDs missing from TODO', () => {
+    it('should warn when 2+ task IDs missing from Backlog', () => {
       const status = `## Next 3 actions
 
 1. [T-1] First task
 2. [T-2] Second task
 3. [T-3] Third task
-`;
 
-      const todo = `## Backlog
+## Backlog
 
 - [T-1] First task only
 `;
 
-      const results = runNextVsTodoChecks(status, todo);
+      const results = runNextVsBacklogChecks(status);
 
       expect(results).toHaveLength(1);
-      expect(results[0]?.checkId).toBe('nextNotInTodo');
+      expect(results[0]?.checkId).toBe('nextNotInBacklog');
       expect(results[0]?.message).toContain('T-2');
       expect(results[0]?.message).toContain('T-3');
     });
@@ -403,76 +380,37 @@ _See TODO.md for full backlog._
 
 1. [T-1] First task
 2. [T-2] Stale task
-`;
 
-      const todo = `## Backlog
+## Backlog
 
 - [T-1] First task
 `;
 
-      const results = runNextVsTodoChecks(status, todo);
+      const results = runNextVsBacklogChecks(status);
 
       expect(results).toHaveLength(0);
     });
   });
 
-  describe('runCommandsLinksChecks', () => {
-    it('should detect empty COMMANDS.md for coding topics', () => {
-      const entry = createTestEntry({ type: 'coding' });
-      const capsuleFiles = new Map([['COMMANDS.md', '# Commands\n\n_Empty_']]);
+  describe('runUnfilledContextCheck', () => {
+    it('should detect unfilled README.md context', () => {
+      const capsuleFiles = new Map([
+        ['README.md', '# My Topic\n\n## What is this about?\n\n_Describe what this topic is about._\n'],
+      ]);
 
-      const results = runCommandsLinksChecks(entry, capsuleFiles);
+      const results = runUnfilledContextCheck(capsuleFiles);
 
-      expect(results.some(r => r.checkId === 'commandsEmpty')).toBe(true);
+      expect(results).toHaveLength(1);
+      expect(results[0]?.checkId).toBe('contextUnfilled');
+      expect(results[0]?.severity).toBe(Severity.INFO);
     });
 
-    it('should detect empty LINKS.md for research topics', () => {
-      const entry = createTestEntry({ type: 'research' });
-      const capsuleFiles = new Map([['LINKS.md', '# Links\n\n_Empty_']]);
+    it('should pass when README.md has real content', () => {
+      const capsuleFiles = new Map([
+        ['README.md', '# My Topic\n\n## What is this about?\n\nA real project description.\n'],
+      ]);
 
-      const results = runCommandsLinksChecks(entry, capsuleFiles);
-
-      expect(results.some(r => r.checkId === 'linksEmpty')).toBe(true);
-    });
-
-    it('should not check COMMANDS.md for non-coding topics', () => {
-      const entry = createTestEntry({ type: 'research' });
-      const capsuleFiles = new Map([['COMMANDS.md', '# Commands\n\n_Empty_']]);
-
-      const results = runCommandsLinksChecks(entry, capsuleFiles);
-
-      expect(results.some(r => r.checkId === 'commandsEmpty')).toBe(false);
-    });
-  });
-
-  describe('runCronChecks', () => {
-    it('should pass for empty CRON.md', () => {
-      const cronContent = '# Cron\n\n_No jobs_';
-
-      const results = runCronChecks(cronContent);
-
-      expect(results).toHaveLength(0);
-    });
-
-    it('should detect missing job IDs', () => {
-      const cronContent = `# Cron
-
-Daily backup job runs at 2am
-Another job at 3am
-`;
-
-      const results = runCronChecks(cronContent);
-
-      expect(results.some(r => r.checkId === 'cronNoJobIds')).toBe(true);
-    });
-
-    it('should pass when job IDs present', () => {
-      const cronContent = `# Cron
-
-backup-daily-abc123 - Runs at midnight
-`;
-
-      const results = runCronChecks(cronContent);
+      const results = runUnfilledContextCheck(capsuleFiles);
 
       expect(results).toHaveLength(0);
     });
@@ -634,7 +572,7 @@ backup-daily-abc123 - Runs at midnight
   });
 
   describe('backupCapsuleIfHealthy', () => {
-    it('should create .tm-backup/ with STATUS.md and TODO.md when all checks pass', () => {
+    it('should create .tm-backup/ with STATUS.md when all checks pass', () => {
       const entry = createTestEntry();
       scaffoldCapsule(projectsBase, entry.slug, entry.name, entry.type);
 
@@ -645,7 +583,6 @@ backup-daily-abc123 - Runs at midnight
       const backupDir = path.join(projectsBase, entry.slug, '.tm-backup');
       expect(fs.existsSync(backupDir)).toBe(true);
       expect(fs.existsSync(path.join(backupDir, 'STATUS.md'))).toBe(true);
-      expect(fs.existsSync(path.join(backupDir, 'TODO.md'))).toBe(true);
     });
 
     it('should NOT create backup when ERROR findings exist', () => {
@@ -701,7 +638,7 @@ backup-daily-abc123 - Runs at midnight
       const entry = createTestEntry();
       const capsuleDir = path.join(projectsBase, entry.slug);
       fs.mkdirSync(capsuleDir, { recursive: true });
-      // No STATUS.md or TODO.md
+      // No STATUS.md
 
       // Should not throw
       backupCapsuleIfHealthy(projectsBase, entry.slug, []);
@@ -709,7 +646,6 @@ backup-daily-abc123 - Runs at midnight
       const backupDir = path.join(capsuleDir, '.tm-backup');
       expect(fs.existsSync(backupDir)).toBe(true);
       expect(fs.existsSync(path.join(backupDir, 'STATUS.md'))).toBe(false);
-      expect(fs.existsSync(path.join(backupDir, 'TODO.md'))).toBe(false);
     });
 
     it('should allow backup with only INFO findings', () => {

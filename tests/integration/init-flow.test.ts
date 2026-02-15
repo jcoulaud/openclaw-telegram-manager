@@ -616,7 +616,7 @@ describe('init flow integration', () => {
       expect(postFn).toHaveBeenCalledTimes(1);
       expect(postFn.mock.calls[0][2]).toContain('Set up this topic');
       expect(postFn.mock.calls[0][3]).toBeDefined(); // keyboard
-      expect(step1.text).toContain('pick a type');
+      expect(step1.text).toBe('');
       expect(step1.inlineKeyboard).toBeUndefined();
 
       // Step 2: name confirmation — postFn receives HTML confirm + keyboard
@@ -625,7 +625,7 @@ describe('init flow integration', () => {
       expect(postFn.mock.calls[1][2]).toContain('Got it');
       expect(postFn.mock.calls[1][2]).toContain('PostFn Project');
       expect(postFn.mock.calls[1][3]).toBeDefined(); // keyboard
-      expect(step2.text).toContain('Type selected: coding');
+      expect(step2.text).toBe('');
       expect(step2.inlineKeyboard).toBeUndefined();
 
       // Step 3: confirm — postFn receives HTML topic card, no keyboard

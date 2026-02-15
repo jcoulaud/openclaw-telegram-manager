@@ -529,8 +529,8 @@ describe('commands/init', () => {
       expect(keyboard).toBeDefined();
       expect(keyboard.inline_keyboard).toHaveLength(2);
 
-      // CommandResult should be minimal text with no keyboard
-      expect(result.text).toContain('pick a type');
+      // CommandResult should be empty (postFn already sent the card)
+      expect(result.text).toBe('');
       expect(result.inlineKeyboard).toBeUndefined();
     });
 
@@ -551,8 +551,8 @@ describe('commands/init', () => {
       expect(keyboard).toBeDefined();
       expect(keyboard.inline_keyboard[0][0].text).toBe('Use this name');
 
-      // CommandResult should be minimal text with no keyboard
-      expect(result.text).toContain('Type selected: research');
+      // CommandResult should be empty (postFn already sent the card)
+      expect(result.text).toBe('');
       expect(result.inlineKeyboard).toBeUndefined();
     });
 

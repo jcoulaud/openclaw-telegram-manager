@@ -304,7 +304,7 @@ async function buildTypePicker(ctx: CommandContext): Promise<CommandResult> {
   if (ctx.postFn) {
     try {
       await ctx.postFn(groupId, threadId, buildInitWelcomeHtml(), keyboard);
-      return { text: 'Topic setup started — pick a type using the buttons above.' };
+      return { text: '' };
     } catch {
       // Fall through to markdown fallback
     }
@@ -360,7 +360,7 @@ export async function handleInitTypeSelect(ctx: CommandContext, type: TopicType)
   if (ctx.postFn) {
     try {
       await ctx.postFn(groupId, threadId, buildInitNameConfirmHtml(name, type), keyboard);
-      return { text: `Type selected: ${type}. Confirm the name or type /tm init your-name ${type}.` };
+      return { text: '' };
     } catch {
       // Fall through to markdown fallback
     }

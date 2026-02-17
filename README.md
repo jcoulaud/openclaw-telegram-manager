@@ -1,4 +1,16 @@
-# Persistent Memory for OpenClaw Telegram Topics
+# [DEPRECATED] Persistent Memory for OpenClaw Telegram Topics
+
+> **This project has been deprecated.** It was completely refactored and is now maintained under a new repository:
+>
+> **https://github.com/jcoulaud/OpenClaw-Telegram-Topic-OS**
+>
+> Please use the new package going forward. This repository is archived and will no longer receive updates.
+
+---
+
+_Original README below for reference._
+
+---
 
 [![CI](https://github.com/jcoulaud/openclaw-telegram-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/jcoulaud/openclaw-telegram-manager/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/openclaw-telegram-manager)](https://www.npmjs.com/package/openclaw-telegram-manager)
